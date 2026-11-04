@@ -1,0 +1,25 @@
+{
+  "name": "srps-report-erp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "test": "node --test server/test/*.test.js",
+    "seed": "npm run seed -w server",
+    "test:unit": "node --test server/test/engine.test.js",
+    "test:integration": "node --test server/test/api.test.js",
+    "format": "prettier --write client/src server/src server/test shared"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10"
+  }
+}

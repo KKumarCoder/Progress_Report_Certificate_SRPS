@@ -1,0 +1,2011 @@
+{
+  "templateVersion": "srps-blank-v1",
+  "mappingVersion": "1.0.0",
+  "policy": {
+    "type": "a4-contain",
+    "width": 595.275590551,
+    "height": 841.88976378,
+    "margin": 12
+  },
+  "fonts": {
+    "400": {
+      "file": "/templates/fonts/DMSans-400-9b486ebfe0ee.ttf",
+      "family": "SRPSReport400",
+      "sha256": "9b486ebfe0ee36023cc3f9526efe40e01cf1db3260acb71c5160126cbfe10ee4"
+    },
+    "700": {
+      "file": "/templates/fonts/DMSans-700-5c2f9c6407f1.ttf",
+      "family": "SRPSReport700",
+      "sha256": "5c2f9c6407f18adea61669de46d3e8d3deef4591f049af89a0eb82dfe99fba30"
+    }
+  },
+  "pages": {
+    "front": {
+      "width": 1054,
+      "height": 1492,
+      "artwork": "/templates/v1/front-d5206b87d9d7.png",
+      "sha256": "d5206b87d9d7cd9d18fe631c2f6483ac00f170c3b684ec759b0bb072c0aba991",
+      "fields": [
+        {
+          "id": "session",
+          "type": "text",
+          "x": 590,
+          "y": 592,
+          "width": 92,
+          "height": 28,
+          "font": "700",
+          "fontSize": 21,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 14,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "classSection",
+          "type": "text",
+          "x": 330,
+          "y": 649,
+          "width": 170,
+          "height": 32,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "admissionNo",
+          "type": "text",
+          "x": 643,
+          "y": 649,
+          "width": 78,
+          "height": 32,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "name",
+          "type": "text",
+          "x": 330,
+          "y": 697,
+          "width": 170,
+          "height": 34,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "house",
+          "type": "text",
+          "x": 643,
+          "y": 697,
+          "width": 78,
+          "height": 34,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "motherName",
+          "type": "text",
+          "x": 330,
+          "y": 747,
+          "width": 363,
+          "height": 36,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "fatherName",
+          "type": "text",
+          "x": 330,
+          "y": 797,
+          "width": 363,
+          "height": 36,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "dob",
+          "type": "text",
+          "x": 330,
+          "y": 847,
+          "width": 363,
+          "height": 36,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "address",
+          "type": "text",
+          "x": 330,
+          "y": 895,
+          "width": 363,
+          "height": 40,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "mobile",
+          "type": "text",
+          "x": 330,
+          "y": 948,
+          "width": 363,
+          "height": 36,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "photo",
+          "type": "image",
+          "x": 750,
+          "y": 666,
+          "width": 222,
+          "height": 283,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          },
+          "fit": "cover",
+          "clip": [
+            ["M", 0.162, 0],
+            ["L", 0.838, 0],
+            ["C", 0.858, 0.075, 0.91, 0.115, 1, 0.133],
+            ["L", 1, 0.57],
+            ["C", 1, 0.765, 0.79, 0.9, 0.5, 1],
+            ["C", 0.21, 0.9, 0, 0.765, 0, 0.57],
+            ["L", 0, 0.133],
+            ["C", 0.09, 0.115, 0.142, 0.075, 0.162, 0],
+            ["Z"]
+          ]
+        },
+        {
+          "id": "resultMessage",
+          "type": "text",
+          "x": 280,
+          "y": 1012,
+          "width": 683,
+          "height": 42,
+          "font": "700",
+          "fontSize": 24,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 15,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "remarks",
+          "type": "text",
+          "x": 280,
+          "y": 1080,
+          "width": 683,
+          "height": 42,
+          "font": "700",
+          "fontSize": 24,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 13,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "teacherSignature",
+          "type": "image",
+          "x": 221,
+          "y": 1290,
+          "width": 175,
+          "height": 56,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          },
+          "fit": "contain"
+        },
+        {
+          "id": "principalSignature",
+          "type": "image",
+          "x": 664,
+          "y": 1290,
+          "width": 172,
+          "height": 56,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          },
+          "fit": "contain"
+        }
+      ]
+    },
+    "back": {
+      "width": 1024,
+      "height": 1536,
+      "artwork": "/templates/v1/back-c6ebd73cb5e3.png",
+      "sha256": "c6ebd73cb5e396adb2bee45e9d2cf7f998663e4a9d2897d09ff802c35f0260a2",
+      "fields": [
+        {
+          "id": "teacherSignature",
+          "type": "image",
+          "x": 186,
+          "y": 1373,
+          "width": 188,
+          "height": 50,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          },
+          "fit": "contain"
+        },
+        {
+          "id": "principalSignature",
+          "type": "image",
+          "x": 650,
+          "y": 1373,
+          "width": 187,
+          "height": 50,
+          "font": "700",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          },
+          "fit": "contain"
+        },
+        {
+          "id": "term1.english.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 480.0,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.english.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 480.0,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.english.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 480.0,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.english.exam",
+          "type": "text",
+          "x": 638,
+          "y": 480.0,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.english.total",
+          "type": "text",
+          "x": 759,
+          "y": 480.0,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.english.grade",
+          "type": "text",
+          "x": 874,
+          "y": 480.0,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.hindi.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 511.3,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.hindi.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 511.3,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.hindi.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 511.3,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.hindi.exam",
+          "type": "text",
+          "x": 638,
+          "y": 511.3,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.hindi.total",
+          "type": "text",
+          "x": 759,
+          "y": 511.3,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.hindi.grade",
+          "type": "text",
+          "x": 874,
+          "y": 511.3,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.sanskrit.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 542.6,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.sanskrit.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 542.6,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.sanskrit.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 542.6,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.sanskrit.exam",
+          "type": "text",
+          "x": 638,
+          "y": 542.6,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.sanskrit.total",
+          "type": "text",
+          "x": 759,
+          "y": 542.6,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.sanskrit.grade",
+          "type": "text",
+          "x": 874,
+          "y": 542.6,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.mathematics.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 573.9,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.mathematics.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 573.9,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.mathematics.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 573.9,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.mathematics.exam",
+          "type": "text",
+          "x": 638,
+          "y": 573.9,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.mathematics.total",
+          "type": "text",
+          "x": 759,
+          "y": 573.9,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.mathematics.grade",
+          "type": "text",
+          "x": 874,
+          "y": 573.9,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.science.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 605.2,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.science.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 605.2,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.science.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 605.2,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.science.exam",
+          "type": "text",
+          "x": 638,
+          "y": 605.2,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.science.total",
+          "type": "text",
+          "x": 759,
+          "y": 605.2,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.science.grade",
+          "type": "text",
+          "x": 874,
+          "y": 605.2,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.social.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 636.5,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.social.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 636.5,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.social.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 636.5,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.social.exam",
+          "type": "text",
+          "x": 638,
+          "y": 636.5,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.social.total",
+          "type": "text",
+          "x": 759,
+          "y": 636.5,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.social.grade",
+          "type": "text",
+          "x": 874,
+          "y": 636.5,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.reasoning.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 667.8,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.reasoning.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 667.8,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.reasoning.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 667.8,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.reasoning.exam",
+          "type": "text",
+          "x": 638,
+          "y": 667.8,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.reasoning.total",
+          "type": "text",
+          "x": 759,
+          "y": 667.8,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term1.reasoning.grade",
+          "type": "text",
+          "x": 874,
+          "y": 667.8,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.english.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 804.0,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.english.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 804.0,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.english.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 804.0,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.english.exam",
+          "type": "text",
+          "x": 638,
+          "y": 804.0,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.english.total",
+          "type": "text",
+          "x": 759,
+          "y": 804.0,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.english.grade",
+          "type": "text",
+          "x": 874,
+          "y": 804.0,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.hindi.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 835.45,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.hindi.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 835.45,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.hindi.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 835.45,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.hindi.exam",
+          "type": "text",
+          "x": 638,
+          "y": 835.45,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.hindi.total",
+          "type": "text",
+          "x": 759,
+          "y": 835.45,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.hindi.grade",
+          "type": "text",
+          "x": 874,
+          "y": 835.45,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.sanskrit.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 866.9,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.sanskrit.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 866.9,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.sanskrit.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 866.9,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.sanskrit.exam",
+          "type": "text",
+          "x": 638,
+          "y": 866.9,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.sanskrit.total",
+          "type": "text",
+          "x": 759,
+          "y": 866.9,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.sanskrit.grade",
+          "type": "text",
+          "x": 874,
+          "y": 866.9,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.mathematics.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 898.35,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.mathematics.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 898.35,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.mathematics.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 898.35,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.mathematics.exam",
+          "type": "text",
+          "x": 638,
+          "y": 898.35,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.mathematics.total",
+          "type": "text",
+          "x": 759,
+          "y": 898.35,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.mathematics.grade",
+          "type": "text",
+          "x": 874,
+          "y": 898.35,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.science.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 929.8,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.science.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 929.8,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.science.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 929.8,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.science.exam",
+          "type": "text",
+          "x": 638,
+          "y": 929.8,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.science.total",
+          "type": "text",
+          "x": 759,
+          "y": 929.8,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.science.grade",
+          "type": "text",
+          "x": 874,
+          "y": 929.8,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.social.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 961.25,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.social.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 961.25,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.social.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 961.25,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.social.exam",
+          "type": "text",
+          "x": 638,
+          "y": 961.25,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.social.total",
+          "type": "text",
+          "x": 759,
+          "y": 961.25,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.social.grade",
+          "type": "text",
+          "x": 874,
+          "y": 961.25,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.reasoning.periodic",
+          "type": "text",
+          "x": 267,
+          "y": 992.7,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.reasoning.notebook",
+          "type": "text",
+          "x": 388,
+          "y": 992.7,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.reasoning.enrichment",
+          "type": "text",
+          "x": 513,
+          "y": 992.7,
+          "width": 118,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.reasoning.exam",
+          "type": "text",
+          "x": 638,
+          "y": 992.7,
+          "width": 114,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.reasoning.total",
+          "type": "text",
+          "x": 759,
+          "y": 992.7,
+          "width": 108,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "term2.reasoning.grade",
+          "type": "text",
+          "x": 874,
+          "y": 992.7,
+          "width": 100,
+          "height": 28,
+          "font": "400",
+          "fontSize": 17,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "percentage",
+          "type": "text",
+          "x": 174,
+          "y": 1081,
+          "width": 177,
+          "height": 40,
+          "font": "700",
+          "fontSize": 30,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "grandTotal",
+          "type": "text",
+          "x": 475,
+          "y": 1081,
+          "width": 182,
+          "height": 40,
+          "font": "700",
+          "fontSize": 30,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "maximum",
+          "type": "text",
+          "x": 596,
+          "y": 1056,
+          "width": 62,
+          "height": 22,
+          "font": "700",
+          "fontSize": 15,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "result",
+          "type": "text",
+          "x": 795,
+          "y": 1080,
+          "width": 176,
+          "height": 40,
+          "font": "700",
+          "fontSize": 28,
+          "colour": "#222222",
+          "alignment": "left",
+          "overflow": {
+            "mode": "wrap-shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.0.term1",
+          "type": "text",
+          "x": 458,
+          "y": 1207.0,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.0.term2",
+          "type": "text",
+          "x": 719,
+          "y": 1207.0,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.1.term1",
+          "type": "text",
+          "x": 458,
+          "y": 1237.1,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.1.term2",
+          "type": "text",
+          "x": 719,
+          "y": 1237.1,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.2.term1",
+          "type": "text",
+          "x": 458,
+          "y": 1267.2,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.2.term2",
+          "type": "text",
+          "x": 719,
+          "y": 1267.2,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.3.term1",
+          "type": "text",
+          "x": 458,
+          "y": 1297.3,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.3.term2",
+          "type": "text",
+          "x": 719,
+          "y": 1297.3,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.4.term1",
+          "type": "text",
+          "x": 458,
+          "y": 1327.4,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.4.term2",
+          "type": "text",
+          "x": 719,
+          "y": 1327.4,
+          "width": 253,
+          "height": 27,
+          "font": "400",
+          "fontSize": 18,
+          "colour": "#222222",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 12,
+            "onFailure": "error"
+          }
+        }
+      ]
+    }
+  }
+}
