@@ -71,6 +71,31 @@ after(async () => {
 test("Unauthenticated requests denied", async () => {
   assert.equal((await request(app).get("/api/students")).status, 401);
 });
+test("Staff API responses omit password reset and session internals", async () => {
+  const me = await teacher.get("/api/auth/me");
+  assert.equal(me.status, 200);
+  for (const key of [
+    "passwordHash",
+    "resetTokenHash",
+    "resetExpiresAt",
+    "resetRequestedAt",
+    "resetVersion",
+    "sessionVersion",
+  ])
+    assert.equal(me.body[key], undefined);
+  const users = await admin.get("/api/users");
+  assert.equal(users.status, 200);
+  for (const user of users.body)
+    for (const key of [
+      "passwordHash",
+      "resetTokenHash",
+      "resetExpiresAt",
+      "resetRequestedAt",
+      "resetVersion",
+      "sessionVersion",
+    ])
+      assert.equal(user[key], undefined);
+});
 test("Mutation origin header required", async () => {
   assert.equal((await admin.post("/api/students").send({})).status, 403);
 });
@@ -178,7 +203,20 @@ test("Save, revision conflict, invalid range, submit and publish", async () => {
     );
     const pdf = await teacher.get(`/api/report-pdf/${student._id}/2025-26`);
     assert.equal(pdf.status, 200, pdf.text);
-    assert.equal((await PDFDocument.load(pdf.body)).getPageCount(), 2);
+    await assert.rejects(PDFDocument.load(pdf.body), /encrypted/i);
+    const review = await admin.get("/api/review?session=2025-26");
+    assert.equal(review.status, 200);
+    assert.ok(
+      review.body.some(
+        (entry) =>
+          entry.student._id === String(student._id) &&
+          entry.status === "published",
+      ),
+    );
+    assert.equal(
+      (await teacher.get("/api/review?session=2025-26")).status,
+      403,
+    );
     const batch = await teacher
       .post("/api/report-pdf/bulk")
       .set(header)
@@ -306,6 +344,21 @@ test("PDF routes enforce authentication, scope and published-only batches", asyn
   assert.equal(
     (await teacher.post("/api/template-mapping").set(header).send({})).status,
     404,
+  );
+});
+test("Teachers cannot export submitted reports before admin review", async () => {
+  await Report.create({
+    student: student._id,
+    session: "2028-29",
+    status: "submitted",
+  });
+  assert.equal(
+    (await teacher.get(`/api/report-pdf/${student._id}/2028-29`)).status,
+    403,
+  );
+  assert.equal(
+    (await admin.get(`/api/report-pdf/${student._id}/2028-29`)).status,
+    200,
   );
 });
 test("password bounds apply to staff creation, reset and self-service changes", async () => {

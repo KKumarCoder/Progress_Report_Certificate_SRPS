@@ -33,7 +33,7 @@ docker compose up --build -d
 
 4. Open **http://localhost:4000** and sign in using your configured administrator email/password.
 
-The application seeds the first administrator only if no administrator exists. MongoDB and uploaded files persist in Docker volumes. Restarting containers does not erase them. Do not run `docker compose down -v` unless intentionally deleting the database and uploads.
+The application seeds the first administrator only if no administrator exists. MongoDB persists in a Docker volume; new uploaded media and archived PDFs are stored in Cloudinary. Restarting containers does not erase MongoDB data. Do not run `docker compose down -v` unless intentionally deleting the database and any remaining legacy uploads.
 
 Local Docker uses `NODE_ENV=development` so its cookie works on HTTP. For an internet deployment, serve HTTPS, set `NODE_ENV=production` and set `APP_ORIGIN` to the exact HTTPS origin. MongoDB is intentionally not exposed on a host port.
 
@@ -141,7 +141,7 @@ Dockerfile              Build and runtime images
 
 ## Operational notes
 
-Back up **both MongoDB and uploads**. Configure HTTPS, monitoring, controlled administrator access, backup retention and restore rehearsal on your production host. There is no public self-registration, parent portal, messaging, fee module, stream-specific subject selection, or password-reset email in this focused report-card ERP. Admin account management is included; automated email delivery is not. No data is sent to Canva or any third-party school service by this project.
+Back up MongoDB and configure Cloudinary retention/backups for private media. Configure HTTPS, monitoring, controlled administrator access, backup retention and restore rehearsal on your production host. There is no public self-registration, parent portal, messaging, fee module, or stream-specific subject selection in this focused report-card ERP. Admin account management and automated email delivery are included. No data is sent to Canva by this project.
 
 New report PDF downloads use Node.js pdf-lib with embedded fonts and selectable overlay text. Only legacy published reports retain their earlier screenshot PDF fallback. Signature/photo uploads are separate files, not Excel-embedded images. Existing sessions are revoked when a staff account is disabled or its permissions/password change. Audit entries record action metadata, not full previous mark values.
 
@@ -235,3 +235,76 @@ are rate-limited, with a one-minute per-account mail cooldown. SMTP failures are
 logged without credentials or reset links; the UI reports missing configuration.
 Tests mock delivery and never send real email. Verify delivery using an account
 you control after configuring SMTP.
+
+### WhatsApp report delivery (APITxT)
+
+Admin/principal can send a published report from the report workspace. The
+system sends an APITxT-approved WhatsApp template with student name, session,
+and a signed report download link. The link expires after seven days and only
+serves a published report. Add the parent's WhatsApp number in the student's
+Mobile number field (Indian 10-digit numbers receive the `91` country prefix).
+
+Configure `APITXT_AUTHKEY`, `APITXT_PROJECT_REF_ID`,
+`APITXT_TEMPLATE_NAME`, and a long random `WA_LINK_SECRET` in `server/.env`.
+APITxT's current WhatsApp Template API docs require `authkey` in the JSON body;
+the Auth Key from Manage API Keys belongs in `APITXT_AUTHKEY`. No separate
+Bearer API key is used. The approved APITxT template must have a DOCUMENT
+header and three body parameters in this order: student name, academic session,
+report link. In production, `APP_ORIGIN` must
+be the public HTTPS address used by parents to open the link. Keep all API
+credentials on the server; never put them in client code. APITxT's API supports
+DOCUMENT headers via `header_document_url`; the application attaches the
+encrypted PDF and includes its temporary link. Published PDFs are encrypted;
+the opening password is the student's admission number, followed by `@`, then
+their date of birth in `YYYY-MM-DD` format (example: `722@2015-04-09`). Update
+the approved WhatsApp template text to give parents this password format.
+
+### Report review and locked publication
+
+Teacher **Submit for review** moves the report to the admin/principal-only
+**Report Review** inbox. Reviewers can open the report, choose **All done ·
+Publish**, or **Reopen** a published report for correction. Published single
+report PDFs use `<admission number>@<DOB>` as the opening password; DOB format
+is `YYYY-MM-DD`. The
+WhatsApp action sends the encrypted PDF as a document and includes a
+seven-day backup link. The student record must contain a valid admission number and DOB to generate a
+password-protected PDF.
+
+### Email report delivery
+
+After a report is published, authorized staff can use the mail icon in Students
+or Report Review to email the locked PDF attachment to the parent/guardian.
+Add the guardian's address to the student's **Parent/guardian email** field.
+This uses the same SMTP settings as password reset and Report Drive OTP
+(`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM`). The
+recipient receives the PDF password format in the message body. Email delivery
+is recorded on the report and can be resent from the same control. Admins can
+grant or revoke **Send reports by email** in Users & Access; student class
+assignments continue to scope which records teachers can send for.
+
+### Private Report Drive
+
+The admin-only Report Drive groups published reports by session, class, and
+section. Opening the module sends a six-digit OTP to `srpskanhra@gmail.com`;
+SMTP uses the same `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and
+`MAIL_FROM` settings as password reset. Codes expire after five minutes, have
+attempt and resend limits, and unlock one authenticated admin session for ten
+minutes. Downloads stay behind the authenticated OTP gate and are never served
+as static files. PDFs are encrypted with `<admission number>@<DOB>` (DOB in `YYYY-MM-DD` format).
+
+Archives are generated from immutable report, student, and template snapshots
+at publish time and stored as private authenticated Cloudinary assets under
+`ReportCard/Reports`. Student photos, signatures, and school artwork are stored
+under `ReportCard/Media` in the same Cloudinary product environment;
+new uploads are processed in memory and are not written to the app disk. Set
+`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in
+the server environment (also in the Compose `.env` for Docker deployments).
+The API secret must remain server-side. Cloudinary must allow delivery of PDF
+assets for Report Drive downloads. Old local photos/signatures can be moved by
+an administrator using **Settings → Cloud storage → Organize existing images**;
+this also moves previously uploaded Cloudinary images into `ReportCard/Media`.
+The legacy local copy is removed after the Cloudinary upload and database update
+succeed. Published reports with snapshots are moved into `ReportCard/Reports`
+when the admin runs the Report Drive archive action; legacy reports without snapshots
+cannot be safely re-rendered until reopened and republished. The OTP inbox is fixed to
+`srpskanhra@gmail.com`; SMTP must be configured before using this module.

@@ -18,6 +18,21 @@ import {
   fitImage,
 } from "./report-template.js";
 
+async function generateQrPngBytes(text) {
+  if (typeof window === "undefined") {
+    const QRCode = (await import("qrcode")).default || (await import("qrcode"));
+    return await QRCode.toBuffer(text, { type: "png", width: 180, margin: 1 });
+  } else {
+    const QRCode = (await import("qrcode")).default || (await import("qrcode"));
+    const dataUrl = await QRCode.toDataURL(text, { width: 180, margin: 1 });
+    const base64 = dataUrl.split(",")[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+}
+
 export async function generateReportPdf(records, loadResource) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
@@ -43,7 +58,8 @@ export async function generateReportPdf(records, loadResource) {
       );
     return images.get(key);
   };
-  for (const { student, report, config, user, mapping } of records) {
+  for (const record of records) {
+    const { student, report, config, user, mapping, verificationUrl } = record;
     const values = reportValues(student, report, config, user);
     for (const f of Object.values(mapping.fonts))
       if (!fonts.has(f.file)) {
@@ -115,6 +131,34 @@ export async function generateReportPdf(records, loadResource) {
             height: box.height * place.scale,
           });
           page.pushOperators(popGraphicsState());
+        }
+      }
+      const vUrl = verificationUrl || report.verificationUrl;
+      if (vUrl && report.status === "published") {
+        try {
+          const qrBytes = await generateQrPngBytes(vUrl);
+          const qrImg = await pdf.embedPng(qrBytes);
+          const qrSize = (side === "front" ? 76 : 82) * place.scale;
+          const qrX = px(side === "front" ? 486 : 468);
+          const qrY = py(
+            (side === "front" ? 1276 : 1362) + (side === "front" ? 76 : 82),
+          );
+          page.drawImage(qrImg, {
+            x: qrX,
+            y: qrY,
+            width: qrSize,
+            height: qrSize,
+          });
+          const font = fonts.values().next().value.pdf;
+          page.drawText("Scan to verify", {
+            x: qrX + 5 * place.scale,
+            y: qrY - 8 * place.scale,
+            size: 6.5 * place.scale,
+            font,
+            color: rgb(0.25, 0.25, 0.25),
+          });
+        } catch (e) {
+          console.error("QR code embedding failed:", e.message);
         }
       }
       if (report.status !== "published")

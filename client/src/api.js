@@ -119,6 +119,8 @@ export async function api(url, options = {}) {
     throw new Error("Cannot reach the server. Check your connection and try again.");
   });
   if (!response.ok) {
+    if (response.status === 401)
+      window.dispatchEvent(new Event("srps:session-expired"));
     const data = await response.json().catch(() => null);
     throw new Error(
       (typeof data?.error === "string" && data.error) ||
@@ -320,7 +322,11 @@ async function demoApi(url, { method = "GET", body = {} } = {}) {
 }
 export async function download(url, filename) {
   const r = await fetch("/api" + url, { credentials: "same-origin" });
-  if (!r.ok) throw new Error("Download failed");
+  if (!r.ok) {
+    if (r.status === 401) window.dispatchEvent(new Event("srps:session-expired"));
+    const data = await r.json().catch(() => null);
+    throw new Error(data?.error || `Download failed (${r.status})`);
+  }
   saveBlob(await r.blob(), filename);
 }
 export function saveBlob(blob, name) {

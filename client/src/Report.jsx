@@ -49,7 +49,24 @@ export default function ReportPage(props) {
       ? report.templateSnapshot
       : override || defaultMapping;
   const [fonts, setFonts] = useState(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [qrDataUrl, setQrDataUrl] = useState("");
+  const vUrl = props.verificationUrl || report.verificationUrl;
+  useEffect(() => {
+    let active = true;
+    if (report.status === "published" && vUrl) {
+      import("qrcode")
+        .then((m) => m.default || m)
+        .then((QRCode) => QRCode.toDataURL(vUrl, { width: 180, margin: 1 }))
+        .then((url) => {
+          if (active) setQrDataUrl(url);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      active = false;
+    };
+  }, [report.status, vUrl]);
   const uid = useId().replaceAll(":", "");
   useEffect(() => {
     let active = true;
@@ -182,6 +199,31 @@ export default function ReportPage(props) {
                 </text>
               </g>
             ))}
+          {report.status === "published" && qrDataUrl && (
+            <g data-field="qrVerification">
+              <image
+                href={qrDataUrl}
+                x={side === "front" ? 486 : 468}
+                y={side === "front" ? 1276 : 1362}
+                width={side === "front" ? 76 : 82}
+                height={side === "front" ? 76 : 82}
+                preserveAspectRatio="xMidYMid meet"
+              />
+              <text
+                x={(side === "front" ? 486 : 468) + 6}
+                y={
+                  (side === "front" ? 1276 : 1362) +
+                  (side === "front" ? 76 : 82) +
+                  12
+                }
+                fontFamily={mapping.fonts["400"]?.family || "sans-serif"}
+                fontSize="11"
+                fill="#444"
+              >
+                Scan to verify
+              </text>
+            </g>
+          )}
         </svg>
         {report.status !== "published" && (
           <text

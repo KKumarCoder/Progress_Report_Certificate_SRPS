@@ -18,7 +18,8 @@
     "lucide-react": "^0.468.0",
     "pdf-lib": "^1.17.1",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-toastify": "^11.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.3",
