@@ -664,19 +664,53 @@ app.all(
       if (sender.length === 10) sender = `91${sender}`;
       const raw10 = sender.slice(-10);
 
+      // Condition 1: Sirf tab reply kare jab parent ne 'help' ya 'password' pucha ho
+      const textLower = incomingText.toLowerCase();
+      const isHelpOrPasswordQuery =
+        /\b(help|password|pass|passward|pasword|pwd|unlock|format|code|पासवर्ड|हेल्प)\b/i.test(
+          textLower,
+        );
+
+      if (!isHelpOrPasswordQuery) {
+        // 'thanks', 'ok', 'by', 'done' ya anya baaton par reply nahi bhejna
+        return res.json({ ok: true });
+      }
+
+      // Condition 2: Sirf tab reply kare jab is student ko pehle report card bheja ja chuka ho
       const matched = await Student.find({
         active: true,
         mobile: { $regex: raw10 },
       }).lean();
 
+      if (!matched || matched.length === 0) {
+        return res.json({ ok: true });
+      }
+
+      const studentIds = matched.map((s) => s._id);
+      const sentReports = await Report.find({
+        student: { $in: studentIds },
+        status: "published",
+        whatsappSentAt: { $exists: true, $ne: null },
+      }).lean();
+
+      if (!sentReports || sentReports.length === 0) {
+        // Agar is student ko abhi tak report card send/deliver hi nahi hua, to reply nahi bhejna
+        return res.json({ ok: true });
+      }
+
+      // Filter matched students to only those whose reports were sent
+      const activeRecipientStudents = matched.filter((s) =>
+        sentReports.some((r) => String(r.student) === String(s._id)),
+      );
+
       let replyText = "";
-      if (matched.length === 1) {
-        const s = matched[0];
+      if (activeRecipientStudents.length === 1) {
+        const s = activeRecipientStudents[0];
         replyText = `Namaste Parent/Guardian 🙏\n\nTo view or open the Report Card PDF for *${s.name}* (Class ${s.className}-${s.section}):\n\n🔐 *Your PDF Password is:*\n👉 *${s.admissionNo}@${s.dob}*\n\n📌 *Format:* AdmissionNumber@DOB (e.g., ${s.admissionNo}@${s.dob})\n\nShree Ram Public School, Kanhra`;
-      } else if (matched.length > 1) {
+      } else if (activeRecipientStudents.length > 1) {
         replyText =
           `Namaste Parent/Guardian 🙏\n\nYour registered student records at Shree Ram Public School:\n\n` +
-          matched
+          activeRecipientStudents
             .map(
               (s) =>
                 `• *${s.name}* (Class ${s.className}-${s.section})\n  🔐 Password: *${s.admissionNo}@${s.dob}*`,
@@ -684,7 +718,7 @@ app.all(
             .join("\n\n") +
           `\n\n📌 *Format:* AdmissionNumber@DOB\n\nShree Ram Public School, Kanhra`;
       } else {
-        replyText = `Namaste Parent/Guardian 🙏\n\nTo open your child's Report Card PDF:\n\n🔐 *Password Format:*\n👉 *AdmissionNumber@DOB*\n\n• Admission Number (e.g. 722)\n• @ symbol\n• Date of Birth in YYYY-MM-DD format (e.g. 2019-12-09)\n\nExample Password: *722@2019-12-09*\n\nFor further help, please contact the school administration.\nShree Ram Public School, Kanhra`;
+        return res.json({ ok: true });
       }
 
       if (process.env.APITXT_AUTHKEY && process.env.APITXT_PROJECT_REF_ID) {
