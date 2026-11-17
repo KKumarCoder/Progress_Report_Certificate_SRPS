@@ -56,6 +56,7 @@ import {
   Trophy,
   Sparkles,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -3162,7 +3163,7 @@ function MarkInput({ label, max, disabled, value, onChange }) {
 }
 
 function ReportDrive({ toast }) {
-  const [stage, setStage] = useState("sending");
+  const [stage, setStage] = useState("locked");
   const [code, setCode] = useState("");
   const [reports, setReports] = useState([]);
   const [pathParts, setPathParts] = useState([]);
@@ -3177,30 +3178,55 @@ function ReportDrive({ toast }) {
   const [archiveProgress, setArchiveProgress] = useState(null);
   const loadReports = async () => setReports(await api("/report-drive/reports"));
   const requestOtp = async () => {
-    setBusy(true); setError("");
+    setBusy(true);
+    setError("");
     try {
-      const result = await api("/report-drive/request-otp", { method: "POST", body: {} });
-      setSentTo(result.destination); setStage("otp");
-    } catch (e) { setError(e.message); setStage("otp"); }
-    finally { setBusy(false); }
+      const result = await api("/report-drive/request-otp", {
+        method: "POST",
+        body: {},
+      });
+      setSentTo(result.destination);
+      setStage("otp");
+      toast?.(`Verification code sent to ${result.destination}`);
+    } catch (e) {
+      setError(e.message);
+      toast?.(e.message, true);
+    } finally {
+      setBusy(false);
+    }
   };
-  useEffect(() => { requestOtp(); }, []);
   useEffect(() => {
     if (stage !== "open") return;
-    const timer = setTimeout(() => { void lock(); }, 10 * 60 * 1000);
+    const timer = setTimeout(() => {
+      void lock();
+    }, 10 * 60 * 1000);
     return () => clearTimeout(timer);
   }, [stage]);
   const verify = async (e) => {
-    e.preventDefault(); setBusy(true); setError("");
+    e.preventDefault();
+    setBusy(true);
+    setError("");
     try {
       await api("/report-drive/verify-otp", { method: "POST", body: { code } });
-      await loadReports(); setStage("open"); toast?.("Report Drive unlocked");
-    } catch (e) { setError(e.message); }
-    finally { setBusy(false); }
+      await loadReports();
+      setStage("open");
+      toast?.("Report Drive unlocked successfully");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
   };
   const lock = async () => {
-    try { await api("/report-drive/lock", { method: "POST", body: {} }); }
-    finally { setReports([]); setPathParts([]); setCode(""); setQuery(""); setStage("otp"); }
+    try {
+      await api("/report-drive/lock", { method: "POST", body: {} });
+    } finally {
+      setReports([]);
+      setPathParts([]);
+      setCode("");
+      setQuery("");
+      setStage("locked");
+    }
   };
   const sessions = [...new Set(reports.map((r) => r.session))].sort().reverse();
   const classesIn = [...new Set(reports.filter((r) => r.session === pathParts[0]).map((r) => r.className))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
@@ -3271,11 +3297,108 @@ function ReportDrive({ toast }) {
       <button className="drive-lock-button" onClick={stage === "open" ? lock : requestOtp} disabled={busy}><LockKeyhole size={17}/>{stage === "open" ? "Lock" : "Verify"}</button>
       <span className="drive-profile" title="Administrator">A</span>
     </header>
-    {stage !== "open" ? <div className="drive-auth-stage"><div className="drive-lock-card"><div className="drive-lock-icon"><LockKeyhole size={27}/></div><h2>Verify administrator access</h2><p>A six-digit code will be sent to <b>{sentTo}</b>. It expires in 5 minutes.</p>
-      {stage === "sending" ? <p>Sending secure code…</p> : <form onSubmit={verify}><label htmlFor="drive-otp">Email verification code</label><input id="drive-otp" autoComplete="one-time-code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000"/><button className="primary-button" disabled={busy || code.length !== 6}>{busy ? "Verifying…" : "Unlock Report Drive"}</button><button type="button" className="drive-resend" disabled={busy} onClick={requestOtp}>Send a new code</button></form>}
-      {error && <p className="drive-error" role="alert">{error}</p>}
-    </div></div> : <div className="drive-workspace">
-      <aside className="drive-sidebar">
+    {stage !== "open" ? (
+      <div className="drive-auth-stage">
+        <div className="drive-lock-card">
+          <div className="drive-lock-header">
+            <div className="drive-lock-icon">
+              <ShieldCheck size={32} />
+            </div>
+            <span className="drive-shield-pill">ADMIN SECURITY 2FA</span>
+            <h2>Two-Step Administrator Verification</h2>
+            <p className="drive-lock-desc">
+              Report Drive contains private school archives and locked student certificates.
+              {stage === "otp"
+                ? ` Enter the 6-digit verification code sent to your email.`
+                : ` Two-factor authentication is required to access or download archived reports.`}
+            </p>
+          </div>
+
+          <div className="drive-security-infobox">
+            <div className="security-info-item">
+              <Mail size={15} />
+              <span>Admin Email: <b>{sentTo}</b></span>
+            </div>
+            <div className="security-info-item">
+              <Clock3 size={15} />
+              <span>Code Validity: <b>5 Minutes</b></span>
+            </div>
+            <div className="security-info-item">
+              <LockKeyhole size={15} />
+              <span>Security Level: <b>Encrypted School Archive</b></span>
+            </div>
+          </div>
+
+          {stage === "locked" ? (
+            <div className="drive-lock-actions">
+              <button
+                type="button"
+                className="btn-drive-send-otp"
+                onClick={requestOtp}
+                disabled={busy}
+              >
+                {busy ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+                {busy ? "Sending Verification Code…" : "Send Verification Code to Email"}
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={verify} className="drive-lock-form">
+              <label htmlFor="drive-otp">ENTER 6-DIGIT VERIFICATION CODE</label>
+              <div className="drive-otp-input-wrapper">
+                <input
+                  id="drive-otp"
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  autoFocus
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="0 0 0 0 0 0"
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn-drive-unlock"
+                disabled={busy || code.length !== 6}
+              >
+                {busy ? <Loader2 size={18} className="spin" /> : <LockKeyhole size={18} />}
+                {busy ? "Verifying Access…" : "Unlock Report Drive"}
+              </button>
+              <div className="drive-otp-links">
+                <button
+                  type="button"
+                  className="btn-drive-text"
+                  disabled={busy}
+                  onClick={requestOtp}
+                >
+                  <RefreshCw size={13} className={busy ? "spin" : ""} /> Resend new code
+                </button>
+                <span className="dot-divider">•</span>
+                <button
+                  type="button"
+                  className="btn-drive-text"
+                  onClick={() => {
+                    setStage("locked");
+                    setCode("");
+                    setError("");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {error && (
+            <div className="drive-error-pill">
+              <AlertTriangle size={15} /> {error}
+            </div>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="drive-workspace">
+        <aside className="drive-sidebar">
         <div className="drive-sidebar-label">ARCHIVE</div>
         <button className={!recentMode ? "drive-side-link active" : "drive-side-link"} onClick={() => { go([]); setQuery(""); }}><HardDrive size={18}/> My Drive</button>
         <button className={recentMode ? "drive-side-link active" : "drive-side-link"} onClick={() => { setPathParts([]); setRecentMode(true); setQuery(""); }}><Clock3 size={18}/> Recent reports</button>
@@ -3293,6 +3416,7 @@ function ReportDrive({ toast }) {
         {(!folders.length || search || recentMode || pathParts.length === 3 || pathParts.length === 0) && <><h2 className="drive-section-heading">{search ? "Reports" : recentMode ? "Published reports" : pathParts.length === 3 ? "Reports" : pathParts.length === 0 ? "Recently published" : ""}</h2>{view === "grid" ? <div className="drive-report-grid">{visibleFiles.slice(0, pathParts.length === 0 && !search && !recentMode ? 8 : undefined).map((r) => fileRow(r,true))}</div> : <div className="drive-table-wrap"><div className="drive-table-head"><span>Name</span><span>Published</span><span>Type</span><span> </span></div>{visibleFiles.map((r) => fileRow(r))}</div>}{!visibleFiles.length&&<div className="drive-empty">{search ? "No reports match your search." : "No published reports in this folder yet."}</div>}</>}
         <div className="drive-security-note"><LockKeyhole size={14}/> PDF password: admission number@DOB (YYYY-MM-DD) · Reports stay in private server storage</div>
       </main>
-    </div>}
+    </div>
+    )}
   </section>;
 }
