@@ -407,6 +407,69 @@ app.get(
   }),
 );
 app.get(
+  ["/r/:studentId/:signature", "/d/:studentId/:signature"],
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 120 }),
+  wrap(async (req, res) => {
+    const { studentId, signature } = req.params;
+    if (
+      !/^[a-f0-9]{24}$/i.test(studentId) ||
+      !/^[a-f0-9]{16}$/i.test(signature)
+    ) {
+      throw fail(404, "Invalid report link");
+    }
+
+    const report = await Report.findOne({
+      student: studentId,
+      status: "published",
+    })
+      .select("+drivePath +drivePublicId +drivePasswordVersion")
+      .sort({ updatedAt: -1 });
+
+    if (!report) throw fail(404, "Report not found or not yet published");
+
+    const expectedSig = verifySignature(studentId, report.session);
+    if (signature.toLowerCase() !== expectedSig.toLowerCase()) {
+      throw fail(404, "Invalid or expired report link");
+    }
+
+    if (
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET &&
+      report.drivePublicId
+    ) {
+      const cloudUrl = privateDownloadUrl({
+        publicId: report.drivePublicId,
+        resourceType: "raw",
+        format: "pdf",
+        ttlSeconds: 3600,
+      });
+      return res.redirect(302, cloudUrl);
+    }
+
+    const student = await Student.findById(studentId);
+    const bytes = await renderReports([
+      {
+        student: report.studentSnapshot || student.toObject(),
+        report,
+        config: report.configSnapshot,
+        user: { role: "parent" },
+      },
+    ]);
+    const locked = await lockReportPdf(
+      bytes,
+      reportPdfPassword(report.studentSnapshot || student),
+    );
+    res
+      .type("application/pdf")
+      .set(
+        "Content-Disposition",
+        `attachment; filename="${(report.studentSnapshot?.name || "Report").replace(/[^a-zA-Z0-9_-]/g, "_")}-Report.pdf"`,
+      )
+      .send(Buffer.from(locked));
+  }),
+);
+app.get(
   "/api/public/report-download/:token",
   wrap(async (req, res) => {
     if (!process.env.WA_LINK_SECRET)
@@ -1362,10 +1425,12 @@ app.post(
         );
       }
     }
+    const sig = verifySignature(String(student._id), session);
+    const shortLink = `${origin}/r/${student._id}/${sig}`;
     const downloadLink =
       origin.includes("localhost") || origin.includes("127.0.0.1")
-        ? (documentUrl || link)
-        : link;
+        ? (documentUrl || shortLink)
+        : shortLink;
     let response;
     try {
       response = await fetch("https://apitxt.com/api/sendWA", {
