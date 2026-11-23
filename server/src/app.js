@@ -2341,9 +2341,11 @@ app.put(
   wrap(async (req, res) => {
     const u = await User.findById(req.params.id);
     if (!u) throw fail(404, "User not found");
-    if (String(u._id) === String(req.user._id) && (req.body.role || req.body.active === false))
+    const changingRole = Boolean(req.body.role && req.body.role !== u.role);
+    const disablingAccount = Boolean(req.body.active === false && u.active);
+    if (String(u._id) === String(req.user._id) && (changingRole || disablingAccount))
       throw fail(400, "Use another administrator to change your role or disable your account");
-    if (u.role === "admin" && (req.body.role || req.body.active === false)) {
+    if (u.role === "admin" && (changingRole || disablingAccount)) {
       const activeAdmins = await User.countDocuments({
         role: "admin",
         active: true,
@@ -2384,7 +2386,6 @@ app.put(
       validateAssignments(req.body.assignments, activeCls, activeSec);
       u.assignments = req.body.assignments;
     }
-    const changingRole = req.body.role && req.body.role !== u.role;
     if (req.body.moduleAccess !== undefined || req.body.studentActions !== undefined || changingRole) {
       const nextRole = req.body.role || u.role;
       validatePermissions(nextRole, req.body.moduleAccess, req.body.studentActions);
@@ -2394,17 +2395,31 @@ app.put(
       else if (changingRole) u.studentActions = undefined;
     }
     if (typeof req.body.active === "boolean") u.active = req.body.active;
-    if (req.body.role) {
+    if (changingRole) {
       if (!["admin", "principal", "teacher"].includes(req.body.role))
         throw fail(400, "Invalid role");
       u.role = req.body.role;
     }
-    if (req.body.password !== undefined && req.body.password !== "") {
+    const passwordChanged = Boolean(req.body.password !== undefined && req.body.password !== "");
+    if (passwordChanged) {
       if (!validPassword(req.body.password)) throw fail(400, PASSWORD_MESSAGE);
       u.passwordHash = await bcrypt.hash(req.body.password, 12);
     }
-    u.sessionVersion += 1;
+    const securityChanged = Boolean(
+      passwordChanged ||
+      changingRole ||
+      (req.body.active !== undefined && req.body.active !== u.active) ||
+      req.body.moduleAccess !== undefined ||
+      req.body.studentActions !== undefined
+    );
+    if (securityChanged) {
+      u.sessionVersion += 1;
+    }
     await u.save();
+    if (securityChanged && req.session && String(u._id) === String(req.user._id)) {
+      req.session.version = u.sessionVersion;
+      await req.session.save();
+    }
     await audit(req, "update-user", u._id);
     res.json({
       _id: u._id,

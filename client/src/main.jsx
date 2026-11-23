@@ -479,8 +479,15 @@ function App() {
       setSelected(null);
       setPage("dashboard");
     };
+    const handleUserUpdate = () => {
+      api("/auth/me").then(setUser).catch(() => {});
+    };
     window.addEventListener("srps:session-expired", expireSession);
-    return () => window.removeEventListener("srps:session-expired", expireSession);
+    window.addEventListener("srps:user-updated", handleUserUpdate);
+    return () => {
+      window.removeEventListener("srps:session-expired", expireSession);
+      window.removeEventListener("srps:user-updated", handleUserUpdate);
+    };
   }, []);
   useEffect(() => {
     if (user && !canOpenPage(user, page)) {
@@ -640,10 +647,20 @@ function App() {
         </div>
         <CompanyBrand />
         <button className="user-card" onClick={logout}>
-          <div className="avatar">{user.name?.slice(0, 1)}</div>
+          <div className="avatar">
+            {user.photo ? (
+              <img
+                src={user.photo}
+                alt={user.name}
+                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+              />
+            ) : (
+              user.name?.slice(0, 1)
+            )}
+          </div>
           <div>
             <b>{user.name}</b>
-            <small>{user.role} account</small>
+            <small>{user.designation || user.role} account</small>
           </div>
           <LogOut size={17} />
         </button>
@@ -667,7 +684,17 @@ function App() {
               <span className="live-dot" />
               {config.session}
             </span>
-            <span className="top-avatar">{user.name?.slice(0, 1)}</span>
+            <span className="top-avatar">
+              {user.photo ? (
+                <img
+                  src={user.photo}
+                  alt={user.name}
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                />
+              ) : (
+                user.name?.slice(0, 1)
+              )}
+            </span>
           </div>
         </header>
         {isDemo() && (
@@ -3820,8 +3847,14 @@ function UserAccess({ toast, user: currentUser }) {
       {editingStaff && (
         <StaffModal
           staff={editingStaff}
+          currentUser={currentUser}
           onClose={() => setEditingStaff(null)}
-          onSaved={load}
+          onSaved={async () => {
+            await load();
+            if (currentUser && String(editingStaff._id) === String(currentUser._id)) {
+              window.dispatchEvent(new CustomEvent("srps:user-updated"));
+            }
+          }}
           toast={toast}
         />
       )}
@@ -3997,8 +4030,9 @@ function UserAccess({ toast, user: currentUser }) {
   );
 }
 
-function StaffModal({ staff, onClose, onSaved, toast }) {
+function StaffModal({ staff, currentUser, onClose, onSaved, toast }) {
   const isEdit = Boolean(staff?._id);
+  const isSelf = Boolean(currentUser && staff && String(staff._id) === String(currentUser._id));
   const [name, setName] = useState(staff?.name || "");
   const [email, setEmail] = useState(staff?.email || "");
   const [phone, setPhone] = useState(staff?.phone || "");
@@ -4210,11 +4244,20 @@ function StaffModal({ staff, onClose, onSaved, toast }) {
           </Field>
 
           <Field label="System Role *">
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              disabled={isSelf && staff?.role === "admin"}
+            >
               <option value="teacher">Teacher (Class Assessment)</option>
               <option value="principal">Principal (Review & Approval)</option>
               <option value="admin">Administrator (Full Access)</option>
             </select>
+            {isSelf && staff?.role === "admin" && (
+              <small className="muted" style={{ display: "block", marginTop: 4, fontSize: 11 }}>
+                System Role is locked to Administrator to preserve ERP access. Set <strong>Principal</strong> in Designation / Position below.
+              </small>
+            )}
           </Field>
 
           <div style={{ gridColumn: "1 / -1" }}>
