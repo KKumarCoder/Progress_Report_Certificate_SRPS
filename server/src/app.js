@@ -1171,6 +1171,7 @@ app.get(
     if (req.query.className) q.className = String(req.query.className);
     if (req.query.section) q.section = String(req.query.section); // Scope enforced again below if filters override.
     const all = await Student.find(q)
+      .populate("transportRouteId")
       .sort({ className: 1, section: 1, name: 1 })
       .limit(5000);
     res.json(all.filter((s) => canAccess(req.user, s)));
@@ -2905,7 +2906,10 @@ app.post(
 
     let admNo = rawCode;
     try {
-      if (rawCode.startsWith("{")) {
+      if (rawCode.includes("ADM:")) {
+        const match = rawCode.match(/ADM:([^|]+)/i);
+        if (match && match[1]) admNo = match[1].trim();
+      } else if (rawCode.startsWith("{")) {
         const parsed = JSON.parse(rawCode);
         if (parsed.adm) admNo = parsed.adm;
       }

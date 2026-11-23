@@ -57,6 +57,25 @@ const MONTHS_LIST = [
   "Annual Composite Fee",
 ];
 
+function numToWords(n) {
+  const num = Number(n);
+  if (!num || isNaN(num)) return "Zero Rupees Only";
+  const a = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen",
+  ];
+  const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  function convert(val) {
+    if (val < 20) return a[val];
+    if (val < 100) return b[Math.floor(val / 10)] + (val % 10 !== 0 ? " " + a[val % 10] : "");
+    if (val < 1000) return a[Math.floor(val / 100)] + " Hundred" + (val % 100 !== 0 ? " and " + convert(val % 100) : "");
+    if (val < 100000) return convert(Math.floor(val / 1000)) + " Thousand" + (val % 1000 !== 0 ? " " + convert(val % 1000) : "");
+    if (val < 10000000) return convert(Math.floor(val / 100000)) + " Lakh" + (val % 100000 !== 0 ? " " + convert(val % 100000) : "");
+    return convert(Math.floor(val / 10000000)) + " Crore" + (val % 10000000 !== 0 ? " " + convert(val % 10000000) : "");
+  }
+  return `Rupees ${convert(Math.floor(num))} Only`;
+}
+
 export default function Fees({ user, config, toast, initialStudentId = null, initialTab = "collect" }) {
   const [tab, setTab] = useState(initialTab); // collect | structure | receipts | defaulters
 
@@ -271,17 +290,35 @@ function FeeCollectionCounter({ session, toast, onSuccess, preselectedStudentId 
       const matched = (structures || []).find(
         (st) => Array.isArray(st.classes) && st.classes.includes(student.className)
       );
+      let heads = [];
       if (matched && matched.heads?.length) {
-        const heads = matched.heads.map((h) => ({
+        heads = matched.heads.map((h) => ({
           head: h.headName,
           amount: Number(h.amount) || 0,
         }));
-        // If student has transport opted, add transport fee
-        if (student.transportOpted) {
-          heads.push({ head: `School Transport (${student.transportStop || "Bus"})`, amount: 1200 });
-        }
-        setBreakdown(heads);
+      } else {
+        heads = [
+          { head: "Tuition Fee", amount: 2500 },
+          { head: "Computer & Smart Class Fee", amount: 300 },
+          { head: "Examination Fee", amount: 200 },
+        ];
       }
+
+      // If student has transport opted, automatically integrate transport fee into fee heads!
+      if (student.transportOpted) {
+        let stopFare = 1200;
+        if (student.transportRouteId?.stops?.length && student.transportStop) {
+          const matchedStop = student.transportRouteId.stops.find(
+            (st) => st.stopName.toLowerCase() === student.transportStop.toLowerCase()
+          );
+          if (matchedStop?.fare) stopFare = matchedStop.fare;
+        }
+        heads.push({
+          head: `School Transport Fee (${student.transportStop || "Bus Service"})`,
+          amount: stopFare,
+        });
+      }
+      setBreakdown(heads);
     } catch (err) {
       console.warn("Could not load fee structure for class", err);
     }
@@ -518,9 +555,45 @@ function FeeCollectionCounter({ session, toast, onSuccess, preselectedStudentId 
           <div className="fee-heads-section">
             <div className="fee-heads-header">
               <b>FEE HEAD DETAILS</b>
-              <button type="button" className="btn-add-head" onClick={addHead}>
-                <Plus size={14} /> Add Head
-              </button>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn-transport-toggle"
+                  onClick={() => {
+                    const hasTransport = breakdown.some((b) =>
+                      b.head.toLowerCase().includes("transport")
+                    );
+                    if (hasTransport) {
+                      setBreakdown(
+                        breakdown.filter((b) => !b.head.toLowerCase().includes("transport"))
+                      );
+                    } else {
+                      let fare = 1200;
+                      if (selectedStudent?.transportRouteId?.stops && selectedStudent?.transportStop) {
+                        const matchedStop = selectedStudent.transportRouteId.stops.find(
+                          (st) => st.stopName.toLowerCase() === selectedStudent.transportStop.toLowerCase()
+                        );
+                        if (matchedStop?.fare) fare = matchedStop.fare;
+                      }
+                      setBreakdown([
+                        ...breakdown,
+                        {
+                          head: `School Transport Fee (${selectedStudent?.transportStop || "Bus Service"})`,
+                          amount: fare,
+                        },
+                      ]);
+                    }
+                  }}
+                  title="Toggle School Transport Fee inside this receipt"
+                >
+                  🚌 {breakdown.some((b) => b.head.toLowerCase().includes("transport"))
+                    ? "Remove Transport Fee"
+                    : "+ Transport Fee"}
+                </button>
+                <button type="button" className="btn-add-head" onClick={addHead}>
+                  <Plus size={14} /> Add Head
+                </button>
+              </div>
             </div>
 
             <table className="fee-heads-table">
@@ -1314,17 +1387,178 @@ function FeeDefaultersList({ toast, onCollectForStudent }) {
 }
 
 // ----------------------------------------------------------------------
-// Subcomponent 5: Printable Receipt Modal (A4 & 3-Inch Thermal Roll)
+// Subcomponent 5: Printable Receipt Modal (A4 Dual Slip, A4 Single & 3-Inch Thermal Roll)
 // ----------------------------------------------------------------------
+function ReceiptSlip({ receipt, copyLabel, qrCodeUrl, isDual = false }) {
+  return (
+    <div className={`receipt-slip-content ${isDual ? "dual-mode" : "single-mode"}`}>
+      <div className="receipt-watermark">SRPS</div>
+
+      {/* Header */}
+      <div className="receipt-header">
+        <img
+          src="/anvayrobo-logo.jpeg"
+          alt="SRPS Logo"
+          className="receipt-logo"
+        />
+        <div className="receipt-title-block">
+          <h2>SHREE RAM PUBLIC SCHOOL</h2>
+          <p className="receipt-subtitle">
+            Affiliated to CBSE, New Delhi • Senior Secondary
+          </p>
+          <p className="receipt-contact">
+            Main Campus, City Road • Phone: +91 8340202627 • Email: srpskanhra@gmail.com
+          </p>
+          <div className="receipt-badge-title">
+            OFFICIAL FEE RECEIPT • <span className="receipt-copy-pill">{copyLabel}</span>
+          </div>
+        </div>
+        {qrCodeUrl && (
+          <div className="receipt-qr-block">
+            <img src={qrCodeUrl} alt="Receipt QR Verification" />
+            <span>Scan to Verify</span>
+          </div>
+        )}
+      </div>
+
+      {/* Meta details bar */}
+      <div className="receipt-meta-grid">
+        <div>
+          <span className="lbl">RECEIPT NO:</span>
+          <b className="val highlight">#{receipt.receiptNo}</b>
+        </div>
+        <div>
+          <span className="lbl">DATE & TIME:</span>
+          <span className="val">
+            {new Date(receipt.paidAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
+        <div>
+          <span className="lbl">SESSION:</span>
+          <span className="val">{receipt.session || "2026-2027"}</span>
+        </div>
+        <div>
+          <span className="lbl">PERIOD:</span>
+          <span className="val highlight">{receipt.period}</span>
+        </div>
+      </div>
+
+      {/* Student info box */}
+      <div className="receipt-student-box">
+        <div className="student-line">
+          <span>Student Name:</span>
+          <b>{receipt.studentName}</b>
+        </div>
+        <div className="student-line">
+          <span>Admission No:</span>
+          <b>{receipt.admissionNo}</b>
+        </div>
+        <div className="student-line">
+          <span>Class & Section:</span>
+          <b>Class {receipt.className} - {receipt.section}</b>
+        </div>
+        <div className="student-line">
+          <span>Payment Mode:</span>
+          <b>{receipt.paymentMode} {receipt.referenceNo ? `(${receipt.referenceNo})` : ""}</b>
+        </div>
+      </div>
+
+      {/* Fee Items Table */}
+      <table className="receipt-items-table">
+        <thead>
+          <tr>
+            <th style={{ width: "36px" }}>#</th>
+            <th>Particulars / Fee Head</th>
+            <th style={{ width: "140px", textAlign: "right" }}>Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {receipt.breakdown?.map((b, i) => (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              <td>{b.head}</td>
+              <td style={{ textAlign: "right" }}>₹{Number(b.amount || 0).toLocaleString("en-IN")}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan="2" style={{ textAlign: "right" }}><b>Subtotal:</b></td>
+            <td style={{ textAlign: "right" }}><b>₹{Number(receipt.subtotal || 0).toLocaleString("en-IN")}</b></td>
+          </tr>
+          {Number(receipt.discount || 0) > 0 && (
+            <tr>
+              <td colSpan="2" style={{ textAlign: "right" }}>
+                Concession / Discount {receipt.discountReason ? `(${receipt.discountReason})` : ""}:
+              </td>
+              <td style={{ textAlign: "right" }}>- ₹{Number(receipt.discount).toLocaleString("en-IN")}</td>
+            </tr>
+          )}
+          {Number(receipt.fine || 0) > 0 && (
+            <tr>
+              <td colSpan="2" style={{ textAlign: "right" }}>Late Fee / Penalty:</td>
+              <td style={{ textAlign: "right" }}>+ ₹{Number(receipt.fine).toLocaleString("en-IN")}</td>
+            </tr>
+          )}
+          <tr className="receipt-total-row">
+            <td colSpan="2" style={{ textAlign: "right" }}><b>NET PAYABLE:</b></td>
+            <td style={{ textAlign: "right" }}><b>₹{Number(receipt.totalAmount || 0).toLocaleString("en-IN")}</b></td>
+          </tr>
+          <tr className="receipt-paid-row">
+            <td colSpan="2" style={{ textAlign: "right" }}><b>AMOUNT RECEIVED:</b></td>
+            <td style={{ textAlign: "right" }}><b>₹{Number(receipt.amountPaid || 0).toLocaleString("en-IN")}</b></td>
+          </tr>
+          {Number(receipt.balanceDue || 0) > 0 && (
+            <tr className="receipt-due-row">
+              <td colSpan="2" style={{ textAlign: "right" }}><b>BALANCE DUE:</b></td>
+              <td style={{ textAlign: "right" }}><b>₹{Number(receipt.balanceDue).toLocaleString("en-IN")}</b></td>
+            </tr>
+          )}
+        </tfoot>
+      </table>
+
+      {/* Amount in words */}
+      <div className="receipt-in-words">
+        <span className="words-lbl">Amount in Words: </span>
+        <b className="words-val">{numToWords(receipt.amountPaid)}</b>
+      </div>
+
+      {/* Terms and Signatures */}
+      <div className="receipt-footer">
+        <div className="receipt-notes">
+          <p>• Fees once deposited are non-refundable and non-transferable.</p>
+          <p>• Computer generated invoice under AnvayRobo SRPS ERP.</p>
+        </div>
+        <div className="receipt-signatures">
+          <div className="sign-box">
+            <div className="sign-line"></div>
+            <span>Parent / Depositor</span>
+          </div>
+          <div className="sign-box">
+            <div className="sign-line"></div>
+            <span>Authorized Cashier</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PrintableReceiptModal({ receipt, onClose }) {
-  const [printFormat, setPrintFormat] = useState("a4"); // a4 | thermal
+  const [printFormat, setPrintFormat] = useState("a4_dual"); // a4_dual | a4_single | thermal
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const receiptPrintRef = useRef(null);
 
   useEffect(() => {
     if (receipt) {
       const verifyData = `SRPS-FEE-VERIFY|REC:${receipt.receiptNo}|ADM:${receipt.admissionNo}|AMT:${receipt.amountPaid}|DATE:${new Date(receipt.paidAt).toISOString()}`;
-      QRCode.toDataURL(verifyData, { width: 140, margin: 1 })
+      QRCode.toDataURL(verifyData, { width: 130, margin: 1 })
         .then((url) => setQrCodeUrl(url))
         .catch((err) => console.error("QR Code generation error", err));
     }
@@ -1343,16 +1577,23 @@ function PrintableReceiptModal({ receipt, onClose }) {
         <div className="receipt-toolbar no-print">
           <div className="receipt-format-toggle">
             <button
-              className={`format-btn ${printFormat === "a4" ? "active" : ""}`}
-              onClick={() => setPrintFormat("a4")}
+              className={`format-btn ${printFormat === "a4_dual" ? "active" : ""}`}
+              onClick={() => setPrintFormat("a4_dual")}
+              title="Official A4 2-in-1 format: School Copy (Top) + Parent Copy (Bottom)"
             >
-              Official A4 / A5 Slip
+              📑 A4 Dual Slip (School + Parent)
+            </button>
+            <button
+              className={`format-btn ${printFormat === "a4_single" ? "active" : ""}`}
+              onClick={() => setPrintFormat("a4_single")}
+            >
+              📄 Single A4/A5 Slip
             </button>
             <button
               className={`format-btn ${printFormat === "thermal" ? "active" : ""}`}
               onClick={() => setPrintFormat("thermal")}
             >
-              3-Inch Thermal Roll (80mm)
+              🧾 3-Inch Thermal Roll (80mm)
             </button>
           </div>
 
@@ -1368,157 +1609,38 @@ function PrintableReceiptModal({ receipt, onClose }) {
 
         {/* Printable View Container */}
         <div className="receipt-scroll-container">
-          {printFormat === "a4" ? (
+          {printFormat === "a4_dual" ? (
             /* ==========================================================
-               A4 / A5 OFFICIAL FEE RECEIPT
+               A4 DUAL SLIP: SCHOOL OFFICE COPY (TOP) + PARENT COPY (BOTTOM)
                ========================================================== */
-            <div className="receipt-paper a4" ref={receiptPrintRef}>
-              <div className="receipt-watermark">SRPS</div>
-
-              {/* Header */}
-              <div className="receipt-header">
-                <img
-                  src="/anvayrobo-logo.jpeg"
-                  alt="SRPS Logo"
-                  className="receipt-logo"
-                />
-                <div className="receipt-title-block">
-                  <h2>SHREE RAM PUBLIC SCHOOL</h2>
-                  <p className="receipt-subtitle">
-                    Affiliated to CBSE, New Delhi • Senior Secondary
-                  </p>
-                  <p className="receipt-contact">
-                    Main Campus, City Road • Phone: +91 8340202627 • Email: srpskanhra@gmail.com
-                  </p>
-                  <div className="receipt-badge-title">OFFICIAL FEE RECEIPT</div>
-                </div>
-                {qrCodeUrl && (
-                  <div className="receipt-qr-block">
-                    <img src={qrCodeUrl} alt="Receipt QR Verification" />
-                    <span>Scan to Verify</span>
-                  </div>
-                )}
+            <div className="receipt-paper a4 a4-dual-sheet" ref={receiptPrintRef}>
+              <ReceiptSlip
+                receipt={receipt}
+                copyLabel="SCHOOL OFFICE COPY"
+                qrCodeUrl={qrCodeUrl}
+                isDual={true}
+              />
+              <div className="receipt-perforation-divider">
+                <span>✂ ----------------- Cut / Fold Along This Line (School Copy / Parent Copy) ----------------- ✂</span>
               </div>
-
-              {/* Meta details bar */}
-              <div className="receipt-meta-grid">
-                <div>
-                  <span className="lbl">RECEIPT NO:</span>
-                  <b className="val highlight">#{receipt.receiptNo}</b>
-                </div>
-                <div>
-                  <span className="lbl">DATE & TIME:</span>
-                  <span className="val">
-                    {new Date(receipt.paidAt).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-                <div>
-                  <span className="lbl">ACADEMIC SESSION:</span>
-                  <span className="val">{receipt.session || "2026-2027"}</span>
-                </div>
-                <div>
-                  <span className="lbl">BILLING PERIOD:</span>
-                  <span className="val highlight">{receipt.period}</span>
-                </div>
-              </div>
-
-              {/* Student info box */}
-              <div className="receipt-student-box">
-                <div className="student-line">
-                  <span>Student Name:</span>
-                  <b>{receipt.studentName}</b>
-                </div>
-                <div className="student-line">
-                  <span>Admission No:</span>
-                  <b>{receipt.admissionNo}</b>
-                </div>
-                <div className="student-line">
-                  <span>Class & Section:</span>
-                  <b>Class {receipt.className} - {receipt.section}</b>
-                </div>
-                <div className="student-line">
-                  <span>Payment Mode:</span>
-                  <b>{receipt.paymentMode} {receipt.referenceNo ? `(${receipt.referenceNo})` : ""}</b>
-                </div>
-              </div>
-
-              {/* Fee Items Table */}
-              <table className="receipt-items-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "40px" }}>#</th>
-                    <th>Particulars / Fee Head</th>
-                    <th style={{ width: "160px", textAlign: "right" }}>Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {receipt.breakdown?.map((b, i) => (
-                    <tr key={i}>
-                      <td>{i + 1}</td>
-                      <td>{b.head}</td>
-                      <td style={{ textAlign: "right" }}>₹{Number(b.amount || 0).toLocaleString("en-IN")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="2" style={{ textAlign: "right" }}><b>Subtotal:</b></td>
-                    <td style={{ textAlign: "right" }}><b>₹{Number(receipt.subtotal || 0).toLocaleString("en-IN")}</b></td>
-                  </tr>
-                  {Number(receipt.discount || 0) > 0 && (
-                    <tr>
-                      <td colSpan="2" style={{ textAlign: "right" }}>
-                        Concession / Discount {receipt.discountReason ? `(${receipt.discountReason})` : ""}:
-                      </td>
-                      <td style={{ textAlign: "right" }}>- ₹{Number(receipt.discount).toLocaleString("en-IN")}</td>
-                    </tr>
-                  )}
-                  {Number(receipt.fine || 0) > 0 && (
-                    <tr>
-                      <td colSpan="2" style={{ textAlign: "right" }}>Late Fee / Penalty:</td>
-                      <td style={{ textAlign: "right" }}>+ ₹{Number(receipt.fine).toLocaleString("en-IN")}</td>
-                    </tr>
-                  )}
-                  <tr className="receipt-total-row">
-                    <td colSpan="2" style={{ textAlign: "right" }}><b>NET PAYABLE:</b></td>
-                    <td style={{ textAlign: "right" }}><b>₹{Number(receipt.totalAmount || 0).toLocaleString("en-IN")}</b></td>
-                  </tr>
-                  <tr className="receipt-paid-row">
-                    <td colSpan="2" style={{ textAlign: "right" }}><b>AMOUNT RECEIVED:</b></td>
-                    <td style={{ textAlign: "right" }}><b>₹{Number(receipt.amountPaid || 0).toLocaleString("en-IN")}</b></td>
-                  </tr>
-                  {Number(receipt.balanceDue || 0) > 0 && (
-                    <tr className="receipt-due-row">
-                      <td colSpan="2" style={{ textAlign: "right" }}><b>BALANCE DUE:</b></td>
-                      <td style={{ textAlign: "right" }}><b>₹{Number(receipt.balanceDue).toLocaleString("en-IN")}</b></td>
-                    </tr>
-                  )}
-                </tfoot>
-              </table>
-
-              {/* Terms and Signatures */}
-              <div className="receipt-footer">
-                <div className="receipt-notes">
-                  <p><b>Note:</b> Fees once deposited are non-refundable and non-transferable.</p>
-                  <p>Computer generated invoice, requires no manual alteration.</p>
-                </div>
-                <div className="receipt-signatures">
-                  <div className="sign-box">
-                    <div className="sign-line"></div>
-                    <span>Depositor Signature</span>
-                  </div>
-                  <div className="sign-box">
-                    <div className="sign-line"></div>
-                    <span>Cashier / Accounts Officer</span>
-                  </div>
-                </div>
-              </div>
+              <ReceiptSlip
+                receipt={receipt}
+                copyLabel="STUDENT / PARENT COPY"
+                qrCodeUrl={qrCodeUrl}
+                isDual={true}
+              />
+            </div>
+          ) : printFormat === "a4_single" ? (
+            /* ==========================================================
+               A4 / A5 SINGLE OFFICIAL FEE RECEIPT
+               ========================================================== */
+            <div className="receipt-paper a4 a4-single-sheet" ref={receiptPrintRef}>
+              <ReceiptSlip
+                receipt={receipt}
+                copyLabel="ORIGINAL OFFICIAL RECEIPT"
+                qrCodeUrl={qrCodeUrl}
+                isDual={false}
+              />
             </div>
           ) : (
             /* ==========================================================
@@ -1583,6 +1705,10 @@ function PrintableReceiptModal({ receipt, onClose }) {
                     <b>₹{Number(receipt.balanceDue).toLocaleString("en-IN")}</b>
                   </div>
                 )}
+              </div>
+
+              <div className="thermal-in-words">
+                <span>In Words:</span> <i>{numToWords(receipt.amountPaid)}</i>
               </div>
 
               <div className="thermal-divider" />

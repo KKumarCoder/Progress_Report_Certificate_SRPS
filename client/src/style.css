@@ -7850,9 +7850,546 @@ button.drive-row:hover, .drive-file:hover { background: #f8fbfb; }
 }
 
 /* -------------------------------------------------------------
+   Transport Fee POS Toggle Button & Receipt Wordings
+   ------------------------------------------------------------- */
+.btn-transport-toggle {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.btn-transport-toggle:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.receipt-copy-pill {
+  color: #f59e0b;
+  font-weight: 900;
+}
+
+.receipt-in-words {
+  background: #f8fafc;
+  border-left: 3px solid #2563eb;
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-bottom: 16px;
+  border-radius: 0 4px 4px 0;
+}
+
+.receipt-in-words .words-lbl {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.receipt-in-words .words-val {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.receipt-paper.a4-dual-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.receipt-slip-content.dual-mode {
+  padding-bottom: 10px;
+}
+
+.receipt-perforation-divider {
+  text-align: center;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 10px 0;
+  border-top: 2px dashed #94a3b8;
+  border-bottom: 2px dashed #94a3b8;
+  margin: 6px 0;
+  background: #f8fafc;
+}
+
+.thermal-in-words {
+  font-size: 10px;
+  margin: 6px 0;
+  color: #334155;
+}
+
+/* -------------------------------------------------------------
+   AI Face Recognition Kiosk Styles
+   ------------------------------------------------------------- */
+.ai-face-kiosk-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .ai-face-kiosk-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ai-face-camera-pane {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.kiosk-status-badge.ai {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.ai-video-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 440px;
+  background: #090d16;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.ai-camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.ai-hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-hud-oval {
+  width: 220px;
+  height: 290px;
+  border: 2px dashed rgba(6, 182, 212, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-face-laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #22d3ee, #38bdf8, transparent);
+  box-shadow: 0 0 12px #06b6d4, 0 0 20px #38bdf8;
+  animation: laserScan 2.4s ease-in-out infinite alternate;
+}
+
+.ai-face-laser.active {
+  background: linear-gradient(90deg, transparent, #10b981, #34d399, transparent);
+  box-shadow: 0 0 16px #10b981, 0 0 25px #34d399;
+  animation-duration: 1.2s;
+}
+
+@keyframes laserScan {
+  0% {
+    top: 5%;
+  }
+  100% {
+    top: 95%;
+  }
+}
+
+.ai-hud-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #38bdf8;
+  border-style: solid;
+}
+.ai-hud-corner.tl { top: 20px; left: 20px; border-width: 3px 0 0 3px; }
+.ai-hud-corner.tr { top: 20px; right: 20px; border-width: 3px 3px 0 0; }
+.ai-hud-corner.bl { bottom: 20px; left: 20px; border-width: 0 0 3px 3px; }
+.ai-hud-corner.br { bottom: 20px; right: 20px; border-width: 0 3px 3px 0; }
+
+.ai-hud-indicator {
+  position: absolute;
+  bottom: 24px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #38bdf8;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.ai-camera-offline {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.95);
+  gap: 12px;
+}
+
+.ai-camera-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.btn-auto-toggle {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-auto-toggle.active {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.btn-capture-punch {
+  margin-left: auto;
+}
+
+.ai-manual-selector-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.ai-manual-selector-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.ai-select-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-student-select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #ffffff;
+}
+
+.ai-face-results-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ai-verified-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 2px solid #10b981;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12);
+}
+
+.ai-verified-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ai-badge-success {
+  background: #dcfce7;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-confidence-tag {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 14px;
+}
+
+.ai-verified-photos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.ai-photo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-photo-col span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.ai-photo-frame {
+  width: 90px;
+  height: 108px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #cbd5e1;
+  background: #f1f5f9;
+}
+
+.ai-photo-frame.live {
+  border-color: #06b6d4;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+}
+
+.ai-photo-frame.db {
+  border-color: #10b981;
+}
+
+.ai-photo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ai-photo-frame .ai-avatar-txt {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 900;
+  color: #64748b;
+}
+
+.ai-match-arrow {
+  color: #06b6d4;
+}
+
+.ai-student-info-block {
+  text-align: center;
+}
+
+.ai-student-name {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.ai-meta-pills {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ai-pill {
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.ai-punch-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ai-status-pill.present {
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ai-awaiting-card {
+  background: #ffffff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 44px 24px;
+  text-align: center;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-recent-punches-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+}
+
+.ai-recent-punches-card h5 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-punches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.ai-punch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.ai-punch-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+
+.ai-punch-thumb-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+}
+
+.ai-punch-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-punch-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-punch-sub {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ai-punch-time {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+/* -------------------------------------------------------------
    Print Rules
    ------------------------------------------------------------- */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
   .no-print,
   .sidebar,
   .app-shell > aside,
@@ -7891,5 +8428,81 @@ button.drive-row:hover, .drive-file:hover { background: #f8fbfb; }
   .receipt-paper.a4 {
     box-shadow: none !important;
     padding: 0 !important;
+  }
+
+  .receipt-paper.a4-dual-sheet {
+    padding: 0 !important;
+    gap: 6px !important;
+  }
+
+  .receipt-slip-content.dual-mode {
+    font-size: 10.5px !important;
+    page-break-inside: avoid;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-header {
+    margin-bottom: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-title-block h2 {
+    font-size: 15px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-subtitle,
+  .receipt-slip-content.dual-mode .receipt-contact {
+    font-size: 10px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-logo {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-qr-block img {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-meta-grid {
+    padding: 5px 8px !important;
+    margin-bottom: 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-student-box {
+    margin-bottom: 6px !important;
+    padding-bottom: 6px !important;
+    font-size: 10px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-items-table {
+    margin-bottom: 6px !important;
+    font-size: 10px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-items-table th,
+  .receipt-slip-content.dual-mode .receipt-items-table td {
+    padding: 3px 5px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-in-words {
+    padding: 4px 8px !important;
+    font-size: 9.5px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .receipt-slip-content.dual-mode .receipt-footer {
+    margin-top: 8px !important;
+  }
+
+  .receipt-slip-content.dual-mode .sign-line {
+    width: 100px !important;
+  }
+
+  .receipt-perforation-divider {
+    padding: 4px 0 !important;
+    margin: 4px 0 !important;
+    font-size: 9px !important;
   }
 }
