@@ -46,6 +46,8 @@ import {
   HardDrive,
   Folder,
   ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   LayoutGrid,
   List,
   Clock3,
@@ -208,6 +210,134 @@ const Field = ({ label, children }) => (
     {children}
   </label>
 );
+
+function Pagination({
+  currentPage,
+  totalItems,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
+  itemLabel = "items",
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrent = Math.min(Math.max(1, currentPage), totalPages);
+
+  if (totalItems === 0) return null;
+
+  const startIdx = (safeCurrent - 1) * pageSize + 1;
+  const endIdx = Math.min(safeCurrent * pageSize, totalItems);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (safeCurrent <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (safeCurrent >= totalPages - 3) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push("...");
+        pages.push(safeCurrent - 1);
+        pages.push(safeCurrent);
+        pages.push(safeCurrent + 1);
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+  return (
+    <div className="pagination-bar">
+      <div className="pagination-info">
+        Showing <strong>{startIdx}–{endIdx}</strong> of <strong>{totalItems}</strong> {itemLabel}
+      </div>
+
+      <div className="pagination-controls">
+        <div className="page-size-selector">
+          <span>Rows per page:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              onPageSizeChange(Number(e.target.value));
+              onPageChange(1);
+            }}
+          >
+            {pageSizeOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="page-buttons-group">
+          <button
+            type="button"
+            className="page-btn nav-btn"
+            disabled={safeCurrent <= 1}
+            onClick={() => onPageChange(1)}
+            title="First Page"
+          >
+            <ChevronsLeft size={16} />
+          </button>
+          <button
+            type="button"
+            className="page-btn nav-btn"
+            disabled={safeCurrent <= 1}
+            onClick={() => onPageChange(safeCurrent - 1)}
+            title="Previous Page"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {getPageNumbers().map((p, idx) =>
+            p === "..." ? (
+              <span key={`dots-${idx}`} className="pagination-dots">
+                …
+              </span>
+            ) : (
+              <button
+                type="button"
+                key={p}
+                className={`page-btn num-btn ${safeCurrent === p ? "active" : ""}`}
+                onClick={() => onPageChange(p)}
+              >
+                {p}
+              </button>
+            ),
+          )}
+
+          <button
+            type="button"
+            className="page-btn nav-btn"
+            disabled={safeCurrent >= totalPages}
+            onClick={() => onPageChange(safeCurrent + 1)}
+            title="Next Page"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            type="button"
+            className="page-btn nav-btn"
+            disabled={safeCurrent >= totalPages}
+            onClick={() => onPageChange(totalPages)}
+            title="Last Page"
+          >
+            <ChevronsRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function WhatsAppDeliveryBadge({ statusObj, compact = false }) {
   if (!statusObj?.published || (!statusObj?.sentAt && !statusObj?.whatsappDeliveryStatus)) {
     return compact ? null : <span style={{ color: "#94a3b8", fontSize: 11 }}>—</span>;
@@ -855,7 +985,13 @@ function Students({
     [statusBusy, setStatusBusy] = useState(false),
     [reportStatuses, setReportStatuses] = useState({}),
     [whatsappBusyId, setWhatsappBusyId] = useState(""),
-    [emailBusyId, setEmailBusyId] = useState("");
+    [emailBusyId, setEmailBusyId] = useState(""),
+    [currentPage, setCurrentPage] = useState(1),
+    [pageSize, setPageSize] = useState(compact ? 10 : 25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [q, cls, sec, status]);
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
@@ -901,6 +1037,12 @@ function Students({
       `${s.name} ${s.admissionNo} ${s.house}`
         .toLowerCase()
         .includes(q.toLowerCase()),
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const pagedStudents = filtered.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize,
   );
   const canManageStudents = ["admin", "teacher", "principal"].includes(user.role);
   async function toggleStatus(s) {
@@ -1110,7 +1252,7 @@ function Students({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {pagedStudents.map((s) => (
                 <tr key={s._id}>
                   <td>
                     <div className="student-cell">
@@ -1236,10 +1378,15 @@ function Students({
           </table>
         </div>
         {!filtered.length && <Empty text="No students found" />}
-        <div className="table-footer">
-          {filtered.length} student{filtered.length !== 1 ? "s" : ""} · Records
-          scoped to your access
-        </div>
+        <Pagination
+          currentPage={safeCurrentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 25, 50, 100]}
+          itemLabel="students"
+        />
       </section>
       {editing && (
         <StudentModal
@@ -3096,7 +3243,15 @@ function UserAccess({ toast, user: currentUser }) {
     [studentActions, setStudentActions] = useState([]),
     [ac, setAc] = useState("6"),
     [as, setAs] = useState("Venus"),
-    [busyActionId, setBusyActionId] = useState("");
+    [busyActionId, setBusyActionId] = useState(""),
+    [staffPage, setStaffPage] = useState(1),
+    [staffPageSize, setStaffPageSize] = useState(10),
+    [permPage, setPermPage] = useState(1),
+    [permPageSize, setPermPageSize] = useState(10);
+
+  useEffect(() => {
+    setStaffPage(1);
+  }, [q, roleFilter, classFilter, sectionFilter, statusFilter]);
 
   const load = async () => {
     try {
@@ -3237,6 +3392,20 @@ function UserAccess({ toast, user: currentUser }) {
     return true;
   });
 
+  const totalStaffPages = Math.max(1, Math.ceil(filteredUsers.length / staffPageSize));
+  const safeStaffPage = Math.min(Math.max(1, staffPage), totalStaffPages);
+  const pagedStaff = filteredUsers.slice(
+    (safeStaffPage - 1) * staffPageSize,
+    safeStaffPage * staffPageSize,
+  );
+
+  const totalPermPages = Math.max(1, Math.ceil(users.length / permPageSize));
+  const safePermPage = Math.min(Math.max(1, permPage), totalPermPages);
+  const pagedPermUsers = users.slice(
+    (safePermPage - 1) * permPageSize,
+    safePermPage * permPageSize,
+  );
+
   const totalCount = users.length;
   const teachersCount = users.filter((u) => u.role === "teacher").length;
   const adminsCount = users.filter((u) => u.role === "admin").length;
@@ -3369,7 +3538,7 @@ function UserAccess({ toast, user: currentUser }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((u) => {
+                  {pagedStaff.map((u) => {
                     const initials = (u.name || "S")
                       .split(" ")
                       .slice(0, 2)
@@ -3532,10 +3701,15 @@ function UserAccess({ toast, user: currentUser }) {
               <Empty text="No staff members matching your search or filters" />
             )}
 
-            <div className="table-footer">
-              Showing {filteredUsers.length} of {users.length} staff member
-              {users.length !== 1 ? "s" : ""} · Real-time synchronized
-            </div>
+            <Pagination
+              currentPage={safeStaffPage}
+              totalItems={filteredUsers.length}
+              pageSize={staffPageSize}
+              onPageChange={setStaffPage}
+              onPageSizeChange={setStaffPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemLabel="staff members"
+            />
           </section>
         </>
       ) : (
@@ -3576,7 +3750,7 @@ function UserAccess({ toast, user: currentUser }) {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {pagedPermUsers.map((u) => (
                   <tr key={u._id}>
                     <td>
                       <b>{u.name}</b>
@@ -3622,6 +3796,15 @@ function UserAccess({ toast, user: currentUser }) {
                 ))}
               </tbody>
             </table>
+            <Pagination
+              currentPage={safePermPage}
+              totalItems={users.length}
+              pageSize={permPageSize}
+              onPageChange={setPermPage}
+              onPageSizeChange={setPermPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemLabel="accounts"
+            />
           </section>
         </>
       )}
@@ -4509,9 +4692,16 @@ function ReportReview({ session, open, toast, user }) {
 
 function AuditLog() {
   const [rows, setRows] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   useEffect(() => {
     api("/audit").then(setRows);
   }, []);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   return (
     <>
       <PageTitle
@@ -4530,7 +4720,7 @@ function AuditLog() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {pagedRows.map((r, i) => (
               <tr key={r._id || i}>
                 <td>{new Date(r.createdAt).toLocaleString("en-IN")}</td>
                 <td>{r.actor?.name || "System"}</td>
@@ -4541,6 +4731,15 @@ function AuditLog() {
           </tbody>
         </table>
         {!rows.length && <Empty text="No activity yet" />}
+        <Pagination
+          currentPage={safePage}
+          totalItems={rows.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[15, 25, 50, 100]}
+          itemLabel="log records"
+        />
       </section>
     </>
   );
