@@ -31,7 +31,20 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
-import { User, Student, Report, Setting, Session, Audit } from "./models.js";
+import {
+  User,
+  Student,
+  Report,
+  Setting,
+  Session,
+  Audit,
+  StudentAttendance,
+  StaffAttendance,
+  FeeStructure,
+  FeeTransaction,
+  Vehicle,
+  TransportRoute,
+} from "./models.js";
 import {
   DEFAULT_CONFIG,
   calculate,
@@ -81,15 +94,47 @@ const wrap = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const digest = (t) => createHash("sha256").update(t).digest("hex");
-const MODULES = ["overview", "students", "studio", "review", "bulk", "settings", "audit", "drive"];
-const ACTIONS = ["studentCreate", "studentEdit", "studentStatus", "studentDelete", "studentWhatsapp", "studentEmail"];
+const MODULES = [
+  "overview",
+  "students",
+  "studio",
+  "review",
+  "bulk",
+  "settings",
+  "audit",
+  "drive",
+  "attendance",
+  "fees",
+  "transport",
+];
+const ACTIONS = [
+  "studentCreate",
+  "studentEdit",
+  "studentStatus",
+  "studentDelete",
+  "studentWhatsapp",
+  "studentEmail",
+  "feeCollect",
+  "attendanceMark",
+];
 const ROLE_MODULES = {
-  teacher: ["overview", "students", "studio", "bulk", "settings"],
-  principal: ["overview", "students", "studio", "review", "bulk", "settings", "audit"],
+  teacher: ["overview", "students", "attendance", "studio", "bulk", "settings"],
+  principal: [
+    "overview",
+    "students",
+    "fees",
+    "transport",
+    "attendance",
+    "studio",
+    "review",
+    "bulk",
+    "settings",
+    "audit",
+  ],
 };
 const ROLE_ACTIONS = {
-  teacher: ["studentCreate", "studentEdit", "studentStatus", "studentDelete", "studentWhatsapp", "studentEmail"],
-  principal: ["studentWhatsapp", "studentEmail"],
+  teacher: ["studentCreate", "studentEdit", "studentStatus", "studentDelete", "studentWhatsapp", "studentEmail", "attendanceMark"],
+  principal: ["studentWhatsapp", "studentEmail", "feeCollect", "attendanceMark"],
 };
 const effectiveModules = (user) => user.role === "admin"
   ? [...MODULES, "import", "users"]
@@ -1133,16 +1178,28 @@ app.get(
 );
 const studentFields = [
   "admissionNo",
+  "rollNo",
   "name",
   "className",
   "section",
   "house",
+  "gender",
+  "bloodGroup",
+  "aadhaarNo",
+  "penNo",
+  "category",
   "motherName",
   "fatherName",
   "dob",
   "address",
   "mobile",
   "email",
+  "emergencyContact",
+  "admissionDate",
+  "previousSchool",
+  "transportOpted",
+  "transportRouteId",
+  "transportStop",
   "photo",
 ];
 const pickStudent = (b) =>
@@ -2679,6 +2736,658 @@ app.get(
     );
     res.send(Buffer.from(await w.xlsx.writeBuffer()));
   }),
+);
+
+/* =========================================================================
+   STUDENT 360 & PROMOTION ENDPOINTS
+   ========================================================================= */
+
+app.post(
+  "/api/students/promote",
+  roles("admin", "principal"),
+  requireModule("students"),
+  wrap(async (req, res) => {
+    const { studentIds, toClass, toSection } = req.body;
+    if (!Array.isArray(studentIds) || !studentIds.length) {
+      throw fail(400, "Select at least one student to promote");
+    }
+    if (!toClass || !toSection) {
+      throw fail(400, "Target Class and Section are required");
+    }
+    const [activeCls, activeSec] = await Promise.all([
+      getActiveClasses(),
+      getActiveSections(),
+    ]);
+    if (!activeCls.includes(String(toClass))) throw fail(400, "Target class is invalid or disabled");
+    if (!activeSec.includes(String(toSection))) throw fail(400, "Target section is invalid or disabled");
+
+    const result = await Student.updateMany(
+      { _id: { $in: studentIds } },
+      { $set: { className: String(toClass), section: String(toSection) } }
+    );
+    await audit(
+      req,
+      "promote-students",
+      "batch",
+      JSON.stringify({ count: result.modifiedCount, toClass, toSection })
+    );
+    res.json({ ok: true, promoted: result.modifiedCount });
+  })
+);
+
+app.get(
+  "/api/students/:id/id-card",
+  requireModule("students"),
+  wrap(async (req, res) => {
+    const student = await Student.findById(req.params.id);
+    if (!student) throw fail(404, "Student not found");
+    if (!canAccess(req.user, student)) throw fail(403, "Access denied to this student");
+    const cfg = await config();
+    const qrPayload = JSON.stringify({
+      adm: student.admissionNo,
+      name: student.name,
+      cls: student.className,
+      sec: student.section,
+      dob: student.dob || "",
+      sch: "SRPS",
+    });
+    res.json({
+      student,
+      schoolName: cfg.schoolName || "Shree Ram Public School",
+      schoolLogo: cfg.schoolLogo || "",
+      qrPayload,
+    });
+  })
+);
+
+/* =========================================================================
+   ATTENDANCE MODULE ENDPOINTS (STUDENT & STAFF)
+   ========================================================================= */
+
+// Student Attendance for a Class/Section on a Date
+app.get(
+  "/api/attendance/student",
+  requireModule("attendance"),
+  wrap(async (req, res) => {
+    const className = String(req.query.className || "").trim();
+    const section = String(req.query.section || "").trim();
+    const date = String(req.query.date || new Date().toISOString().slice(0, 10)).trim();
+
+    if (!className || !section) {
+      throw fail(400, "Class name and section are required");
+    }
+
+    const students = await Student.find({
+      className,
+      section,
+      active: true,
+      ...scope(req.user),
+    }).sort({ rollNo: 1, name: 1 });
+
+    const attendanceRecords = await StudentAttendance.find({
+      className,
+      section,
+      date,
+    });
+
+    const recordMap = new Map();
+    for (const r of attendanceRecords) {
+      recordMap.set(String(r.student), r);
+    }
+
+    const list = students.map((s) => {
+      const rec = recordMap.get(String(s._id));
+      return {
+        studentId: s._id,
+        admissionNo: s.admissionNo,
+        rollNo: s.rollNo || "",
+        name: s.name,
+        photo: s.photo || "",
+        status: rec ? rec.status : "present",
+        method: rec ? rec.method : "manual",
+        timeIn: rec ? rec.timeIn : "",
+        remarks: rec ? rec.remarks : "",
+        isMarked: Boolean(rec),
+      };
+    });
+
+    res.json({ date, className, section, students: list });
+  })
+);
+
+// Batch save manual student attendance
+app.post(
+  "/api/attendance/student/batch",
+  roles("admin", "principal", "teacher"),
+  requireModule("attendance"),
+  wrap(async (req, res) => {
+    const { className, section, date, records } = req.body;
+    if (!className || !section || !date || !Array.isArray(records)) {
+      throw fail(400, "Invalid attendance payload");
+    }
+
+    const operations = records.map((r) => ({
+      updateOne: {
+        filter: { student: r.studentId, date },
+        update: {
+          $set: {
+            student: r.studentId,
+            admissionNo: r.admissionNo,
+            className,
+            section,
+            date,
+            status: ["present", "absent", "late", "half_day"].includes(r.status) ? r.status : "present",
+            method: r.method || "manual",
+            timeIn: r.timeIn || "",
+            remarks: String(r.remarks || "").slice(0, 200),
+            markedBy: req.user._id,
+          },
+        },
+        upsert: true,
+      },
+    }));
+
+    if (operations.length) {
+      await StudentAttendance.bulkWrite(operations);
+    }
+    await audit(req, "mark-student-attendance", `${className}-${section}`, JSON.stringify({ date, count: operations.length }));
+    res.json({ ok: true, count: operations.length });
+  })
+);
+
+// QR Code / Gate Kiosk Punch for Student
+app.post(
+  "/api/attendance/student/punch-qr",
+  requireModule("attendance"),
+  wrap(async (req, res) => {
+    const rawCode = String(req.body.code || "").trim();
+    if (!rawCode) throw fail(400, "QR Code is required");
+
+    let admNo = rawCode;
+    try {
+      if (rawCode.startsWith("{")) {
+        const parsed = JSON.parse(rawCode);
+        if (parsed.adm) admNo = parsed.adm;
+      }
+    } catch {}
+
+    const student = await Student.findOne({
+      $or: [{ admissionNo: admNo }, { qrToken: rawCode }],
+      active: true,
+    });
+    if (!student) throw fail(404, `Student not found for QR code: ${admNo}`);
+
+    const date = new Date().toISOString().slice(0, 10);
+    const timeIn = new Date().toLocaleTimeString("en-US", { hour12: false });
+
+    const existing = await StudentAttendance.findOne({ student: student._id, date });
+    if (existing) {
+      return res.json({
+        ok: true,
+        alreadyPunched: true,
+        timeIn: existing.timeIn || timeIn,
+        status: existing.status,
+        student: {
+          _id: student._id,
+          name: student.name,
+          admissionNo: student.admissionNo,
+          className: student.className,
+          section: student.section,
+          photo: student.photo,
+        },
+      });
+    }
+
+    const punch = await StudentAttendance.create({
+      student: student._id,
+      admissionNo: student.admissionNo,
+      className: student.className,
+      section: student.section,
+      date,
+      status: "present",
+      method: "qr_scanner",
+      timeIn,
+      markedBy: req.user._id,
+    });
+
+    res.json({
+      ok: true,
+      alreadyPunched: false,
+      timeIn,
+      status: punch.status,
+      student: {
+        _id: student._id,
+        name: student.name,
+        admissionNo: student.admissionNo,
+        className: student.className,
+        section: student.section,
+        photo: student.photo,
+      },
+    });
+  })
+);
+
+// Monthly Attendance Muster Grid
+app.get(
+  "/api/attendance/student/monthly",
+  requireModule("attendance"),
+  wrap(async (req, res) => {
+    const className = String(req.query.className || "").trim();
+    const section = String(req.query.section || "").trim();
+    const month = String(req.query.month || new Date().toISOString().slice(0, 7)).trim();
+
+    if (!className || !section) throw fail(400, "Class and section required");
+
+    const students = await Student.find({
+      className,
+      section,
+      active: true,
+      ...scope(req.user),
+    }).sort({ rollNo: 1, name: 1 });
+
+    const regex = new RegExp(`^${month}`);
+    const records = await StudentAttendance.find({
+      className,
+      section,
+      date: regex,
+    });
+
+    const matrix = {};
+    for (const s of students) {
+      matrix[String(s._id)] = {};
+    }
+    for (const r of records) {
+      if (matrix[String(r.student)]) {
+        matrix[String(r.student)][r.date] = r.status;
+      }
+    }
+
+    res.json({ month, className, section, students, matrix });
+  })
+);
+
+// Attendance & School Daily Operational KPIs
+app.get(
+  "/api/attendance/stats/today",
+  wrap(async (req, res) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [totalStudents, todayPresent, todayAbsent, todayLate, todayAdmissions] = await Promise.all([
+      Student.countDocuments({ active: true }),
+      StudentAttendance.countDocuments({ date: today, status: "present" }),
+      StudentAttendance.countDocuments({ date: today, status: "absent" }),
+      StudentAttendance.countDocuments({ date: today, status: "late" }),
+      Student.countDocuments({ createdAt: { $gte: startOfDay } }),
+    ]);
+
+    res.json({
+      today,
+      totalStudents,
+      todayPresent,
+      todayAbsent,
+      todayLate,
+      todayAdmissions,
+    });
+  })
+);
+
+// Staff Attendance List
+app.get(
+  "/api/attendance/staff",
+  roles("admin", "principal"),
+  requireModule("attendance"),
+  wrap(async (req, res) => {
+    const date = String(req.query.date || new Date().toISOString().slice(0, 10)).trim();
+    const staffList = await User.find({ active: true }).sort({ name: 1 });
+    const records = await StaffAttendance.find({ date });
+
+    const recMap = new Map();
+    for (const r of records) recMap.set(String(r.staff), r);
+
+    const list = staffList.map((s) => {
+      const rec = recMap.get(String(s._id));
+      return {
+        staffId: s._id,
+        name: s.name,
+        role: s.role,
+        designation: s.designation || "",
+        photo: s.photo || "",
+        status: rec ? rec.status : "present",
+        method: rec ? rec.method : "manual",
+        timeIn: rec ? rec.timeIn : "",
+        timeOut: rec ? rec.timeOut : "",
+        leaveType: rec ? rec.leaveType : "",
+        remarks: rec ? rec.remarks : "",
+        isMarked: Boolean(rec),
+      };
+    });
+
+    res.json({ date, staff: list });
+  })
+);
+
+// Mark / Punch Staff Attendance
+app.post(
+  "/api/attendance/staff/punch",
+  roles("admin", "principal"),
+  requireModule("attendance"),
+  wrap(async (req, res) => {
+    const { staffId, date, status, timeIn, timeOut, leaveType, remarks } = req.body;
+    if (!staffId || !date) throw fail(400, "Staff ID and Date required");
+
+    const punch = await StaffAttendance.findOneAndUpdate(
+      { staff: staffId, date },
+      {
+        $set: {
+          staff: staffId,
+          date,
+          status: status || "present",
+          timeIn: timeIn || "",
+          timeOut: timeOut || "",
+          leaveType: leaveType || "",
+          remarks: remarks || "",
+          markedBy: req.user._id,
+        },
+      },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true, punch });
+  })
+);
+
+/* =========================================================================
+   FEE MANAGEMENT ENGINE ENDPOINTS
+   ========================================================================= */
+
+// Fee Statistics (Matching user's reference dashboard KPIs)
+app.get(
+  "/api/fees/stats",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const [monthlyTxs, todayTxs, allTxs] = await Promise.all([
+      FeeTransaction.find({ status: "paid", paidAt: { $gte: startOfMonth } }).select("amountPaid"),
+      FeeTransaction.find({ status: "paid", paidAt: { $gte: startOfDay } }).select("amountPaid paymentMode"),
+      FeeTransaction.find({ status: "partial" }).select("balanceDue"),
+    ]);
+
+    const paidMonthly = monthlyTxs.reduce((sum, t) => sum + (t.amountPaid || 0), 0);
+    const todayCollection = todayTxs.reduce((sum, t) => sum + (t.amountPaid || 0), 0);
+    const todayCash = todayTxs.filter((t) => t.paymentMode === "Cash").reduce((sum, t) => sum + (t.amountPaid || 0), 0);
+    const todayOnline = todayTxs.filter((t) => t.paymentMode !== "Cash").reduce((sum, t) => sum + (t.amountPaid || 0), 0);
+    const pendingFeesAllTime = allTxs.reduce((sum, t) => sum + (t.balanceDue || 0), 0);
+
+    res.json({
+      paidMonthly,
+      todayCollection,
+      todayCash,
+      todayOnline,
+      pendingFeesAllTime,
+    });
+  })
+);
+
+// Fee Structures
+app.get(
+  "/api/fees/structures",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const session = String(req.query.session || DEFAULT_CONFIG.session);
+    const list = await FeeStructure.find({ session, active: true }).sort({ createdAt: -1 });
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/fees/structures",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { name, session, classes, frequency, heads } = req.body;
+    if (!name || !session || !Array.isArray(heads) || !heads.length) {
+      throw fail(400, "Name, session, and at least one fee head are required");
+    }
+    const totalAmount = heads.reduce((sum, h) => sum + (Number(h.amount) || 0), 0);
+    const structure = await FeeStructure.create({
+      name,
+      session,
+      classes: Array.isArray(classes) ? classes : [],
+      frequency: frequency || "monthly",
+      heads,
+      totalAmount,
+    });
+    await audit(req, "create-fee-structure", structure._id, JSON.stringify({ name, totalAmount }));
+    res.status(201).json(structure);
+  })
+);
+
+// Collect Fee & Generate Receipt
+app.post(
+  "/api/fees/collect",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const {
+      admissionNo,
+      session,
+      period,
+      breakdown,
+      discount = 0,
+      discountReason = "",
+      fine = 0,
+      amountPaid,
+      paymentMode = "Cash",
+      referenceNo = "",
+    } = req.body;
+
+    if (!admissionNo || !session || !period || !Array.isArray(breakdown)) {
+      throw fail(400, "Missing required fee collection fields");
+    }
+
+    const student = await Student.findOne({ admissionNo });
+    if (!student) throw fail(404, "Student not found with this admission number");
+
+    const subtotal = breakdown.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const totalAmount = Math.max(0, subtotal - Number(discount) + Number(fine));
+    const paid = Number(amountPaid) || 0;
+    const balanceDue = Math.max(0, totalAmount - paid);
+    const status = balanceDue === 0 ? "paid" : "partial";
+
+    const d = new Date();
+    const prefix = `REC-${d.getFullYear().toString().slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const countToday = await FeeTransaction.countDocuments();
+    const receiptNo = `${prefix}-${String(countToday + 1).padStart(4, "0")}`;
+
+    const tx = await FeeTransaction.create({
+      receiptNo,
+      student: student._id,
+      admissionNo: student.admissionNo,
+      studentName: student.name,
+      className: student.className,
+      section: student.section,
+      session,
+      period,
+      breakdown,
+      subtotal,
+      discount: Number(discount),
+      discountReason,
+      fine: Number(fine),
+      totalAmount,
+      amountPaid: paid,
+      balanceDue,
+      paymentMode,
+      referenceNo,
+      status,
+      collectedBy: req.user._id,
+    });
+
+    await audit(req, "collect-fee", tx._id, JSON.stringify({ receiptNo, amountPaid: paid, studentName: student.name }));
+    res.status(201).json(tx);
+  })
+);
+
+// List Fee Receipts with Search & Pagination
+app.get(
+  "/api/fees/receipts",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const q = {};
+    if (req.query.search) {
+      const s = String(req.query.search).trim();
+      q.$or = [
+        { receiptNo: new RegExp(s, "i") },
+        { admissionNo: new RegExp(s, "i") },
+        { studentName: new RegExp(s, "i") },
+      ];
+    }
+    if (req.query.session) q.session = String(req.query.session);
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(5, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [total, receipts] = await Promise.all([
+      FeeTransaction.countDocuments(q),
+      FeeTransaction.find(q).sort({ paidAt: -1 }).skip(skip).limit(limit),
+    ]);
+
+    res.json({ total, page, limit, receipts });
+  })
+);
+
+// Defaulters List
+app.get(
+  "/api/fees/defaulters",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const partials = await FeeTransaction.find({ status: "partial" })
+      .sort({ balanceDue: -1 })
+      .limit(200);
+    res.json(partials);
+  })
+);
+
+/* =========================================================================
+   TRANSPORT MODULE ENDPOINTS
+   ========================================================================= */
+
+// Vehicle Inventory
+app.get(
+  "/api/transport/vehicles",
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    const list = await Vehicle.find({ active: true }).sort({ vehicleNo: 1 });
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/transport/vehicles",
+  roles("admin", "principal"),
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    const { vehicleNo, model, capacity, driverName, driverPhone, conductorName, conductorPhone, insuranceExpiry, fitnessExpiry, pucExpiry } = req.body;
+    if (!vehicleNo) throw fail(400, "Vehicle Registration Number is required");
+
+    const vehicle = await Vehicle.findOneAndUpdate(
+      { vehicleNo: vehicleNo.toUpperCase() },
+      {
+        $set: {
+          vehicleNo: vehicleNo.toUpperCase(),
+          model: model || "",
+          capacity: Number(capacity) || 30,
+          driverName: driverName || "",
+          driverPhone: driverPhone || "",
+          conductorName: conductorName || "",
+          conductorPhone: conductorPhone || "",
+          insuranceExpiry: insuranceExpiry || "",
+          fitnessExpiry: fitnessExpiry || "",
+          pucExpiry: pucExpiry || "",
+          active: true,
+        },
+      },
+      { upsert: true, new: true }
+    );
+    await audit(req, "save-vehicle", vehicle._id, vehicle.vehicleNo);
+    res.json(vehicle);
+  })
+);
+
+app.delete(
+  "/api/transport/vehicles/:id",
+  roles("admin", "principal"),
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    await Vehicle.findByIdAndUpdate(req.params.id, { $set: { active: false } });
+    res.json({ ok: true });
+  })
+);
+
+// Transport Routes & Stops
+app.get(
+  "/api/transport/routes",
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    const list = await TransportRoute.find({ active: true })
+      .populate("vehicle")
+      .sort({ routeNo: 1 });
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/transport/routes",
+  roles("admin", "principal"),
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    const { routeNo, name, vehicleId, stops } = req.body;
+    if (!routeNo || !name) throw fail(400, "Route No and Name are required");
+
+    const route = await TransportRoute.findOneAndUpdate(
+      { routeNo: routeNo.toUpperCase() },
+      {
+        $set: {
+          routeNo: routeNo.toUpperCase(),
+          name,
+          vehicle: vehicleId || null,
+          stops: Array.isArray(stops) ? stops : [],
+          active: true,
+        },
+      },
+      { upsert: true, new: true }
+    );
+    await audit(req, "save-transport-route", route._id, route.name);
+    res.json(route);
+  })
+);
+
+app.delete(
+  "/api/transport/routes/:id",
+  roles("admin", "principal"),
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    await TransportRoute.findByIdAndUpdate(req.params.id, { $set: { active: false } });
+    res.json({ ok: true });
+  })
+);
+
+// Transport Passenger Roster
+app.get(
+  "/api/transport/roster",
+  requireModule("transport"),
+  wrap(async (req, res) => {
+    const students = await Student.find({ transportOpted: true, active: true })
+      .select("name admissionNo className section mobile transportStop transportRouteId")
+      .populate("transportRouteId")
+      .sort({ className: 1, section: 1, name: 1 });
+    res.json(students);
+  })
 );
 app.use(express.static(path.join(root, "client/dist")));
 app.get("/{*splat}", (req, res) => {

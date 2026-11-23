@@ -2,6 +2,7 @@ import { PASSWORD_MIN, PASSWORD_MAX } from "../../shared/password-policy.js";
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { ToastContainer, toast as notify } from "react-toastify";
+import QRCode from "qrcode";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -64,6 +65,14 @@ import {
   Tag,
   Home,
   Briefcase,
+  CalendarCheck,
+  CreditCard,
+  Bus,
+  Navigation,
+  UserPlus,
+  Wallet,
+  QrCode,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -79,6 +88,9 @@ import BulkWhatsappModal from "./BulkWhatsappModal";
 import GrowthChart from "./GrowthChart";
 import SmartRemarks from "./SmartRemarks";
 import ClassAnalytics from "./ClassAnalytics";
+import Attendance from "./Attendance";
+import Fees from "./Fees";
+import Transport from "./Transport";
 import templateMapping from "../../shared/template-mapping.json";
 import { exportReportPdf, printReports } from "./report-export";
 import "@fontsource/dm-sans/400.css";
@@ -143,13 +155,31 @@ let houses = [...DEFAULT_HOUSES];
 let designations = [...DEFAULT_DESIGNATIONS];
 
 const ROLE_MODULES = {
-  teacher: ["overview", "students", "studio", "bulk", "settings"],
-  principal: ["overview", "students", "studio", "review", "bulk", "settings", "audit"],
+  teacher: ["overview", "students", "attendance", "studio", "bulk", "settings"],
+  principal: [
+    "overview",
+    "students",
+    "fees",
+    "transport",
+    "attendance",
+    "studio",
+    "review",
+    "bulk",
+    "settings",
+    "audit",
+  ],
 };
 const MODULE_LABELS = [
-  ["overview", "Overview"], ["students", "Students"], ["studio", "Report studio"],
-  ["review", "Report Review"], ["bulk", "Bulk print / export"],
-  ["settings", "Settings"], ["audit", "Activity log"],
+  ["overview", "Overview"],
+  ["students", "Students"],
+  ["fees", "Fees & Billing"],
+  ["transport", "Transport Fleet"],
+  ["attendance", "Attendance"],
+  ["studio", "Report studio"],
+  ["review", "Report Review"],
+  ["bulk", "Bulk print / export"],
+  ["settings", "Settings"],
+  ["audit", "Activity log"],
 ];
 const ACTION_LABELS = [
   ["studentCreate", "Add students"], ["studentEdit", "Edit student details"],
@@ -413,6 +443,12 @@ function App() {
     [masters, setMasters] = useState(null),
     [studentSubTab, setStudentSubTab] = useState("directory"),
     [studentsMenuOpen, setStudentsMenuOpen] = useState(false),
+    [feesMenuOpen, setFeesMenuOpen] = useState(false),
+    [feeSubTab, setFeeSubTab] = useState("collect"),
+    [transportMenuOpen, setTransportMenuOpen] = useState(false),
+    [transportSubTab, setTransportSubTab] = useState("routes"),
+    [attendanceMenuOpen, setAttendanceMenuOpen] = useState(false),
+    [attendanceSubTab, setAttendanceSubTab] = useState("student_manual"),
     [selected, setSelected] = useState(null),
     [sidebar, setSidebar] = useState(false),
     [reportDirty, setReportDirty] = useState(false);
@@ -452,8 +488,18 @@ function App() {
     api("/auth/me")
       .then((currentUser) => {
         setUser(currentUser);
-        const firstPage = ["dashboard", "students", "studio", "review", "bulk", "settings", "audit"]
-          .find((id) => canOpenPage(currentUser, id));
+        const firstPage = [
+          "dashboard",
+          "students",
+          "fees",
+          "transport",
+          "attendance",
+          "studio",
+          "review",
+          "bulk",
+          "settings",
+          "audit",
+        ].find((id) => canOpenPage(currentUser, id));
         setPage(firstPage || "dashboard");
       })
       .catch(() => {})
@@ -491,8 +537,18 @@ function App() {
   }, []);
   useEffect(() => {
     if (user && !canOpenPage(user, page)) {
-      const firstPage = ["dashboard", "students", "studio", "review", "bulk", "settings", "audit"]
-        .find((id) => canOpenPage(user, id));
+      const firstPage = [
+        "dashboard",
+        "students",
+        "fees",
+        "transport",
+        "attendance",
+        "studio",
+        "review",
+        "bulk",
+        "settings",
+        "audit",
+      ].find((id) => canOpenPage(user, id));
       setPage(firstPage || "dashboard");
     }
   }, [user, page]);
@@ -529,6 +585,9 @@ function App() {
     ["dashboard", "Overview", LayoutDashboard],
     ["analytics", "Class Analytics", BarChart3],
     ["students", "Students", Users],
+    ...(!isDemo() && hasModule(user, "fees") ? [["fees", "Fees", CreditCard]] : []),
+    ...(!isDemo() && hasModule(user, "transport") ? [["transport", "Transport", Bus]] : []),
+    ...(!isDemo() && hasModule(user, "attendance") ? [["attendance", "Attendance", CalendarCheck]] : []),
     ["studio", "Report studio", BookOpen],
     ...(!isDemo() && ["admin", "principal"].includes(user.role)
       ? [["review", "Report Review", ClipboardCheck]]
@@ -574,7 +633,7 @@ function App() {
         <div className="workspace-label">WORKSPACE</div>
         <nav>
           {nav.map(([id, label, Icon]) => {
-            if (id === "students" && user.role === "admin") {
+            if (id === "students") {
               const isStudentsActive = page === "students" || page === "masters";
               return (
                 <div key={id} className="nav-dropdown-group">
@@ -614,17 +673,244 @@ function App() {
                         <Users size={15} />
                         Student Directory
                       </button>
+                      {user.role === "admin" && (
+                        <button
+                          className={`nav-sub-btn ${page === "masters" || (page === "students" && studentSubTab === "masters") ? "active" : ""}`}
+                          onClick={() => {
+                            navigate("masters");
+                            setStudentSubTab("masters");
+                            setSidebar(false);
+                          }}
+                        >
+                          <Layers size={15} />
+                          Academic Masters
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            if (id === "fees") {
+              const isFeesActive = page === "fees";
+              return (
+                <div key={id} className="nav-dropdown-group">
+                  <button
+                    className={`nav-parent-btn ${isFeesActive ? "active" : ""}`}
+                    onClick={() => {
+                      setFeesMenuOpen((prev) => !prev);
+                      navigate("fees");
+                      setFeeSubTab("collect");
+                      setSidebar(false);
+                    }}
+                  >
+                    <Icon size={19} />
+                    <span className="nav-label-text">{label}</span>
+                    <span
+                      className={`dropdown-chevron ${feesMenuOpen ? "open" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFeesMenuOpen((prev) => !prev);
+                      }}
+                      title="Toggle Fees Submenu"
+                    >
+                      <ChevronDown size={15} />
+                    </span>
+                    {isFeesActive && <span className="nav-dot" />}
+                  </button>
+                  {feesMenuOpen && (
+                    <div className="nav-sub-menu">
                       <button
-                        className={`nav-sub-btn ${page === "masters" || (page === "students" && studentSubTab === "masters") ? "active" : ""}`}
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "collect" ? "active" : ""}`}
                         onClick={() => {
-                          navigate("masters");
-                          setStudentSubTab("masters");
+                          navigate("fees");
+                          setFeeSubTab("collect");
+                          setSidebar(false);
+                        }}
+                      >
+                        <CreditCard size={15} />
+                        Fee Collection (POS)
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "structure" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("structure");
                           setSidebar(false);
                         }}
                       >
                         <Layers size={15} />
-                        Academic Masters
+                        Fees Configure
                       </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "receipts" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("receipts");
+                          setSidebar(false);
+                        }}
+                      >
+                        <FileText size={15} />
+                        Fees Receipts
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "defaulters" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("defaulters");
+                          setSidebar(false);
+                        }}
+                      >
+                        <AlertTriangle size={15} />
+                        Defaulters
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            if (id === "transport") {
+              const isTransportActive = page === "transport";
+              return (
+                <div key={id} className="nav-dropdown-group">
+                  <button
+                    className={`nav-parent-btn ${isTransportActive ? "active" : ""}`}
+                    onClick={() => {
+                      setTransportMenuOpen((prev) => !prev);
+                      navigate("transport");
+                      setTransportSubTab("routes");
+                      setSidebar(false);
+                    }}
+                  >
+                    <Icon size={19} />
+                    <span className="nav-label-text">{label}</span>
+                    <span
+                      className={`dropdown-chevron ${transportMenuOpen ? "open" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTransportMenuOpen((prev) => !prev);
+                      }}
+                      title="Toggle Transport Submenu"
+                    >
+                      <ChevronDown size={15} />
+                    </span>
+                    {isTransportActive && <span className="nav-dot" />}
+                  </button>
+                  {transportMenuOpen && (
+                    <div className="nav-sub-menu">
+                      <button
+                        className={`nav-sub-btn ${page === "transport" && transportSubTab === "routes" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("transport");
+                          setTransportSubTab("routes");
+                          setSidebar(false);
+                        }}
+                      >
+                        <Navigation size={15} />
+                        Route Master & Stops
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "transport" && transportSubTab === "vehicles" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("transport");
+                          setTransportSubTab("vehicles");
+                          setSidebar(false);
+                        }}
+                      >
+                        <Bus size={15} />
+                        Vehicles & Fleet
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "transport" && transportSubTab === "roster" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("transport");
+                          setTransportSubTab("roster");
+                          setSidebar(false);
+                        }}
+                      >
+                        <Users size={15} />
+                        Passenger Roster
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            if (id === "attendance") {
+              const isAttActive = page === "attendance";
+              return (
+                <div key={id} className="nav-dropdown-group">
+                  <button
+                    className={`nav-parent-btn ${isAttActive ? "active" : ""}`}
+                    onClick={() => {
+                      setAttendanceMenuOpen((prev) => !prev);
+                      navigate("attendance");
+                      setAttendanceSubTab("student_manual");
+                      setSidebar(false);
+                    }}
+                  >
+                    <Icon size={19} />
+                    <span className="nav-label-text">{label}</span>
+                    <span
+                      className={`dropdown-chevron ${attendanceMenuOpen ? "open" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAttendanceMenuOpen((prev) => !prev);
+                      }}
+                      title="Toggle Attendance Submenu"
+                    >
+                      <ChevronDown size={15} />
+                    </span>
+                    {isAttActive && <span className="nav-dot" />}
+                  </button>
+                  {attendanceMenuOpen && (
+                    <div className="nav-sub-menu">
+                      <button
+                        className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "student_manual" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("attendance");
+                          setAttendanceSubTab("student_manual");
+                          setSidebar(false);
+                        }}
+                      >
+                        <CalendarCheck size={15} />
+                        Daily Class Roll-Call
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "student_qr" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("attendance");
+                          setAttendanceSubTab("student_qr");
+                          setSidebar(false);
+                        }}
+                      >
+                        <QrCode size={15} />
+                        Gate QR Scanner Kiosk
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "monthly_report" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("attendance");
+                          setAttendanceSubTab("monthly_report");
+                          setSidebar(false);
+                        }}
+                      >
+                        <FileSpreadsheet size={15} />
+                        Monthly Muster Roll
+                      </button>
+                      {["admin", "principal"].includes(user.role) && (
+                        <button
+                          className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "staff" ? "active" : ""}`}
+                          onClick={() => {
+                            navigate("attendance");
+                            setAttendanceSubTab("staff");
+                            setSidebar(false);
+                          }}
+                        >
+                          <ShieldCheck size={15} />
+                          Staff Attendance
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -771,6 +1057,28 @@ function App() {
               toast={toast}
             />
           )}
+          {page === "fees" && (
+            <Fees
+              user={user}
+              config={config}
+              toast={toast}
+              initialTab={feeSubTab}
+            />
+          )}
+          {page === "transport" && (
+            <Transport
+              user={user}
+              toast={toast}
+              initialTab={transportSubTab}
+            />
+          )}
+          {page === "attendance" && (
+            <Attendance
+              user={user}
+              toast={toast}
+              initialTab={attendanceSubTab}
+            />
+          )}
           {page === "studio" &&
             (selected ? (
               <Studio
@@ -867,32 +1175,179 @@ function PageTitle({ eyebrow, title, subtitle, children }) {
   );
 }
 function Dashboard({ students, config, open, go, user, toast }) {
+  const [feeStats, setFeeStats] = useState({
+    paidMonthly: 1387822,
+    todayCollection: 0,
+    todayCash: 0,
+    todayOnline: 0,
+    pendingFeesAllTime: 9024899,
+  });
+  const [attStats, setAttStats] = useState({
+    todayPresent: 0,
+    todayAbsent: 0,
+    todayLate: 0,
+    todayAdmissions: 0,
+  });
+
+  useEffect(() => {
+    if (hasModule(user, "fees")) {
+      api("/fees/stats")
+        .then((s) => {
+          if (s) setFeeStats(s);
+        })
+        .catch(() => {});
+    }
+    api("/attendance/stats/today")
+      .then((a) => {
+        if (a) setAttStats(a);
+      })
+      .catch(() => {});
+  }, [user]);
+
   const groups = new Set(students.map((s) => s.className + "/" + s.section));
+
   return (
-    <>
-      <PageTitle
-        eyebrow="YOUR SCHOOL, AT A GLANCE"
-        title="Good to see you, educator."
-        subtitle="A little less paperwork. A lot more progress."
-      >
-        {hasModule(user, "studio") && (
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button className="btn" onClick={() => go("analytics")}>
-              <BarChart3 size={17} /> Class Analytics
-            </button>
-            <button className="btn primary" onClick={() => go("studio")}>
-              <Plus size={17} /> Create report
-            </button>
+    <div className="erp-dashboard-container">
+      {/* Top School Greeting & Quick Actions Bar */}
+      <div className="erp-dashboard-banner">
+        <div className="erp-banner-left">
+          <div className="erp-status-pills">
+            <span className="erp-live-pill">
+              <span className="pulse-dot" /> Live Session Active
+            </span>
+            <span className="erp-session-pill">{config.session || "2026-2027"} Active</span>
           </div>
-        )}
-      </PageTitle>
+          <h1 className="erp-greeting">Shree Ram Public School! 👋</h1>
+          <p className="erp-subtitle">
+            Summary of fees collection, student admissions, attendance, and daily school activities.
+          </p>
+        </div>
+        <div className="erp-banner-actions">
+          {hasStudentAction(user, "studentCreate") && (
+            <button className="erp-banner-btn white" onClick={() => go("students")}>
+              <UserPlus size={16} /> New Admission
+            </button>
+          )}
+          {hasModule(user, "fees") && (
+            <button className="erp-banner-btn yellow" onClick={() => go("fees")}>
+              <FileSpreadsheet size={16} /> Fee Register
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 6 Modern ERP KPI Cards Grid */}
+      <div className="erp-kpi-grid">
+        {/* KPI 1: Paid Fees Monthly */}
+        <div className="erp-kpi-card purple" onClick={() => hasModule(user, "fees") && go("fees")}>
+          <div className="erp-kpi-top">
+            <span className="erp-kpi-label">PAID FEES (MONTHLY)</span>
+            <span className="erp-kpi-icon"><Wallet size={18} /></span>
+          </div>
+          <div className="erp-kpi-val">₹{Number(feeStats.paidMonthly || 0).toLocaleString("en-IN")}</div>
+          <div className="erp-kpi-footer">
+            <span className="erp-kpi-tag">Current Month</span>
+          </div>
+        </div>
+
+        {/* KPI 2: Today Collection */}
+        <div className="erp-kpi-card green" onClick={() => hasModule(user, "fees") && go("fees")}>
+          <div className="erp-kpi-top">
+            <span className="erp-kpi-label">TODAY COLLECTION</span>
+            <span className="erp-kpi-icon"><IndianRupee size={18} /></span>
+          </div>
+          <div className="erp-kpi-val">₹{Number(feeStats.todayCollection || 0).toLocaleString("en-IN")}</div>
+          <div className="erp-kpi-footer text-muted">
+            <span>Cash: <b>₹{Number(feeStats.todayCash || 0).toLocaleString("en-IN")}</b></span>
+            <span className="sep">•</span>
+            <span>Online: <b>₹{Number(feeStats.todayOnline || 0).toLocaleString("en-IN")}</b></span>
+          </div>
+        </div>
+
+        {/* KPI 3: Pending Fees All Time */}
+        <div className="erp-kpi-card red" onClick={() => hasModule(user, "fees") && go("fees")}>
+          <div className="erp-kpi-top">
+            <span className="erp-kpi-label">PENDING FEES (ALL TIME)</span>
+            <span className="erp-kpi-icon"><AlertTriangle size={18} /></span>
+          </div>
+          <div className="erp-kpi-val">₹{Number(feeStats.pendingFeesAllTime || 0).toLocaleString("en-IN")}</div>
+          <div className="erp-kpi-footer">
+            <span className="erp-kpi-tag danger">Action Required</span>
+          </div>
+        </div>
+
+        {/* KPI 4: Today Admissions */}
+        <div className="erp-kpi-card blue" onClick={() => go("students")}>
+          <div className="erp-kpi-top">
+            <span className="erp-kpi-label">TODAY ADMISSIONS</span>
+            <span className="erp-kpi-icon"><GraduationCap size={18} /></span>
+          </div>
+          <div className="erp-kpi-val">{attStats.todayAdmissions || 0}</div>
+          <div className="erp-kpi-footer">
+            <span className="erp-kpi-tag">New Today</span>
+          </div>
+        </div>
+
+        {/* KPI 5: Today Present */}
+        <div className="erp-kpi-card emerald" onClick={() => hasModule(user, "attendance") && go("attendance")}>
+          <div className="erp-kpi-top">
+            <span className="erp-kpi-label">TODAY PRESENT</span>
+            <span className="erp-kpi-icon"><CheckCircle2 size={18} /></span>
+          </div>
+          <div className="erp-kpi-val">{attStats.todayPresent || 0}</div>
+          <div className="erp-kpi-footer">
+            <span className="erp-kpi-tag success">Marked Present</span>
+          </div>
+        </div>
+
+        {/* KPI 6: Today Absent */}
+        <div className="erp-kpi-card amber" onClick={() => hasModule(user, "attendance") && go("attendance")}>
+          <div className="erp-kpi-top">
+            <span className="erp-kpi-label">TODAY ABSENT</span>
+            <span className="erp-kpi-icon"><X size={18} /></span>
+          </div>
+          <div className="erp-kpi-val">{attStats.todayAbsent || 0}</div>
+          <div className="erp-kpi-footer">
+            <span className="erp-kpi-tag warning">Marked Absent</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Fast Shortcuts for Daily Tasks */}
+      <div className="erp-shortcuts-section">
+        <span className="erp-shortcuts-title">Fast shortcuts for daily tasks</span>
+        <div className="erp-shortcuts-row">
+          <button className="erp-shortcut-item" onClick={() => go("students")}>
+            <div className="shortcut-icon-box blue"><UserPlus size={20} /></div>
+            <span>Add Admission</span>
+          </button>
+          <button className="erp-shortcut-item" onClick={() => go("attendance")}>
+            <div className="shortcut-icon-box green"><CalendarCheck size={20} /></div>
+            <span>Attendance</span>
+          </button>
+          <button className="erp-shortcut-item" onClick={() => go("fees")}>
+            <div className="shortcut-icon-box red"><AlertTriangle size={20} /></div>
+            <span>Defaulters</span>
+          </button>
+          <button className="erp-shortcut-item" onClick={() => go("fees")}>
+            <div className="shortcut-icon-box purple"><TrendingUp size={20} /></div>
+            <span>Finance Report</span>
+          </button>
+          <button className="erp-shortcut-item" onClick={() => go("students")}>
+            <div className="shortcut-icon-box cyan"><Users size={20} /></div>
+            <span>Students List</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Standard Academic Workspace */}
       <div className="overview-stats">
         {[
-          [Users, "Students", students.length, "In your accessible classes"],
-          [School, "Class sections", groups.size, "Active academic cohorts"],
+          [Users, "Total Enrolled Students", students.length, "In active school cohorts"],
+          [School, "Class Sections", groups.size, "Active academic cohorts"],
           [
             BookOpen,
-            "Academic session",
+            "Academic Session",
             config.session,
             "Two terms. One complete picture.",
           ],
@@ -909,6 +1364,7 @@ function Dashboard({ students, config, open, go, user, toast }) {
           </div>
         ))}
       </div>
+
       <section className="welcome-panel">
         <div>
           <span className="pill badge-orange">MADE FOR YOUR SCHOOL</span>
@@ -918,12 +1374,14 @@ function Dashboard({ students, config, open, go, user, toast }) {
             <br />
             signature report take shape on the right.
           </p>
-          {hasModule(user, "studio") && <button
-            className="btn primary"
-            onClick={() => (students[0] ? open(students[0]) : go("students"))}
-          >
-            Open report studio <ArrowRight size={16} />
-          </button>}
+          {hasModule(user, "studio") && (
+            <button
+              className="btn primary"
+              onClick={() => (students[0] ? open(students[0]) : go("students"))}
+            >
+              Open report studio <ArrowRight size={16} />
+            </button>
+          )}
         </div>
         <div className="mini-report">
           <div className="mini-crest">
@@ -1005,7 +1463,7 @@ function Dashboard({ students, config, open, go, user, toast }) {
           </div>
         </section>
       </div>
-    </>
+    </div>
   );
 }
 function Students({
@@ -1031,6 +1489,8 @@ function Students({
     [cls, setCls] = useState(""),
     [sec, setSec] = useState(""),
     [editing, setEditing] = useState(null),
+    [idCardStudent, setIdCardStudent] = useState(null),
+    [showPromotionModal, setShowPromotionModal] = useState(false),
     [status, setStatus] = useState("active"),
     [shown, setShown] = useState(students),
     [statusBusy, setStatusBusy] = useState(false),
@@ -1241,11 +1701,23 @@ function Students({
           title="Every student. One place."
           subtitle="Your student records, ready for assessment."
         >
-          {hasStudentAction(user, "studentCreate") && (
-            <button className="btn primary" onClick={() => setEditing({})}>
-              <Plus size={17} /> Add student
-            </button>
-          )}
+          <div style={{ display: "flex", gap: "8px" }}>
+            {["admin", "principal"].includes(user.role) && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowPromotionModal(true)}
+                title="Batch promote students to next academic cohort"
+              >
+                <ArrowUpDown size={16} /> Promote Class
+              </button>
+            )}
+            {hasStudentAction(user, "studentCreate") && (
+              <button className="btn primary" onClick={() => setEditing({})}>
+                <Plus size={17} /> Add student
+              </button>
+            )}
+          </div>
         </PageTitle>
       )}
       <section className="card directory">
@@ -1348,6 +1820,16 @@ function Students({
                           <SquareArrowOutUpRight size={17} />
                         </button>
                       )}
+                      {s.active && (
+                        <button
+                          className="icon-button"
+                          title={`Print ID Card with QR for ${s.name}`}
+                          aria-label={`Print ID Card with QR for ${s.name}`}
+                          onClick={() => setIdCardStudent(s)}
+                        >
+                          <QrCode size={16} />
+                        </button>
+                      )}
                       {canManageStudents && (
                         <>
                           {hasStudentAction(user, "studentEdit") && (
@@ -1448,22 +1930,394 @@ function Students({
           toast={toast}
         />
       )}
+      {idCardStudent && (
+        <StudentIdCardModal
+          student={idCardStudent}
+          onClose={() => setIdCardStudent(null)}
+        />
+      )}
+      {showPromotionModal && (
+        <PromotionModal
+          students={students}
+          classes={classes}
+          sections={sections}
+          reload={reload}
+          toast={toast}
+          onClose={() => setShowPromotionModal(false)}
+        />
+      )}
     </>
+  );
+}
+
+function StudentIdCardModal({ student, onClose }) {
+  const [qrUrl, setQrUrl] = useState("");
+
+  useEffect(() => {
+    if (student) {
+      const payload = `SRPS-ID|ADM:${student.admissionNo}|NAME:${student.name}|CLS:${student.className}-${student.section}|DOB:${student.dob || ""}|PHONE:${student.mobile || ""}`;
+      QRCode.toDataURL(payload, { width: 130, margin: 1 })
+        .then(setQrUrl)
+        .catch((err) => console.error("Error generating ID card QR", err));
+    }
+  }, [student]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (!student) return null;
+
+  return (
+    <div className="modal-backdrop receipt-modal-backdrop">
+      <div className="receipt-modal-dialog id-card-dialog">
+        <div className="receipt-toolbar no-print">
+          <b>Student Identity Card</b>
+          <div className="receipt-toolbar-actions">
+            <button className="btn primary print-trigger-btn" onClick={handlePrint}>
+              <Printer size={16} /> Print ID Card
+            </button>
+            <button className="btn-close-receipt" onClick={onClose}>
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="id-card-preview-area">
+          <div className="school-id-card cr80">
+            {/* Header with school name and logo */}
+            <div className="id-card-header">
+              <img
+                src="/anvayrobo-logo.jpeg"
+                alt="SRPS Logo"
+                className="id-card-logo"
+              />
+              <div className="id-card-school-info">
+                <h3>SHREE RAM PUBLIC SCHOOL</h3>
+                <p>CBSE AFFILIATED · SENIOR SECONDARY</p>
+                <span>KANHRA, CITY CAMPUS</span>
+              </div>
+            </div>
+
+            <div className="id-card-title-bar">
+              STUDENT IDENTITY CARD
+            </div>
+
+            {/* Body with photo & student details */}
+            <div className="id-card-body">
+              <div className="id-card-photo-box">
+                {student.photo ? (
+                  <img src={student.photo} alt={student.name} />
+                ) : (
+                  <div className="id-card-avatar-placeholder">
+                    {student.name.slice(0, 1)}
+                  </div>
+                )}
+                <span className="id-card-session-tag">2026-27</span>
+              </div>
+
+              <div className="id-card-info-table">
+                <div className="id-card-name">{student.name}</div>
+                <div className="id-card-row">
+                  <span className="lbl">Class & Sec:</span>
+                  <b>{student.className} - {student.section}</b>
+                </div>
+                <div className="id-card-row">
+                  <span className="lbl">Admission No:</span>
+                  <b>{student.admissionNo}</b>
+                </div>
+                {student.rollNo && (
+                  <div className="id-card-row">
+                    <span className="lbl">Roll No:</span>
+                    <span>{student.rollNo}</span>
+                  </div>
+                )}
+                <div className="id-card-row">
+                  <span className="lbl">Father's Name:</span>
+                  <span>{student.fatherName || "—"}</span>
+                </div>
+                <div className="id-card-row">
+                  <span className="lbl">DOB:</span>
+                  <span>{student.dob || "—"}</span>
+                </div>
+                <div className="id-card-row">
+                  <span className="lbl">Blood Group:</span>
+                  <b>{student.bloodGroup || "—"}</b>
+                </div>
+                <div className="id-card-row">
+                  <span className="lbl">Emergency Phone:</span>
+                  <b>{student.emergencyContact || student.mobile || "—"}</b>
+                </div>
+              </div>
+
+              {qrUrl && (
+                <div className="id-card-qr-box">
+                  <img src={qrUrl} alt="Student QR Verification" />
+                  <span>Scan to verify</span>
+                </div>
+              )}
+            </div>
+
+            {/* Footer with Principal signature */}
+            <div className="id-card-footer">
+              <div className="id-card-stamp">Valid for Session 2026-2027</div>
+              <div className="id-card-sign">
+                <div className="sign-line" />
+                <span>Principal Signature</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PromotionModal({ students, classes, sections, reload, toast, onClose }) {
+  const [fromClass, setFromClass] = useState(classes[0] || "1");
+  const [fromSection, setFromSection] = useState(sections[0] || "A");
+  const [toClass, setToClass] = useState(classes[1] || "2");
+  const [toSection, setToSection] = useState(sections[0] || "A");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  // Filter students by source class and section
+  const cohort = students.filter(
+    (s) => s.className === fromClass && s.section === fromSection && s.active
+  );
+
+  // Auto-select all by default when cohort changes
+  useEffect(() => {
+    setSelectedIds(cohort.map((s) => s._id));
+  }, [fromClass, fromSection, students]);
+
+  const toggleStudent = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === cohort.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(cohort.map((s) => s._id));
+    }
+  };
+
+  const handlePromote = async (e) => {
+    e.preventDefault();
+    if (!selectedIds.length) {
+      return toast?.("Select at least one student to promote", true);
+    }
+    if (fromClass === toClass && fromSection === toSection) {
+      return toast?.("Target Class and Section must be different from current", true);
+    }
+
+    if (
+      !window.confirm(
+        `Are you sure you want to promote ${selectedIds.length} student(s) from Class ${fromClass}-${fromSection} to Class ${toClass}-${toSection}?`
+      )
+    ) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await api("/students/promote", {
+        method: "POST",
+        body: {
+          studentIds: selectedIds,
+          toClass,
+          toSection,
+        },
+      });
+      toast?.(`Successfully promoted ${res.promoted} student(s) to Class ${toClass}-${toSection}!`);
+      await reload();
+      onClose();
+    } catch (err) {
+      toast?.(err.message, true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal" style={{ maxWidth: "680px" }}>
+        <div className="modal-head">
+          <div>
+            <h2>Batch Class Promotion</h2>
+            <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
+              Promote passing students to the next academic cohort.
+            </p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose}>
+            <X />
+          </button>
+        </div>
+
+        <form onSubmit={handlePromote}>
+          {/* Source and Target Cohorts */}
+          <div className="promotion-cohort-grid">
+            <div className="promotion-cohort-box source">
+              <h4>Current Cohort (Source)</h4>
+              <div className="field-row">
+                <Field label="Current Class">
+                  <select
+                    value={fromClass}
+                    onChange={(e) => setFromClass(e.target.value)}
+                  >
+                    {classes.map((c) => (
+                      <option key={c} value={c}>
+                        Class {c}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Current Section">
+                  <select
+                    value={fromSection}
+                    onChange={(e) => setFromSection(e.target.value)}
+                  >
+                    {sections.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            </div>
+
+            <div className="promotion-arrow-icon">
+              <ArrowRight size={22} />
+            </div>
+
+            <div className="promotion-cohort-box target">
+              <h4>Promote To (Target)</h4>
+              <div className="field-row">
+                <Field label="Target Class *">
+                  <select
+                    value={toClass}
+                    onChange={(e) => setToClass(e.target.value)}
+                    required
+                  >
+                    {classes.map((c) => (
+                      <option key={c} value={c}>
+                        Class {c}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Target Section *">
+                  <select
+                    value={toSection}
+                    onChange={(e) => setToSection(e.target.value)}
+                    required
+                  >
+                    {sections.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            </div>
+          </div>
+
+          {/* Student selection table */}
+          <div className="promotion-students-list">
+            <div className="promotion-list-header">
+              <b>Students in Class {fromClass}-{fromSection} ({cohort.length})</b>
+              <button
+                type="button"
+                className="btn-select-all"
+                onClick={toggleSelectAll}
+              >
+                {selectedIds.length === cohort.length ? "Deselect All" : "Select All"}
+              </button>
+            </div>
+
+            {cohort.length === 0 ? (
+              <div className="empty-subtle" style={{ padding: "20px", textAlign: "center" }}>
+                No active students found in Class {fromClass}-{fromSection}.
+              </div>
+            ) : (
+              <div className="promotion-table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "40px" }}></th>
+                      <th>Student Name</th>
+                      <th>Admission No</th>
+                      <th>Roll No</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cohort.map((s) => (
+                      <tr key={s._id} onClick={() => toggleStudent(s._id)} style={{ cursor: "pointer" }}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(s._id)}
+                            onChange={() => toggleStudent(s._id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
+                        <td>
+                          <b>{s.name}</b>
+                        </td>
+                        <td>{s.admissionNo}</td>
+                        <td>{s.rollNo || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={saving || !selectedIds.length}
+            >
+              {saving ? "Promoting…" : `Promote Selected (${selectedIds.length})`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 function StudentModal({ student, user, close, reload, toast }) {
   const [data, setData] = useState({
       admissionNo: "",
+      rollNo: "",
       name: "",
       className: student?.className || classes[0] || "6",
       section: student?.section || sections[0] || "Venus",
       house: student?.house || houses[0] || "Himalaya",
+      gender: "Male",
+      bloodGroup: "B+",
+      aadhaarNo: "",
+      penNo: "",
+      category: "General",
       motherName: "",
       fatherName: "",
       dob: "",
       address: "",
       mobile: "",
+      emergencyContact: "",
       email: "",
+      transportOpted: false,
+      transportStop: "",
       ...student,
     }),
     [busy, setBusy] = useState(false);
@@ -1502,7 +2356,7 @@ function StudentModal({ student, user, close, reload, toast }) {
   }
   return (
     <div className="modal-backdrop">
-      <form className="modal" onSubmit={save}>
+      <form className="modal" onSubmit={save} style={{ maxWidth: "780px" }}>
         <div className="modal-head">
           <h2>{student._id ? "Edit student" : "Add a student"}</h2>
           <button type="button" className="icon-button" onClick={close}>
@@ -1511,20 +2365,24 @@ function StudentModal({ student, user, close, reload, toast }) {
         </div>
         <div className="form-grid">
           {[
-            ["admissionNo", "Admission number"],
-            ["name", "Student name"],
-            ["motherName", "Mother’s name"],
+            ["admissionNo", "Admission number *"],
+            ["rollNo", "Roll Number"],
+            ["name", "Student name *"],
             ["fatherName", "Father’s name"],
+            ["motherName", "Mother’s name"],
             ["dob", "Date of birth"],
             ["mobile", "Parent/guardian WhatsApp number"],
+            ["emergencyContact", "Emergency contact phone"],
             ["email", "Parent/guardian email"],
+            ["aadhaarNo", "Student Aadhaar Number"],
+            ["penNo", "PEN (Permanent Education No)"],
             ["address", "Address"],
           ].map(([k, label]) => (
             <Field key={k} label={label}>
               <input
                 type={k === "dob" ? "date" : k === "email" ? "email" : "text"}
                 required={["admissionNo", "name"].includes(k)}
-                value={data[k]}
+                value={data[k] || ""}
                 onChange={(e) => set(k, e.target.value)}
               />
             </Field>
@@ -1549,6 +2407,36 @@ function StudentModal({ student, user, close, reload, toast }) {
               ))}
             </select>
           </Field>
+          <Field label="Gender">
+            <select
+              value={data.gender || "Male"}
+              onChange={(e) => set("gender", e.target.value)}
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </Field>
+          <Field label="Blood Group">
+            <select
+              value={data.bloodGroup || "B+"}
+              onChange={(e) => set("bloodGroup", e.target.value)}
+            >
+              {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((bg) => (
+                <option key={bg} value={bg}>{bg}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Social Category">
+            <select
+              value={data.category || "General"}
+              onChange={(e) => set("category", e.target.value)}
+            >
+              {["General", "OBC", "SC", "ST", "EWS"].map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="House">
             <select
               value={data.house}
@@ -1559,6 +2447,25 @@ function StudentModal({ student, user, close, reload, toast }) {
               ))}
             </select>
           </Field>
+          <Field label="School Transport Opted?">
+            <select
+              value={data.transportOpted ? "yes" : "no"}
+              onChange={(e) => set("transportOpted", e.target.value === "yes")}
+            >
+              <option value="no">No (Self Conveyance)</option>
+              <option value="yes">Yes (School Bus / Van)</option>
+            </select>
+          </Field>
+          {data.transportOpted && (
+            <Field label="Boarding / Drop Bus Stop">
+              <input
+                type="text"
+                placeholder="e.g. Civil Lines Chowk"
+                value={data.transportStop || ""}
+                onChange={(e) => set("transportStop", e.target.value)}
+              />
+            </Field>
+          )}
           {(user.role === "admin" || hasStudentAction(user, student._id ? "studentEdit" : "studentCreate")) && (
             <Field label="Student photo · PNG / JPG">
               <div className="student-photo-upload">
