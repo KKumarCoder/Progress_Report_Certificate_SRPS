@@ -57,6 +57,7 @@ import {
   Sparkles,
   TrendingUp,
   AlertTriangle,
+  Phone,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -472,7 +473,7 @@ function App() {
             />
           )}{" "}
           {page === "import" && <ImportStudents reload={load} toast={toast} />}{" "}
-          {page === "users" && <UserAccess toast={toast} />}{" "}
+          {page === "users" && <UserAccess toast={toast} user={user} />}{" "}
           {page === "review" && (
             <ReportReview session={config.session} open={open} toast={toast} user={user} />
           )}
@@ -2056,246 +2057,596 @@ function ImportStudents({ reload, toast }) {
     </>
   );
 }
-function UserAccess({ toast }) {
+function UserAccess({ toast, user: currentUser }) {
   const [users, setUsers] = useState([]),
-    [add, setAdd] = useState(false),
-    [form, setForm] = useState({
-      name: "",
-      email: "",
-      password: "",
-      role: "teacher",
-      className: "6",
-      section: "Venus",
-    }),
-    [editing, setEditing] = useState(null),
+    [subTab, setSubTab] = useState("Staff_Details"),
+    [q, setQ] = useState(""),
+    [roleFilter, setRoleFilter] = useState(""),
+    [classFilter, setClassFilter] = useState(""),
+    [sectionFilter, setSectionFilter] = useState(""),
+    [statusFilter, setStatusFilter] = useState("all"),
+    [addModal, setAddModal] = useState(false),
+    [editingStaff, setEditingStaff] = useState(null),
+    [viewingStaff, setViewingStaff] = useState(null),
+    [permissionUser, setPermissionUser] = useState(null),
     [assignments, setAssignments] = useState([]),
     [moduleAccess, setModuleAccess] = useState([]),
     [studentActions, setStudentActions] = useState([]),
     [ac, setAc] = useState("6"),
-    [as, setAs] = useState("Venus");
-  const load = () =>
-    api("/users")
-      .then(setUsers)
-      .catch((e) => toast(e.message, true));
+    [as, setAs] = useState("Venus"),
+    [busyActionId, setBusyActionId] = useState("");
+
+  const load = async () => {
+    try {
+      const data = await api("/users");
+      setUsers(data);
+    } catch (e) {
+      toast(e.message, true);
+    }
+  };
+
   useEffect(() => {
     load();
   }, []);
-  async function create(e) {
-    e.preventDefault();
-    try {
-      await api("/users", {
-        method: "POST",
-        body: {
-          ...form,
-          assignments:
-            form.role === "teacher"
-              ? [{ className: form.className, section: form.section }]
-              : [],
-        },
-      });
-      setAdd(false);
-      load();
-      toast("Staff account created");
-    } catch (e) {
-      toast(e.message, true);
-    }
-  }
-  async function saveAccess() {
-    try {
-      await api("/users/" + editing._id, {
-        method: "PUT",
-        body: { assignments, moduleAccess, studentActions },
-      });
-      const staffName = editing.name;
-      setEditing(null);
-      await load();
-      toast(`Access updated. ${staffName} must sign in again for the new access to apply.`);
-    } catch (e) {
-      toast(e.message, true);
-    }
-  }
-  async function toggle(u) {
-    if (!confirm(`${u.active ? "Disable" : "Enable"} ${u.name}'s account?`))
+
+  async function handleToggle(u) {
+    if (currentUser && String(u._id) === String(currentUser._id) && u.active) {
+      alert("You cannot disable your own administrator account.");
       return;
+    }
+    if (u.role === "admin" && u.active) {
+      const otherAdmins = users.filter(
+        (x) => x.role === "admin" && x.active && String(x._id) !== String(u._id),
+      );
+      if (!otherAdmins.length) {
+        alert("The only active administrator cannot be disabled.");
+        return;
+      }
+    }
+    const nextState = !u.active;
+    if (!confirm(`${nextState ? "Enable" : "Disable"} staff account for "${u.name}"?`))
+      return;
+    setBusyActionId(String(u._id));
     try {
       await api("/users/" + u._id, {
         method: "PUT",
-        body: { active: !u.active },
+        body: { active: nextState },
       });
-      load();
+      await load();
+      toast(`Staff member "${u.name}" ${nextState ? "enabled" : "disabled"}`);
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      setBusyActionId("");
+    }
+  }
+
+  async function handleDelete(u) {
+    if (currentUser && String(u._id) === String(currentUser._id)) {
+      alert("You cannot delete your own administrator account.");
+      return;
+    }
+    if (u.role === "admin") {
+      const otherAdmins = users.filter(
+        (x) => x.role === "admin" && x.active && String(x._id) !== String(u._id),
+      );
+      if (!otherAdmins.length) {
+        alert("The only active administrator cannot be deleted.");
+        return;
+      }
+    }
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete staff member "${u.name}" (${u.email})? This action cannot be undone.`,
+      )
+    )
+      return;
+    setBusyActionId(String(u._id));
+    try {
+      await api("/users/" + u._id, { method: "DELETE" });
+      await load();
+      toast(`Staff member "${u.name}" permanently deleted`);
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      setBusyActionId("");
+    }
+  }
+
+  function openPermissions(u) {
+    setPermissionUser(u);
+    setAssignments(u.assignments || []);
+    setModuleAccess(u.moduleAccess || []);
+    setStudentActions(u.studentActions || []);
+  }
+
+  async function saveAccess() {
+    if (!permissionUser) return;
+    try {
+      await api("/users/" + permissionUser._id, {
+        method: "PUT",
+        body: { assignments, moduleAccess, studentActions },
+      });
+      const staffName = permissionUser.name;
+      setPermissionUser(null);
+      await load();
+      toast(
+        `Access updated. ${staffName} must sign in again for the new access to apply.`,
+      );
     } catch (e) {
       toast(e.message, true);
     }
   }
+
+  const filteredUsers = users.filter((u) => {
+    if (roleFilter && u.role !== roleFilter) return false;
+    if (statusFilter === "active" && !u.active) return false;
+    if (statusFilter === "disabled" && u.active) return false;
+    if (classFilter && u.role === "teacher") {
+      const hasCls = (u.assignments || []).some(
+        (a) => String(a.className) === String(classFilter),
+      );
+      if (!hasCls) return false;
+    }
+    if (sectionFilter && u.role === "teacher") {
+      const hasSec = (u.assignments || []).some(
+        (a) => a.section === sectionFilter,
+      );
+      if (!hasSec) return false;
+    }
+    if (q.trim()) {
+      const query = q.trim().toLowerCase();
+      const matchName = (u.name || "").toLowerCase().includes(query);
+      const matchEmail = (u.email || "").toLowerCase().includes(query);
+      const matchPhone = (u.phone || "").toLowerCase().includes(query);
+      const matchDesig = (u.designation || "").toLowerCase().includes(query);
+      const matchClasses = (u.assignments || []).some((a) =>
+        `class ${a.className} ${a.section}`.toLowerCase().includes(query),
+      );
+      if (
+        !matchName &&
+        !matchEmail &&
+        !matchPhone &&
+        !matchDesig &&
+        !matchClasses
+      )
+        return false;
+    }
+    return true;
+  });
+
+  const totalCount = users.length;
+  const teachersCount = users.filter((u) => u.role === "teacher").length;
+  const adminsCount = users.filter((u) => u.role === "admin").length;
+  const principalsCount = users.filter((u) => u.role === "principal").length;
+  const activeCount = users.filter((u) => u.active).length;
+
   return (
     <>
-      <PageTitle
-        eyebrow="THE RIGHT ACCESS, FOR EVERY EDUCATOR"
-        title="Your team. Clear permissions."
-        subtitle="Administrators manage. Principals approve. Teachers assess assigned classes."
-      >
-        <button className="btn primary" onClick={() => setAdd(true)}>
-          <Plus size={17} /> Add staff account
+      <div className="staff-subnav">
+        <button
+          type="button"
+          className={subTab === "Staff_Details" ? "active" : ""}
+          onClick={() => setSubTab("Staff_Details")}
+        >
+          <Users size={16} /> Staff Details (Directory)
         </button>
-      </PageTitle>
-      <div className="role-cards">
-        {[
-          ["Administrator", "Students, imports, users and all reports"],
-          ["Principal", "Review, publish and reopen all reports"],
-          ["Class teacher", "Marks for assigned class–sections only"],
-        ].map(([t, d]) => (
-          <section className="card" key={t}>
-            <ShieldCheck />
-            <h3>{t}</h3>
-            <p>{d}</p>
-          </section>
-        ))}
+        <button
+          type="button"
+          className={subTab === "permissions" ? "active" : ""}
+          onClick={() => setSubTab("permissions")}
+        >
+          <ShieldCheck size={16} /> Permissions & Role Matrix
+        </button>
       </div>
-      <section className="card">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>STAFF MEMBER</th>
-              <th>ROLE</th>
-              <th>ASSIGNED CLASSES</th>
-              <th>STATUS</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u._id}>
-                <td>
-                  <b>{u.name}</b>
-                  <small className="block muted">{u.email}</small>
-                </td>
-                <td className="capitalize">{u.role}</td>
-                <td>
-                  {u.assignments
-                    ?.map((a) => `${a.className} · ${a.section}`)
-                    .join(", ") || "All classes"}
-                </td>
-                <td>
-                  <span className={"pill " + (u.active ? "green" : "")}>
-                    {u.active ? "Active" : "Disabled"}
-                  </span>
-                </td>
-                <td>
-                  {u.role === "admin" ? (
-                    <span className="muted">Full admin access</span>
-                  ) : (
-                    <button
-                      className="text-button"
-                      onClick={() => {
-                        setEditing(u);
-                        setAssignments(u.assignments || []);
-                        setModuleAccess(u.moduleAccess || []);
-                        setStudentActions(u.studentActions || []);
-                      }}
-                    >
-                      Manage access
-                    </button>
-                  )}
-                  <button
-                    className="icon-button"
-                    title="Enable / disable account"
-                    onClick={() => toggle(u)}
-                  >
-                    <LockKeyhole size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-      {add && (
-        <div className="modal-backdrop">
-          <form className="modal" onSubmit={create}>
-            <div className="modal-head">
-              <h2>Add staff account</h2>
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => setAdd(false)}
+
+      {subTab === "Staff_Details" ? (
+        <>
+          <PageTitle
+            eyebrow="FACULTY & EDUCATOR DIRECTORY"
+            title="Staff Directory & Details"
+            subtitle="Manage school teachers, designations, phone numbers, profile photos, and multiple class assignments in real time."
+          >
+            <button className="btn primary" onClick={() => setAddModal(true)}>
+              <Plus size={17} /> Add staff member
+            </button>
+          </PageTitle>
+
+          <div className="staff-kpi-bar">
+            <div className="kpi-card">
+              <span className="kpi-val">{totalCount}</span>
+              <span className="kpi-lbl">Total Staff</span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-val blue">{teachersCount}</span>
+              <span className="kpi-lbl">Teachers</span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-val purple">{principalsCount}</span>
+              <span className="kpi-lbl">Principals</span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-val teal">{adminsCount}</span>
+              <span className="kpi-lbl">Administrators</span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-val green">{activeCount}</span>
+              <span className="kpi-lbl">Active Accounts</span>
+            </div>
+          </div>
+
+          <section className="card directory staff-directory-card">
+            <div className="filter-bar">
+              <label className="search-box">
+                <Search size={18} />
+                <input
+                  placeholder="Search staff by name, email, phone, designation or class…"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </label>
+
+              <select
+                aria-label="Filter role"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
               >
-                <X />
-              </button>
+                <option value="">All Roles</option>
+                <option value="teacher">Teachers</option>
+                <option value="principal">Principals</option>
+                <option value="admin">Administrators</option>
+              </select>
+
+              <select
+                aria-label="Filter class"
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+              >
+                <option value="">All Classes</option>
+                {classes.map((c) => (
+                  <option key={c} value={c}>
+                    Class {c}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                aria-label="Filter section"
+                value={sectionFilter}
+                onChange={(e) => setSectionFilter(e.target.value)}
+              >
+                <option value="">All Sections</option>
+                {sections.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                aria-label="Filter account status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active Only</option>
+                <option value="disabled">Disabled Only</option>
+              </select>
             </div>
-            <div className="form-grid">
-              {[
-                ["name", "Full name"],
-                ["email", "Staff email"],
-                ["password", "Temporary password (6–20 characters)"],
-              ].map(([k, label]) => (
-                <Field key={k} label={label}>
-                  <input
-                    required
-                    minLength={k === "password" ? PASSWORD_MIN : undefined}
-                    maxLength={k === "password" ? PASSWORD_MAX : undefined}
-                    type={
-                      k === "password"
-                        ? "password"
-                        : k === "email"
-                          ? "email"
-                          : "text"
-                    }
-                    value={form[k]}
-                    onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                  />
-                </Field>
-              ))}
-              <Field label="Role">
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                >
-                  {["teacher", "principal", "admin"].map((r) => (
-                    <option key={r}>{r}</option>
-                  ))}
-                </select>
-              </Field>
-              {form.role === "teacher" && (
-                <>
-                  <Field label="Class">
-                    <select
-                      value={form.className}
-                      onChange={(e) =>
-                        setForm({ ...form, className: e.target.value })
-                      }
-                    >
-                      {classes.map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Section">
-                    <select
-                      value={form.section}
-                      onChange={(e) =>
-                        setForm({ ...form, section: e.target.value })
-                      }
-                    >
-                      {sections.map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
-                  </Field>
-                </>
-              )}
+
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>STAFF MEMBER</th>
+                    <th>ROLE & DESIGNATION</th>
+                    <th>CONTACT INFO</th>
+                    <th>ASSIGNED CLASSES & SECTIONS</th>
+                    <th>STATUS</th>
+                    <th style={{ textAlign: "right" }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => {
+                    const initials = (u.name || "S")
+                      .split(" ")
+                      .slice(0, 2)
+                      .map((p) => p[0])
+                      .join("")
+                      .toUpperCase();
+                    return (
+                      <tr key={u._id}>
+                        <td>
+                          <div className="staff-cell-flex">
+                            <div className="staff-avatar-sm">
+                              {u.photo ? (
+                                <img
+                                  src={u.photo}
+                                  alt={u.name}
+                                  className="staff-avatar-img"
+                                />
+                              ) : (
+                                <span className={`staff-avatar-txt role-${u.role}`}>
+                                  {initials}
+                                </span>
+                              )}
+                            </div>
+                            <div className="staff-meta">
+                              <b>{u.name}</b>
+                              <small className="muted block">{u.email}</small>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="staff-role-box">
+                            <span className={`staff-role-pill role-${u.role}`}>
+                              {u.role === "admin"
+                                ? "Administrator"
+                                : u.role === "principal"
+                                  ? "Principal"
+                                  : "Teacher"}
+                            </span>
+                            {u.designation && (
+                              <span className="staff-desig-tag">
+                                {u.designation}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="staff-contact-box">
+                            {u.phone ? (
+                              <a
+                                href={`tel:${u.phone}`}
+                                className="staff-phone-link"
+                                title="Call phone"
+                              >
+                                <Phone size={13} /> {u.phone}
+                              </a>
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td>
+                          {u.role === "teacher" ? (
+                            <div className="assigned-chips-wrap">
+                              {u.assignments && u.assignments.length > 0 ? (
+                                u.assignments.map((a, i) => (
+                                  <span
+                                    className="assigned-chip"
+                                    key={`${a.className}-${a.section}-${i}`}
+                                  >
+                                    Class {a.className} · {a.section}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="muted">None assigned</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="all-classes-pill">
+                              All classes (Full access)
+                            </span>
+                          )}
+                        </td>
+
+                        <td>
+                          <span
+                            className={
+                              "pill " + (u.active ? "green" : "pill-disabled")
+                            }
+                          >
+                            {u.active ? "Active" : "Disabled"}
+                          </span>
+                        </td>
+
+                        <td style={{ textAlign: "right" }}>
+                          <div className="row-actions staff-actions-row">
+                            <button
+                              className="icon-button"
+                              title="View full staff profile"
+                              onClick={() => setViewingStaff(u)}
+                            >
+                              <Eye size={16} />
+                            </button>
+
+                            <button
+                              className="icon-button"
+                              title="Edit staff details, photo, and classes"
+                              onClick={() => setEditingStaff(u)}
+                            >
+                              <PenLine size={16} />
+                            </button>
+
+                            <button
+                              className="icon-button"
+                              title="Configure module & action permissions"
+                              onClick={() => openPermissions(u)}
+                            >
+                              <ShieldCheck size={16} />
+                            </button>
+
+                            <button
+                              className={`icon-button ${
+                                u.active ? "btn-disable" : "btn-enable"
+                              }`}
+                              title={
+                                u.active
+                                  ? "Disable staff account"
+                                  : "Enable staff account"
+                              }
+                              disabled={busyActionId === String(u._id)}
+                              onClick={() => handleToggle(u)}
+                            >
+                              <Power size={16} />
+                            </button>
+
+                            <button
+                              className="icon-button danger"
+                              title="Permanently delete staff member"
+                              disabled={
+                                busyActionId === String(u._id) ||
+                                (currentUser &&
+                                  String(u._id) === String(currentUser._id))
+                              }
+                              onClick={() => handleDelete(u)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="modal-footer">
-              <button className="btn primary">Create account</button>
+
+            {!filteredUsers.length && (
+              <Empty text="No staff members matching your search or filters" />
+            )}
+
+            <div className="table-footer">
+              Showing {filteredUsers.length} of {users.length} staff member
+              {users.length !== 1 ? "s" : ""} · Real-time synchronized
             </div>
-          </form>
-        </div>
+          </section>
+        </>
+      ) : (
+        <>
+          <PageTitle
+            eyebrow="THE RIGHT ACCESS, FOR EVERY EDUCATOR"
+            title="Role & Permission Matrix"
+            subtitle="Administrators manage. Principals approve. Teachers assess assigned classes."
+          >
+            <button className="btn primary" onClick={() => setAddModal(true)}>
+              <Plus size={17} /> Add staff account
+            </button>
+          </PageTitle>
+
+          <div className="role-cards">
+            {[
+              ["Administrator", "Students, imports, users and all reports"],
+              ["Principal", "Review, publish and reopen all reports"],
+              ["Class teacher", "Marks for assigned class–sections only"],
+            ].map(([t, d]) => (
+              <section className="card" key={t}>
+                <ShieldCheck />
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </section>
+            ))}
+          </div>
+
+          <section className="card">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>STAFF MEMBER</th>
+                  <th>ROLE</th>
+                  <th>ASSIGNED CLASSES</th>
+                  <th>STATUS</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u._id}>
+                    <td>
+                      <b>{u.name}</b>
+                      {u.designation && (
+                        <small className="staff-desig-tag inline">
+                          {u.designation}
+                        </small>
+                      )}
+                      <small className="block muted">{u.email}</small>
+                    </td>
+                    <td className="capitalize">{u.role}</td>
+                    <td>
+                      {u.assignments
+                        ?.map((a) => `${a.className} · ${a.section}`)
+                        .join(", ") || "All classes"}
+                    </td>
+                    <td>
+                      <span className={"pill " + (u.active ? "green" : "")}>
+                        {u.active ? "Active" : "Disabled"}
+                      </span>
+                    </td>
+                    <td>
+                      {u.role === "admin" ? (
+                        <span className="muted">Full admin access</span>
+                      ) : (
+                        <button
+                          className="text-button"
+                          onClick={() => openPermissions(u)}
+                        >
+                          Manage access
+                        </button>
+                      )}
+                      <button
+                        className="icon-button"
+                        title="Enable / disable account"
+                        onClick={() => handleToggle(u)}
+                        disabled={busyActionId === String(u._id)}
+                      >
+                        <LockKeyhole size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        </>
       )}
-      {editing && (
+
+      {addModal && (
+        <StaffModal
+          onClose={() => setAddModal(false)}
+          onSaved={load}
+          toast={toast}
+        />
+      )}
+
+      {editingStaff && (
+        <StaffModal
+          staff={editingStaff}
+          onClose={() => setEditingStaff(null)}
+          onSaved={load}
+          toast={toast}
+        />
+      )}
+
+      {viewingStaff && (
+        <StaffViewModal
+          staff={viewingStaff}
+          onClose={() => setViewingStaff(null)}
+          onEdit={() => {
+            const s = viewingStaff;
+            setViewingStaff(null);
+            setEditingStaff(s);
+          }}
+          onManageAccess={() => {
+            const s = viewingStaff;
+            setViewingStaff(null);
+            openPermissions(s);
+          }}
+        />
+      )}
+
+      {permissionUser && (
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-head">
-              <h2>{editing.name} · Access</h2>
-              <button className="icon-button" onClick={() => setEditing(null)}>
+              <h2>{permissionUser.name} · Access & Permissions</h2>
+              <button
+                className="icon-button"
+                onClick={() => setPermissionUser(null)}
+              >
                 <X />
               </button>
             </div>
@@ -2303,8 +2654,10 @@ function UserAccess({ toast }) {
               <p>Choose which modules and student actions this account can use.</p>
               <h3>Module access</h3>
               <div className="permission-grid">
-                {(ROLE_MODULES[editing.role] || []).map((moduleId) => {
-                  const label = MODULE_LABELS.find(([id]) => id === moduleId)?.[1] || moduleId;
+                {(ROLE_MODULES[permissionUser.role] || []).map((moduleId) => {
+                  const label =
+                    MODULE_LABELS.find(([id]) => id === moduleId)?.[1] ||
+                    moduleId;
                   return (
                     <label className="permission-check" key={moduleId}>
                       <input
@@ -2313,13 +2666,31 @@ function UserAccess({ toast }) {
                         onChange={(e) => {
                           const enabled = e.target.checked;
                           setModuleAccess((current) => {
-                            if (enabled) return moduleId === "students" || current.includes("students")
-                              ? [...new Set([...current, moduleId])]
-                              : [...new Set([...current, "students", moduleId])];
-                            if (moduleId === "students") return current.filter((id) => !["students", "overview", "studio", "bulk"].includes(id));
+                            if (enabled)
+                              return moduleId === "students" ||
+                                current.includes("students")
+                                ? [...new Set([...current, moduleId])]
+                                : [
+                                    ...new Set([
+                                      ...current,
+                                      "students",
+                                      moduleId,
+                                    ]),
+                                  ];
+                            if (moduleId === "students")
+                              return current.filter(
+                                (id) =>
+                                  ![
+                                    "students",
+                                    "overview",
+                                    "studio",
+                                    "bulk",
+                                  ].includes(id),
+                              );
                             return current.filter((id) => id !== moduleId);
                           });
-                          if (moduleId === "students" && !enabled) setStudentActions([]);
+                          if (moduleId === "students" && !enabled)
+                            setStudentActions([]);
                         }}
                       />
                       <span>{label}</span>
@@ -2327,6 +2698,7 @@ function UserAccess({ toast }) {
                   );
                 })}
               </div>
+
               <h3>Student actions</h3>
               <div className="permission-grid">
                 {ACTION_LABELS.map(([actionId, label]) => (
@@ -2334,32 +2706,48 @@ function UserAccess({ toast }) {
                     <input
                       type="checkbox"
                       checked={studentActions.includes(actionId)}
-                      onChange={(e) => setStudentActions((current) => e.target.checked
-                        ? [...current, actionId]
-                        : current.filter((id) => id !== actionId))}
+                      onChange={(e) =>
+                        setStudentActions((current) =>
+                          e.target.checked
+                            ? [...current, actionId]
+                            : current.filter((id) => id !== actionId),
+                        )
+                      }
                     />
                     <span>{label}</span>
                   </label>
                 ))}
               </div>
-              {editing.role !== "teacher" ? (
+
+              {permissionUser.role !== "teacher" ? (
                 <p>Administrators and principals have access to all classes.</p>
               ) : (
                 <>
-                  <p>For a class transfer, replace the old assignment below, then save access.</p>
-                  {assignments.map((a, i) => (
-                    <div className="assignment" key={i}>
-                      Class {a.className} · {a.section}
-                      <button
-                        className="icon-button"
-                        onClick={() =>
-                          setAssignments(assignments.filter((_, j) => j !== i))
-                        }
+                  <p>
+                    Assigned classes for {permissionUser.name}. Add or remove
+                    classes, then click Save Access.
+                  </p>
+                  <div className="assigned-chips-wrap" style={{ margin: "10px 0" }}>
+                    {assignments.map((a, i) => (
+                      <span
+                        className="assigned-chip"
+                        key={`${a.className}-${a.section}-${i}`}
                       >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
+                        Class {a.className} · {a.section}
+                        <button
+                          type="button"
+                          className="chip-remove"
+                          onClick={() =>
+                            setAssignments(
+                              assignments.filter((_, j) => j !== i),
+                            )
+                          }
+                        >
+                          <X size={13} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                   <div className="row-actions">
                     <select value={ac} onChange={(e) => setAc(e.target.value)}>
                       {classes.map((c) => (
@@ -2372,6 +2760,7 @@ function UserAccess({ toast }) {
                       ))}
                     </select>
                     <button
+                      type="button"
                       className="btn"
                       onClick={() => {
                         if (
@@ -2385,14 +2774,7 @@ function UserAccess({ toast }) {
                           ]);
                       }}
                     >
-                      <Plus size={16} /> Assign
-                    </button>
-                    <button
-                      className="btn"
-                      onClick={() => setAssignments([{ className: ac, section: as }])}
-                      title="Remove existing class assignments and set only the selected class"
-                    >
-                      Replace all with Class {ac} · {as}
+                      <Plus size={16} /> Assign Class
                     </button>
                   </div>
                 </>
@@ -2407,6 +2789,497 @@ function UserAccess({ toast }) {
         </div>
       )}
     </>
+  );
+}
+
+function StaffModal({ staff, onClose, onSaved, toast }) {
+  const isEdit = Boolean(staff?._id);
+  const [name, setName] = useState(staff?.name || "");
+  const [email, setEmail] = useState(staff?.email || "");
+  const [phone, setPhone] = useState(staff?.phone || "");
+  const [designation, setDesignation] = useState(staff?.designation || "");
+  const [photo, setPhoto] = useState(staff?.photo || "");
+  const [role, setRole] = useState(staff?.role || "teacher");
+  const [assignments, setAssignments] = useState(
+    staff?.assignments?.length
+      ? staff.assignments
+      : staff?.role === "teacher"
+        ? [{ className: "6", section: "Venus" }]
+        : [],
+  );
+  const [password, setPassword] = useState("");
+  const [selClass, setSelClass] = useState("6");
+  const [selSection, setSelSection] = useState("Venus");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const quickDesignations = [
+    "Principal",
+    "Vice Principal",
+    "PGT",
+    "TGT",
+    "PRT",
+    "Class Teacher",
+    "Subject Teacher",
+    "Computer Faculty",
+    "Accountant",
+    "Librarian",
+  ];
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await api("/upload/staff-photo", {
+        method: "POST",
+        body: fd,
+      });
+      setPhoto(res.url);
+      toast("Profile photo uploaded successfully");
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function addClassAssignment() {
+    if (
+      assignments.some(
+        (a) => String(a.className) === String(selClass) && a.section === selSection,
+      )
+    ) {
+      toast(`Class ${selClass} · ${selSection} is already assigned`);
+      return;
+    }
+    setAssignments([...assignments, { className: selClass, section: selSection }]);
+  }
+
+  function removeClassAssignment(idx) {
+    setAssignments(assignments.filter((_, i) => i !== idx));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!name.trim()) return toast("Staff full name is required", true);
+    if (!email.trim()) return toast("Valid staff email is required", true);
+    if (
+      !isEdit &&
+      (!password ||
+        password.length < PASSWORD_MIN ||
+        password.length > PASSWORD_MAX)
+    ) {
+      return toast(
+        `Temporary password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`,
+        true,
+      );
+    }
+    if (
+      isEdit &&
+      password &&
+      (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX)
+    ) {
+      return toast(
+        `Password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`,
+        true,
+      );
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        designation: designation.trim(),
+        photo: photo.trim(),
+        role,
+        assignments: role === "teacher" ? assignments : [],
+      };
+      if (password) payload.password = password;
+
+      if (isEdit) {
+        await api("/users/" + staff._id, {
+          method: "PUT",
+          body: payload,
+        });
+        toast(`Staff member "${name}" updated successfully`);
+      } else {
+        await api("/users", {
+          method: "POST",
+          body: payload,
+        });
+        toast(`Staff account for "${name}" created successfully`);
+      }
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const initials = (name || "S")
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="modal-backdrop">
+      <form className="modal staff-modal" onSubmit={handleSubmit}>
+        <div className="modal-head">
+          <h2>{isEdit ? `Edit Staff: ${staff.name}` : "Add New Staff Member"}</h2>
+          <button type="button" className="icon-button" onClick={onClose}>
+            <X />
+          </button>
+        </div>
+
+        <div className="staff-photo-section">
+          <div className="staff-photo-avatar">
+            {photo ? (
+              <img
+                src={photo}
+                alt={name || "Staff preview"}
+                className="staff-avatar-preview"
+              />
+            ) : (
+              <div className="staff-avatar-placeholder">
+                {name ? initials : <Users size={28} />}
+              </div>
+            )}
+          </div>
+          <div className="staff-photo-controls">
+            <label className="btn text-btn-upload">
+              {uploading ? (
+                <Loader2 size={15} className="spin" />
+              ) : (
+                <Upload size={15} />
+              )}
+              {uploading
+                ? "Uploading…"
+                : photo
+                  ? "Change Photo"
+                  : "Upload Profile Photo"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handlePhotoUpload}
+                style={{ display: "none" }}
+              />
+            </label>
+            {photo && (
+              <button
+                type="button"
+                className="text-button text-danger"
+                onClick={() => setPhoto("")}
+              >
+                Remove photo
+              </button>
+            )}
+            <small className="muted block">Square JPG, PNG, or WebP</small>
+          </div>
+        </div>
+
+        <div className="form-grid">
+          <Field label="Full Name *">
+            <input
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Meenakshi Sundaram"
+            />
+          </Field>
+
+          <Field label="Staff Email (Login ID) *">
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. meenakshi@srpskanhra.com"
+            />
+          </Field>
+
+          <Field label="Phone / WhatsApp Number">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 9876543210"
+            />
+          </Field>
+
+          <Field label="System Role *">
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="teacher">Teacher (Class Assessment)</option>
+              <option value="principal">Principal (Review & Approval)</option>
+              <option value="admin">Administrator (Full Access)</option>
+            </select>
+          </Field>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <Field label="Designation / Position">
+              <input
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                placeholder="e.g. PGT Mathematics, Class Teacher, Vice Principal…"
+              />
+              <div className="quick-suggestions">
+                {quickDesignations.map((d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    className={`suggestion-pill ${
+                      designation === d ? "selected" : ""
+                    }`}
+                    onClick={() => setDesignation(d)}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </div>
+
+          {role === "teacher" && (
+            <div
+              className="staff-class-assignments-box"
+              style={{ gridColumn: "1 / -1" }}
+            >
+              <label className="assignments-title">
+                ASSIGNED CLASSES & SECTIONS ({assignments.length})
+              </label>
+              <p className="hint">
+                A single teacher can be assigned multiple classes. Assessment and
+                student records will be scoped to these classes.
+              </p>
+
+              {assignments.length > 0 ? (
+                <div className="assigned-chips-wrap">
+                  {assignments.map((a, idx) => (
+                    <span
+                      className="assigned-chip"
+                      key={`${a.className}-${a.section}-${idx}`}
+                    >
+                      Class {a.className} · {a.section}
+                      <button
+                        type="button"
+                        className="chip-remove"
+                        onClick={() => removeClassAssignment(idx)}
+                        title="Remove assignment"
+                      >
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted small-note">
+                  No classes assigned yet. Add one or more classes below.
+                </p>
+              )}
+
+              <div className="add-class-row">
+                <select
+                  value={selClass}
+                  onChange={(e) => setSelClass(e.target.value)}
+                  title="Select Class"
+                >
+                  {classes.map((c) => (
+                    <option key={c} value={c}>
+                      Class {c}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selSection}
+                  onChange={(e) => setSelSection(e.target.value)}
+                  title="Select Section"
+                >
+                  {sections.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={addClassAssignment}
+                >
+                  <Plus size={15} /> Add Class
+                </button>
+                {assignments.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-button text-danger"
+                    onClick={() => setAssignments([])}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <Field
+              label={
+                isEdit
+                  ? "New Password (leave blank to keep existing)"
+                  : "Temporary Password (6–20 characters) *"
+              }
+            >
+              <input
+                type="password"
+                required={!isEdit}
+                minLength={PASSWORD_MIN}
+                maxLength={PASSWORD_MAX}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={
+                  isEdit
+                    ? "•••••••• (leave blank to keep unchanged)"
+                    : "Enter temporary password (6–20 characters)"
+                }
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button type="submit" className="btn primary" disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 size={16} className="spin" /> Saving…
+              </>
+            ) : isEdit ? (
+              "Save Changes"
+            ) : (
+              "Create Staff Account"
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function StaffViewModal({ staff, onClose, onEdit, onManageAccess }) {
+  if (!staff) return null;
+  const initials = (staff.name || "S")
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal staff-view-modal">
+        <div className="modal-head">
+          <h2>Staff Profile</h2>
+          <button type="button" className="icon-button" onClick={onClose}>
+            <X />
+          </button>
+        </div>
+
+        <div className="staff-view-card">
+          <div className="staff-view-header">
+            <div className="staff-view-avatar">
+              {staff.photo ? (
+                <img
+                  src={staff.photo}
+                  alt={staff.name}
+                  className="staff-view-img"
+                />
+              ) : (
+                <span className={`staff-avatar-lg role-${staff.role}`}>
+                  {initials}
+                </span>
+              )}
+            </div>
+
+            <div className="staff-view-title-block">
+              <h3>{staff.name}</h3>
+              {staff.designation && (
+                <span className="staff-desig-tag large">{staff.designation}</span>
+              )}
+              <div className="staff-badge-row">
+                <span className={`staff-role-pill role-${staff.role}`}>
+                  {staff.role === "admin"
+                    ? "Administrator"
+                    : staff.role === "principal"
+                      ? "Principal"
+                      : "Teacher"}
+                </span>
+                <span className={"pill " + (staff.active ? "green" : "pill-disabled")}>
+                  {staff.active ? "Active Account" : "Disabled Account"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="staff-info-grid">
+            <div className="info-item">
+              <span className="info-label">Email / Login ID</span>
+              <span className="info-value">
+                <Mail size={14} /> {staff.email}
+              </span>
+            </div>
+
+            <div className="info-item">
+              <span className="info-label">Phone / WhatsApp</span>
+              <span className="info-value">
+                <Phone size={14} /> {staff.phone || "Not specified"}
+              </span>
+            </div>
+
+            <div className="info-item full-width">
+              <span className="info-label">Assigned Classes & Sections</span>
+              {staff.role === "teacher" ? (
+                <div className="assigned-chips-wrap">
+                  {staff.assignments && staff.assignments.length > 0 ? (
+                    staff.assignments.map((a, i) => (
+                      <span
+                        className="assigned-chip"
+                        key={`${a.className}-${a.section}-${i}`}
+                      >
+                        Class {a.className} · {a.section}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="muted">No classes assigned</span>
+                  )}
+                </div>
+              ) : (
+                <span className="all-classes-pill">
+                  All classes (Administrator / Principal full access)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn" onClick={onManageAccess}>
+            <ShieldCheck size={16} /> Manage Permissions
+          </button>
+          <button type="button" className="btn primary" onClick={onEdit}>
+            <PenLine size={16} /> Edit Details
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 function ReportReview({ session, open, toast, user }) {

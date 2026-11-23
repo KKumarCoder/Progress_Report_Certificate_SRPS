@@ -99,6 +99,9 @@ const safeUser = (user) => ({
   _id: user._id,
   name: user.name,
   email: user.email,
+  phone: user.phone || "",
+  designation: user.designation || "",
+  photo: user.photo || "",
   role: user.role,
   assignments: user.assignments,
   moduleAccess: effectiveModules(user),
@@ -1143,11 +1146,11 @@ app.post(
   wrap(async (req, res) => {
     const kind = req.params.kind;
     if (
-      !["photo", "signature", "logo", "principal"].includes(kind) ||
+      !["photo", "signature", "logo", "principal", "staff-photo"].includes(kind) ||
       !req.file
     )
       throw fail(400, "Choose an image file");
-    if (["logo", "principal"].includes(kind) && req.user.role !== "admin")
+    if (["logo", "principal", "staff-photo"].includes(kind) && req.user.role !== "admin")
       throw fail(403, "Admin only");
     if (kind === "photo") {
       if (!hasModule(req.user, "students")) throw fail(403, "Students module is not assigned to your account");
@@ -1172,7 +1175,7 @@ app.post(
     const normalizedImage = await sharp(req.file.buffer)
       .rotate()
       .resize({
-        width: kind === "photo" ? 700 : 1200,
+        width: ["photo", "staff-photo"].includes(kind) ? 700 : 1200,
         withoutEnlargement: true,
       })
       .png()
@@ -2097,8 +2100,11 @@ app.get(
         _id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone || "",
+        designation: user.designation || "",
+        photo: user.photo || "",
         role: user.role,
-        assignments: user.assignments,
+        assignments: user.assignments || [],
         moduleAccess: effectiveModules(user),
         studentActions: effectiveActions(user),
         signature: user.signature,
@@ -2113,7 +2119,16 @@ app.post(
   "/api/users",
   roles("admin"),
   wrap(async (req, res) => {
-    const { name, email, password, role, assignments = [] } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      assignments = [],
+      phone = "",
+      designation = "",
+      photo = "",
+    } = req.body;
     if (
       !name ||
       !/^\S+@\S+\.\S+$/.test(email || "") ||
@@ -2124,14 +2139,20 @@ app.post(
         400,
         "Valid name, email, role and 6–20 character password required",
       );
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) throw fail(409, "A user with this email already exists");
     validateAssignments(assignments);
     const moduleAccess = req.body.moduleAccess;
     const studentActions = req.body.studentActions;
     if (moduleAccess !== undefined || studentActions !== undefined)
       validatePermissions(role, moduleAccess, studentActions);
     const u = await User.create({
-      name,
-      email,
+      name: String(name).trim(),
+      email: normalizedEmail,
+      phone: typeof phone === "string" ? phone.trim() : "",
+      designation: typeof designation === "string" ? designation.trim() : "",
+      photo: typeof photo === "string" ? photo.trim() : "",
       passwordHash: await bcrypt.hash(password, 12),
       role,
       assignments,
@@ -2139,9 +2160,16 @@ app.post(
       ...(studentActions !== undefined ? { studentActions } : {}),
     });
     await audit(req, "create-user", u._id);
-    res
-      .status(201)
-      .json({ name: u.name, email: u.email, _id: u._id, role: u.role });
+    res.status(201).json({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone || "",
+      designation: u.designation || "",
+      photo: u.photo || "",
+      role: u.role,
+      assignments: u.assignments,
+    });
   }),
 );
 function validateAssignments(a) {
@@ -2185,8 +2213,8 @@ app.put(
   wrap(async (req, res) => {
     const u = await User.findById(req.params.id);
     if (!u) throw fail(404, "User not found");
-    if (String(u._id) === String(req.user._id))
-      throw fail(400, "Use another administrator to change your account");
+    if (String(u._id) === String(req.user._id) && (req.body.role || req.body.active === false))
+      throw fail(400, "Use another administrator to change your role or disable your account");
     if (u.role === "admin" && (req.body.role || req.body.active === false)) {
       const activeAdmins = await User.countDocuments({
         role: "admin",
@@ -2198,6 +2226,27 @@ app.put(
           409,
           "The only active administrator cannot be demoted or disabled",
         );
+    }
+    if (req.body.name !== undefined) {
+      if (!req.body.name || typeof req.body.name !== "string" || !req.body.name.trim())
+        throw fail(400, "Valid name is required");
+      u.name = req.body.name.trim();
+    }
+    if (req.body.email !== undefined) {
+      const email = String(req.body.email || "").trim().toLowerCase();
+      if (!/^\S+@\S+\.\S+$/.test(email)) throw fail(400, "Valid email is required");
+      const existing = await User.findOne({ email, _id: { $ne: u._id } });
+      if (existing) throw fail(409, "A user with this email already exists");
+      u.email = email;
+    }
+    if (req.body.phone !== undefined) {
+      u.phone = typeof req.body.phone === "string" ? req.body.phone.trim() : "";
+    }
+    if (req.body.designation !== undefined) {
+      u.designation = typeof req.body.designation === "string" ? req.body.designation.trim() : "";
+    }
+    if (req.body.photo !== undefined) {
+      u.photo = typeof req.body.photo === "string" ? req.body.photo.trim() : "";
     }
     if (req.body.assignments) {
       validateAssignments(req.body.assignments);
@@ -2218,7 +2267,7 @@ app.put(
         throw fail(400, "Invalid role");
       u.role = req.body.role;
     }
-    if (req.body.password !== undefined) {
+    if (req.body.password !== undefined && req.body.password !== "") {
       if (!validPassword(req.body.password)) throw fail(400, PASSWORD_MESSAGE);
       u.passwordHash = await bcrypt.hash(req.body.password, 12);
     }
@@ -2229,6 +2278,9 @@ app.put(
       _id: u._id,
       name: u.name,
       email: u.email,
+      phone: u.phone || "",
+      designation: u.designation || "",
+      photo: u.photo || "",
       role: u.role,
       assignments: u.assignments,
       moduleAccess: effectiveModules(u),
@@ -2238,6 +2290,31 @@ app.put(
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
+  }),
+);
+app.delete(
+  "/api/users/:id",
+  roles("admin"),
+  wrap(async (req, res) => {
+    const u = await User.findById(req.params.id);
+    if (!u) throw fail(404, "User not found");
+    if (String(u._id) === String(req.user._id))
+      throw fail(400, "You cannot delete your own administrator account");
+    if (u.role === "admin") {
+      const activeAdmins = await User.countDocuments({
+        role: "admin",
+        active: true,
+        _id: { $ne: u._id },
+      });
+      if (!activeAdmins)
+        throw fail(
+          409,
+          "The only active administrator cannot be deleted",
+        );
+    }
+    await User.findByIdAndDelete(u._id);
+    await audit(req, "delete-user", u._id);
+    res.json({ ok: true, deleted: u._id });
   }),
 );
 app.get(

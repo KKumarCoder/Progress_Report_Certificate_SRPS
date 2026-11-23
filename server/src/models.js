@@ -4,6 +4,9 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
+    phone: { type: String, default: "" },
+    designation: { type: String, default: "" },
+    photo: { type: String, default: "" },
     passwordHash: { type: String, required: true, select: false },
     resetTokenHash: { type: String, select: false, index: true },
     resetExpiresAt: { type: Date, select: false },
