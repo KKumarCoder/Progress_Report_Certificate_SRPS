@@ -39,6 +39,10 @@ import {
   validateMarks,
   validateStudent,
   canAccess,
+  DEFAULT_CLASSES,
+  DEFAULT_SECTIONS,
+  DEFAULT_HOUSES,
+  DEFAULT_DESIGNATIONS,
 } from "../../shared/engine.js";
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -152,6 +156,45 @@ const config = async () => ({
   ...DEFAULT_CONFIG,
   ...(await Setting.findOne({ key: "config" }))?.value,
 });
+const getMasters = async () => {
+  const doc = await Setting.findOne({ key: "masters" });
+  const val = doc?.value || {};
+  return {
+    classes:
+      Array.isArray(val.classes) && val.classes.length > 0
+        ? val.classes
+        : DEFAULT_CLASSES.map((c, i) => ({
+            id: c,
+            name: c,
+            active: true,
+            order: i + 1,
+          })),
+    sections:
+      Array.isArray(val.sections) && val.sections.length > 0
+        ? val.sections
+        : DEFAULT_SECTIONS.map((s) => ({ id: s, name: s, active: true })),
+    houses:
+      Array.isArray(val.houses) && val.houses.length > 0
+        ? val.houses
+        : DEFAULT_HOUSES.map((h) => ({ id: h, name: h, active: true })),
+    designations:
+      Array.isArray(val.designations) && val.designations.length > 0
+        ? val.designations
+        : DEFAULT_DESIGNATIONS.map((d) => ({ id: d, name: d, active: true })),
+  };
+};
+const getActiveClasses = async () => {
+  const m = await getMasters();
+  return m.classes
+    .filter((c) => c.active !== false)
+    .map((c) => String(c.name || c.id));
+};
+const getActiveSections = async () => {
+  const m = await getMasters();
+  return m.sections
+    .filter((s) => s.active !== false)
+    .map((s) => String(s.name || s.id));
+};
 function forClass(cfg, student) {
   return {
     ...cfg,
@@ -926,6 +969,76 @@ app.put(
   }),
 );
 app.get(
+  "/api/masters",
+  wrap(async (req, res) => res.json(await getMasters())),
+);
+app.put(
+  "/api/masters",
+  roles("admin"),
+  wrap(async (req, res) => {
+    const { classes, sections, houses, designations } = req.body;
+    if (
+      !Array.isArray(classes) ||
+      !Array.isArray(sections) ||
+      !Array.isArray(houses) ||
+      !Array.isArray(designations)
+    ) {
+      throw fail(
+        400,
+        "Invalid masters format: classes, sections, houses, and designations must be arrays",
+      );
+    }
+    const cleanClasses = classes
+      .filter((c) => c && (c.id || c.name))
+      .map((c, i) => ({
+        id: String(c.id || c.name).trim(),
+        name: String(c.name || c.id).trim(),
+        active: c.active !== false,
+        order: typeof c.order === "number" ? c.order : i + 1,
+      }));
+    const cleanSections = sections
+      .filter((s) => s && (s.id || s.name))
+      .map((s) => ({
+        id: String(s.id || s.name).trim(),
+        name: String(s.name || s.id).trim(),
+        active: s.active !== false,
+      }));
+    const cleanHouses = houses
+      .filter((h) => h && (h.id || h.name))
+      .map((h) => ({
+        id: String(h.id || h.name).trim(),
+        name: String(h.name || h.id).trim(),
+        active: h.active !== false,
+        color: h.color || "#0284c7",
+      }));
+    const cleanDesignations = designations
+      .filter((d) => d && (d.id || d.name))
+      .map((d) => ({
+        id: String(d.id || d.name).trim(),
+        name: String(d.name || d.id).trim(),
+        active: d.active !== false,
+      }));
+
+    if (!cleanClasses.length) throw fail(400, "At least one class is required");
+    if (!cleanSections.length)
+      throw fail(400, "At least one section is required");
+
+    const value = {
+      classes: cleanClasses,
+      sections: cleanSections,
+      houses: cleanHouses,
+      designations: cleanDesignations,
+    };
+    await Setting.findOneAndUpdate(
+      { key: "masters" },
+      { value },
+      { upsert: true },
+    );
+    await audit(req, "update-masters", "masters");
+    res.json(value);
+  }),
+);
+app.get(
   "/api/config",
   wrap(async (req, res) => res.json(await config())),
 );
@@ -952,9 +1065,10 @@ app.put(
       const profiles = req.body.profiles;
       if (!profiles || typeof profiles !== "object" || Array.isArray(profiles))
         throw fail(400, "Invalid class profiles");
+      const activeClasses = await getActiveClasses();
       for (const [cls, subjects] of Object.entries(profiles)) {
         if (
-          !Array.from({ length: 12 }, (_, i) => String(i + 1)).includes(cls) ||
+          !activeClasses.includes(cls) ||
           !Array.isArray(subjects) ||
           subjects.length < 1 ||
           subjects.length > 12 ||
@@ -1049,8 +1163,12 @@ app.post(
   requireModule("students"),
   requireAction("studentCreate"),
   wrap(async (req, res) => {
+    const [activeCls, activeSec] = await Promise.all([
+      getActiveClasses(),
+      getActiveSections(),
+    ]);
     const data = pickStudent(req.body),
-      errors = validateStudent(data);
+      errors = validateStudent(data, activeCls, activeSec);
     if (!validateGuardianEmail(data.email)) errors.push("Enter a valid parent/guardian email address");
     if (errors.length) throw fail(400, errors.join("; "));
     if (!canAccess(req.user, data)) throw fail(403, "Student is outside your assigned class/section");
@@ -1070,7 +1188,11 @@ app.put(
     if (!canAccess(req.user, s))
       throw fail(403, "This class/section is not assigned to you");
     const data = { ...s.toObject(), ...pickStudent(req.body) };
-    const errors = validateStudent(data);
+    const [activeCls, activeSec] = await Promise.all([
+      getActiveClasses(),
+      getActiveSections(),
+    ]);
+    const errors = validateStudent(data, activeCls, activeSec);
     if (!validateGuardianEmail(data.email)) errors.push("Enter a valid parent/guardian email address");
     if (errors.length) throw fail(400, errors.join("; "));
     if (!canAccess(req.user, data))
@@ -2142,7 +2264,11 @@ app.post(
     const normalizedEmail = String(email).trim().toLowerCase();
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) throw fail(409, "A user with this email already exists");
-    validateAssignments(assignments);
+    const [activeCls, activeSec] = await Promise.all([
+      getActiveClasses(),
+      getActiveSections(),
+    ]);
+    validateAssignments(assignments, activeCls, activeSec);
     const moduleAccess = req.body.moduleAccess;
     const studentActions = req.body.studentActions;
     if (moduleAccess !== undefined || studentActions !== undefined)
@@ -2172,15 +2298,17 @@ app.post(
     });
   }),
 );
-function validateAssignments(a) {
+function validateAssignments(a, validClasses, validSections) {
   if (
     !Array.isArray(a) ||
-    a.length > 24 ||
+    a.length > 50 ||
     a.some(
       (x) =>
-        !Array.from({ length: 12 }, (_, i) => String(i + 1)).includes(
-          String(x.className),
-        ) || !["Venus", "Mars"].includes(x.section),
+        !x ||
+        !x.className ||
+        !x.section ||
+        (validClasses && !validClasses.includes(String(x.className))) ||
+        (validSections && !validSections.includes(String(x.section))),
     )
   )
     throw fail(400, "Invalid class assignment");
@@ -2249,7 +2377,11 @@ app.put(
       u.photo = typeof req.body.photo === "string" ? req.body.photo.trim() : "";
     }
     if (req.body.assignments) {
-      validateAssignments(req.body.assignments);
+      const [activeCls, activeSec] = await Promise.all([
+        getActiveClasses(),
+        getActiveSections(),
+      ]);
+      validateAssignments(req.body.assignments, activeCls, activeSec);
       u.assignments = req.body.assignments;
     }
     const changingRole = req.body.role && req.body.role !== u.role;
@@ -2394,6 +2526,10 @@ app.post(
       .map((v) => String(v ?? "").trim());
     if (!importColumns.filter((k) => k !== "email").every((k) => headers.includes(k)))
       throw fail(400, "Headers do not match. Download the template.");
+    const [activeCls, activeSec] = await Promise.all([
+      getActiveClasses(),
+      getActiveSections(),
+    ]);
     const rows = [],
       seen = new Set(),
       errors = [];
@@ -2416,7 +2552,7 @@ app.post(
             : String(val ?? "").trim();
       }
       if (!item.admissionNo && !item.name) return;
-      let errs = validateStudent(item);
+      let errs = validateStudent(item, activeCls, activeSec);
       if (!validateGuardianEmail(item.email)) errs.push("Enter a valid parent/guardian email address");
       if (seen.has(item.admissionNo))
         errs.push("Duplicate admission number in workbook");

@@ -122,6 +122,53 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
     result: !complete ? "INCOMPLETE" : passed ? "PASS" : "NEEDS IMPROVEMENT",
   };
 }
+export const DEFAULT_CLASSES = [
+  "Balvatika-1",
+  "Balvatika-2",
+  "Balvatika-3",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+];
+export const DEFAULT_SECTIONS = [
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Science",
+  "Arts",
+  "Commerce",
+];
+export const DEFAULT_HOUSES = [
+  "Himalaya",
+  "Aravali",
+  "Nilgiri",
+  "Shivalik",
+];
+export const DEFAULT_DESIGNATIONS = [
+  "Principal",
+  "Vice Principal",
+  "PGT",
+  "TGT",
+  "PRT",
+  "Class Teacher",
+  "Subject Teacher",
+  "Computer Faculty",
+  "Accountant",
+  "Librarian",
+  "Admin",
+  "Lab Assistant",
+  "Sports Coach",
+];
+
 export function canAccess(user, student) {
   return (
     ["admin", "principal"].includes(user.role) ||
@@ -132,18 +179,18 @@ export function canAccess(user, student) {
     )
   );
 }
-export function validateStudent(s) {
+export function validateStudent(
+  s,
+  permittedClasses = DEFAULT_CLASSES,
+  permittedSections = DEFAULT_SECTIONS,
+) {
   const errors = [];
   for (const k of ["admissionNo", "name", "className", "section"])
     if (!String(s[k] ?? "").trim()) errors.push(`${k} is required`);
-  if (
-    !Array.from({ length: 12 }, (_, i) => String(i + 1)).includes(
-      String(s.className),
-    )
-  )
-    errors.push("Class must be 1–12");
-  if (!["Venus", "Mars"].includes(s.section))
-    errors.push("Section must be Venus or Mars");
+  if (!permittedClasses.includes(String(s.className)))
+    errors.push("Invalid class");
+  if (!permittedSections.includes(String(s.section)))
+    errors.push("Invalid section");
   if (s.mobile && !/^\+?[0-9 -]{10,16}$/.test(s.mobile))
     errors.push("Invalid mobile");
   if (

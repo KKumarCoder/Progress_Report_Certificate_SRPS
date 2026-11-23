@@ -24,6 +24,8 @@ export default function ClassAnalytics({
   user,
   toast,
   openStudent,
+  classes: propClasses,
+  sections: propSections,
 }) {
   const [session, setSession] = useState(initialSession || config.session);
   const [selectedClass, setSelectedClass] = useState("1");
@@ -33,8 +35,34 @@ export default function ClassAnalytics({
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
 
-  const classes = Array.from({ length: 12 }, (_, i) => String(i + 1));
-  const sections = ["all", "Mars", "Venus"];
+  const classes = propClasses || [
+    "Balvatika-1",
+    "Balvatika-2",
+    "Balvatika-3",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+  ];
+  const sections = [
+    "all",
+    ...(propSections || [
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Science",
+      "Arts",
+      "Commerce",
+    ]),
+  ];
 
   const loadData = async () => {
     setLoading(true);

@@ -58,6 +58,10 @@ import {
   TrendingUp,
   AlertTriangle,
   Phone,
+  Layers,
+  Tag,
+  Home,
+  Briefcase,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -84,8 +88,58 @@ import "@fontsource/playfair-display/600-italic.css";
 import "@fontsource/great-vibes/400.css";
 import "./style.css";
 import "react-toastify/dist/ReactToastify.css";
-const classes = Array.from({ length: 12 }, (_, i) => String(i + 1)),
-  sections = ["Venus", "Mars"];
+export const DEFAULT_CLASSES = [
+  "Balvatika-1",
+  "Balvatika-2",
+  "Balvatika-3",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+];
+export const DEFAULT_SECTIONS = [
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Science",
+  "Arts",
+  "Commerce",
+];
+export const DEFAULT_HOUSES = [
+  "Himalaya",
+  "Aravali",
+  "Nilgiri",
+  "Shivalik",
+];
+export const DEFAULT_DESIGNATIONS = [
+  "Principal",
+  "Vice Principal",
+  "PGT",
+  "TGT",
+  "PRT",
+  "Class Teacher",
+  "Subject Teacher",
+  "Computer Faculty",
+  "Accountant",
+  "Librarian",
+  "Admin",
+  "Lab Assistant",
+  "Sports Coach",
+];
+
+let classes = [...DEFAULT_CLASSES];
+let sections = [...DEFAULT_SECTIONS];
+let houses = [...DEFAULT_HOUSES];
+let designations = [...DEFAULT_DESIGNATIONS];
+
 const ROLE_MODULES = {
   teacher: ["overview", "students", "studio", "bulk", "settings"],
   principal: ["overview", "students", "studio", "review", "bulk", "settings", "audit"],
@@ -103,16 +157,26 @@ const ACTION_LABELS = [
 ];
 const hasModule = (user, id) => user.role === "admin" ||
   (Array.isArray(user.moduleAccess) ? user.moduleAccess : ROLE_MODULES[user.role] || []).includes(id);
-const canOpenPage = (user, id) => hasModule(user, id === "dashboard" || id === "analytics" ? "overview" : id);
+const canOpenPage = (user, id) => id === "masters" ? user.role === "admin" : hasModule(user, id === "dashboard" || id === "analytics" ? "overview" : id);
 const hasStudentAction = (user, id) => user.role === "admin" ||
   (Array.isArray(user.studentActions) ? user.studentActions : user.role === "teacher" ? ACTION_LABELS.map(([key]) => key) : user.role === "principal" ? ["studentWhatsapp", "studentEmail"] : []).includes(id);
 const HOUSE_BADGES = {
   himalya: { label: "Himalaya", className: "himalya", Icon: Mountain },
   himalaya: { label: "Himalaya", className: "himalya", Icon: Mountain },
-  arawali: { label: "Arawali", className: "aravali", Icon: Flame },
-  aravali: { label: "Arawali", className: "aravali", Icon: Flame },
+  arawali: { label: "Aravali", className: "aravali", Icon: Flame },
+  aravali: { label: "Aravali", className: "aravali", Icon: Flame },
   nilgiri: { label: "Nilgiri", className: "nilgiri", Icon: Trees },
   shivalik: { label: "Shivalik", className: "shivalik", Icon: Sun },
+};
+const getHouseBadge = (houseName) => {
+  const key = (houseName || "").toLowerCase().trim();
+  return (
+    HOUSE_BADGES[key] || {
+      label: houseName || "Unassigned",
+      className: "himalya",
+      Icon: Home,
+    }
+  );
 };
 const sessionOptions = ["2025-26", "2026-27", "2027-28", "2028-29"];
 const teacherRemarks = [
@@ -216,6 +280,9 @@ function App() {
     [page, setPage] = useState("dashboard"),
     [students, setStudents] = useState([]),
     [config, setConfig] = useState(DEFAULT_CONFIG),
+    [masters, setMasters] = useState(null),
+    [studentSubTab, setStudentSubTab] = useState("directory"),
+    [studentsMenuOpen, setStudentsMenuOpen] = useState(false),
     [selected, setSelected] = useState(null),
     [sidebar, setSidebar] = useState(false),
     [reportDirty, setReportDirty] = useState(false);
@@ -227,6 +294,29 @@ function App() {
   const toast = (message, error = false) => {
     if (error) notify.error(message);
     else notify.success(message);
+  };
+  const handleUpdateMasters = (newMasters) => {
+    setMasters(newMasters);
+    if (Array.isArray(newMasters?.classes)) {
+      classes = newMasters.classes
+        .filter((c) => c.active !== false)
+        .map((c) => String(c.name || c.id));
+    }
+    if (Array.isArray(newMasters?.sections)) {
+      sections = newMasters.sections
+        .filter((s) => s.active !== false)
+        .map((s) => String(s.name || s.id));
+    }
+    if (Array.isArray(newMasters?.houses)) {
+      houses = newMasters.houses
+        .filter((h) => h.active !== false)
+        .map((h) => String(h.name || h.id));
+    }
+    if (Array.isArray(newMasters?.designations)) {
+      designations = newMasters.designations
+        .filter((d) => d.active !== false)
+        .map((d) => String(d.name || d.id));
+    }
   };
   useEffect(() => {
     api("/auth/me")
@@ -240,12 +330,14 @@ function App() {
       .finally(() => setChecking(false));
   }, []);
   async function load(forUser = user) {
-    const [s, c] = await Promise.all([
+    const [s, c, m] = await Promise.all([
       !forUser || hasModule(forUser, "students") ? api("/students") : Promise.resolve([]),
       api("/config"),
+      api("/masters").catch(() => null),
     ]);
     setStudents(s);
     setConfig(c);
+    if (m) handleUpdateMasters(m);
   }
   useEffect(() => {
     if (user) load().catch((e) => toast(e.message, true));
@@ -335,20 +427,78 @@ function App() {
         <div className="school-label">SHREE RAM PUBLIC SCHOOL</div>
         <div className="workspace-label">WORKSPACE</div>
         <nav>
-          {nav.map(([id, label, Icon]) => (
-            <button
-              key={id}
-              className={page === id ? "active" : ""}
-              onClick={() => {
-                navigate(id);
-                setSidebar(false);
-              }}
-            >
-              <Icon size={19} />
-              {label}
-              {page === id && <span className="nav-dot" />}
-            </button>
-          ))}
+          {nav.map(([id, label, Icon]) => {
+            if (id === "students" && user.role === "admin") {
+              const isStudentsActive = page === "students" || page === "masters";
+              return (
+                <div key={id} className="nav-dropdown-group">
+                  <button
+                    className={`nav-parent-btn ${isStudentsActive ? "active" : ""}`}
+                    onClick={() => {
+                      setStudentsMenuOpen((prev) => !prev);
+                      navigate("students");
+                      setStudentSubTab("directory");
+                      setSidebar(false);
+                    }}
+                  >
+                    <Icon size={19} />
+                    <span className="nav-label-text">{label}</span>
+                    <span
+                      className={`dropdown-chevron ${studentsMenuOpen ? "open" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStudentsMenuOpen((prev) => !prev);
+                      }}
+                      title="Toggle Students Submenu"
+                    >
+                      <ChevronDown size={15} />
+                    </span>
+                    {isStudentsActive && <span className="nav-dot" />}
+                  </button>
+                  {studentsMenuOpen && (
+                    <div className="nav-sub-menu">
+                      <button
+                        className={`nav-sub-btn ${page === "students" && studentSubTab === "directory" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("students");
+                          setStudentSubTab("directory");
+                          setSidebar(false);
+                        }}
+                      >
+                        <Users size={15} />
+                        Student Directory
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "masters" || (page === "students" && studentSubTab === "masters") ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("masters");
+                          setStudentSubTab("masters");
+                          setSidebar(false);
+                        }}
+                      >
+                        <Layers size={15} />
+                        Academic Masters
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <button
+                key={id}
+                className={page === id ? "active" : ""}
+                onClick={() => {
+                  navigate(id);
+                  setSidebar(false);
+                }}
+              >
+                <Icon size={19} />
+                {label}
+                {page === id && <span className="nav-dot" />}
+              </button>
+            );
+          })}
         </nav>
         <div className="sidebar-note">
           <span className="tiny-icon">
@@ -380,7 +530,7 @@ function App() {
             </button>
             <span>Workspace</span>
             <ChevronRight size={14} />
-            <b>{nav.find((x) => x[0] === page)?.[1]}</b>
+            <b>{page === "masters" ? "Academic Masters" : nav.find((x) => x[0] === page)?.[1]}</b>
           </div>
           <div className="topbar-right">
             <span className="session-chip">
@@ -420,6 +570,8 @@ function App() {
               user={user}
               toast={toast}
               openStudent={open}
+              classes={classes}
+              sections={sections}
             />
           )}
           {page === "students" && (
@@ -430,6 +582,17 @@ function App() {
               toast={toast}
               user={user}
               session={config.session}
+              masters={masters}
+              onUpdateMasters={handleUpdateMasters}
+              subTab={studentSubTab}
+              onTabChange={setStudentSubTab}
+            />
+          )}
+          {page === "masters" && (
+            <AcademicMasters
+              masters={masters}
+              onUpdateMasters={handleUpdateMasters}
+              toast={toast}
             />
           )}
           {page === "studio" &&
@@ -664,7 +827,25 @@ function Dashboard({ students, config, open, go, user, toast }) {
     </>
   );
 }
-function Students({ students, open, reload, toast, user, session, compact = false }) {
+function Students({
+  students,
+  open,
+  reload,
+  toast,
+  user,
+  session,
+  compact = false,
+  masters,
+  onUpdateMasters,
+  subTab: propSubTab,
+  onTabChange,
+}) {
+  const [internalSubTab, setInternalSubTab] = useState(propSubTab || "directory");
+  const subTab = propSubTab !== undefined ? propSubTab : internalSubTab;
+  const setSubTab = (t) => {
+    setInternalSubTab(t);
+    if (onTabChange) onTabChange(t);
+  };
   const [q, setQ] = useState(""),
     [cls, setCls] = useState(""),
     [sec, setSec] = useState(""),
@@ -813,8 +994,54 @@ function Students({ students, open, reload, toast, user, session, compact = fals
       setEmailBusyId("");
     }
   }
+  if (!compact && user.role === "admin" && subTab === "masters") {
+    return (
+      <>
+        <div className="students-subnav">
+          <button
+            type="button"
+            className={subTab === "directory" ? "active" : ""}
+            onClick={() => setSubTab("directory")}
+          >
+            <Users size={16} /> Student Directory
+          </button>
+          <button
+            type="button"
+            className={subTab === "masters" ? "active" : ""}
+            onClick={() => setSubTab("masters")}
+          >
+            <Layers size={16} /> Academic Masters (Classes, Sections, Houses, Designations)
+          </button>
+        </div>
+        <AcademicMasters
+          masters={masters}
+          onUpdateMasters={onUpdateMasters}
+          toast={toast}
+        />
+      </>
+    );
+  }
+
   return (
     <>
+      {!compact && user.role === "admin" && (
+        <div className="students-subnav">
+          <button
+            type="button"
+            className={subTab === "directory" ? "active" : ""}
+            onClick={() => setSubTab("directory")}
+          >
+            <Users size={16} /> Student Directory
+          </button>
+          <button
+            type="button"
+            className={subTab === "masters" ? "active" : ""}
+            onClick={() => setSubTab("masters")}
+          >
+            <Layers size={16} /> Academic Masters (Classes, Sections, Houses, Designations)
+          </button>
+        </div>
+      )}
       {!compact && (
         <PageTitle
           eyebrow="STUDENT DIRECTORY"
@@ -899,7 +1126,7 @@ function Students({ students, open, reload, toast, user, session, compact = fals
                   </td>
                   <td>
                     {(() => {
-                      const badge = HOUSE_BADGES[(s.house || "").toLowerCase()];
+                      const badge = getHouseBadge(s.house);
                       const HouseIcon = badge?.Icon;
                       return (
                         <span
@@ -1030,9 +1257,9 @@ function StudentModal({ student, user, close, reload, toast }) {
   const [data, setData] = useState({
       admissionNo: "",
       name: "",
-      className: "6",
-      section: "Venus",
-      house: "Himalya",
+      className: student?.className || classes[0] || "6",
+      section: student?.section || sections[0] || "Venus",
+      house: student?.house || houses[0] || "Himalaya",
       motherName: "",
       fatherName: "",
       dob: "",
@@ -1129,7 +1356,7 @@ function StudentModal({ student, user, close, reload, toast }) {
               value={data.house}
               onChange={(e) => set("house", e.target.value)}
             >
-              {["Himalya", "Aravali", "Nilgiri", "Shivalik"].map((c) => (
+              {(houses.length ? houses : ["Himalaya", "Aravali", "Nilgiri", "Shivalik"]).map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
@@ -2057,6 +2284,801 @@ function ImportStudents({ reload, toast }) {
     </>
   );
 }
+function AcademicMasters({ masters, onUpdateMasters, toast }) {
+  const [activeTab, setActiveTab] = useState("classes");
+  const [saving, setSaving] = useState(false);
+
+  // Form states for adding
+  const [newClassName, setNewClassName] = useState("");
+  const [newClassOrder, setNewClassOrder] = useState("");
+  const [newSectionName, setNewSectionName] = useState("");
+  const [newHouseName, setNewHouseName] = useState("");
+  const [newHouseColor, setNewHouseColor] = useState("#105568");
+  const [newDesignationName, setNewDesignationName] = useState("");
+
+  // Edit modal
+  const [editingItem, setEditingItem] = useState(null); // { type, item }
+  const [editName, setEditName] = useState("");
+  const [editOrder, setEditOrder] = useState(1);
+  const [editColor, setEditColor] = useState("#105568");
+
+  const currentClasses = Array.isArray(masters?.classes) && masters.classes.length
+    ? masters.classes
+    : DEFAULT_CLASSES.map((c, i) => ({ id: c, name: c, active: true, order: i + 1 }));
+
+  const currentSections = Array.isArray(masters?.sections) && masters.sections.length
+    ? masters.sections
+    : DEFAULT_SECTIONS.map((s) => ({ id: s, name: s, active: true }));
+
+  const currentHouses = Array.isArray(masters?.houses) && masters.houses.length
+    ? masters.houses
+    : DEFAULT_HOUSES.map((h, i) => ({
+        id: h,
+        name: h,
+        color: ["#0284c7", "#f59e0b", "#10b981", "#8b5cf6"][i % 4],
+        active: true,
+      }));
+
+  const currentDesignations = Array.isArray(masters?.designations) && masters.designations.length
+    ? masters.designations
+    : DEFAULT_DESIGNATIONS.map((d) => ({ id: d, name: d, active: true }));
+
+  const getBundle = () => ({
+    classes: currentClasses,
+    sections: currentSections,
+    houses: currentHouses,
+    designations: currentDesignations,
+  });
+
+  async function persistMasters(nextMasters) {
+    setSaving(true);
+    try {
+      const res = await api("/masters", {
+        method: "PUT",
+        body: nextMasters,
+      });
+      if (res?.masters) {
+        onUpdateMasters(res.masters);
+      }
+      toast("Academic masters updated successfully");
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // CLASS ACTIONS
+  function handleAddClass(e) {
+    e.preventDefault();
+    const name = newClassName.trim();
+    if (!name) return toast("Class name is required", true);
+    if (currentClasses.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+      return toast(`Class "${name}" already exists`, true);
+    }
+    const order = Number(newClassOrder) || (currentClasses.length + 1);
+    const updated = [
+      ...currentClasses,
+      { id: name, name, active: true, order },
+    ].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    persistMasters({ ...getBundle(), classes: updated });
+    setNewClassName("");
+    setNewClassOrder("");
+  }
+
+  function handleToggleClass(item) {
+    const updated = currentClasses.map((c) =>
+      c.id === item.id ? { ...c, active: !c.active } : c
+    );
+    persistMasters({ ...getBundle(), classes: updated });
+  }
+
+  function handleDeleteClass(item) {
+    if (!confirm(`Permanently delete Class "${item.name}" from masters? Existing student records will retain this class name, but it will be removed from future selection lists.`)) return;
+    const updated = currentClasses.filter((c) => c.id !== item.id);
+    persistMasters({ ...getBundle(), classes: updated });
+  }
+
+  // SECTION ACTIONS
+  function handleAddSection(e) {
+    e.preventDefault();
+    const name = newSectionName.trim();
+    if (!name) return toast("Section name is required", true);
+    if (currentSections.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+      return toast(`Section "${name}" already exists`, true);
+    }
+    const updated = [...currentSections, { id: name, name, active: true }];
+    persistMasters({ ...getBundle(), sections: updated });
+    setNewSectionName("");
+  }
+
+  function handleToggleSection(item) {
+    const updated = currentSections.map((s) =>
+      s.id === item.id ? { ...s, active: !s.active } : s
+    );
+    persistMasters({ ...getBundle(), sections: updated });
+  }
+
+  function handleDeleteSection(item) {
+    if (!confirm(`Permanently delete Section "${item.name}" from masters?`)) return;
+    const updated = currentSections.filter((s) => s.id !== item.id);
+    persistMasters({ ...getBundle(), sections: updated });
+  }
+
+  // HOUSE ACTIONS
+  function handleAddHouse(e) {
+    e.preventDefault();
+    const name = newHouseName.trim();
+    if (!name) return toast("House name is required", true);
+    if (currentHouses.some((h) => h.name.toLowerCase() === name.toLowerCase())) {
+      return toast(`House "${name}" already exists`, true);
+    }
+    const color = newHouseColor || "#0284c7";
+    const updated = [...currentHouses, { id: name, name, color, active: true }];
+    persistMasters({ ...getBundle(), houses: updated });
+    setNewHouseName("");
+  }
+
+  function handleToggleHouse(item) {
+    const updated = currentHouses.map((h) =>
+      h.id === item.id ? { ...h, active: !h.active } : h
+    );
+    persistMasters({ ...getBundle(), houses: updated });
+  }
+
+  function handleDeleteHouse(item) {
+    if (!confirm(`Permanently delete House "${item.name}" from masters?`)) return;
+    const updated = currentHouses.filter((h) => h.id !== item.id);
+    persistMasters({ ...getBundle(), houses: updated });
+  }
+
+  // DESIGNATION ACTIONS
+  function handleAddDesignation(e) {
+    e.preventDefault();
+    const name = newDesignationName.trim();
+    if (!name) return toast("Designation title is required", true);
+    if (currentDesignations.some((d) => d.name.toLowerCase() === name.toLowerCase())) {
+      return toast(`Designation "${name}" already exists`, true);
+    }
+    const updated = [...currentDesignations, { id: name, name, active: true }];
+    persistMasters({ ...getBundle(), designations: updated });
+    setNewDesignationName("");
+  }
+
+  function handleToggleDesignation(item) {
+    const updated = currentDesignations.map((d) =>
+      d.id === item.id ? { ...d, active: !d.active } : d
+    );
+    persistMasters({ ...getBundle(), designations: updated });
+  }
+
+  function handleDeleteDesignation(item) {
+    if (!confirm(`Permanently delete Designation "${item.name}" from masters?`)) return;
+    const updated = currentDesignations.filter((d) => d.id !== item.id);
+    persistMasters({ ...getBundle(), designations: updated });
+  }
+
+  // EDIT MODAL HANDLERS
+  function openEdit(type, item) {
+    setEditingItem({ type, item });
+    setEditName(item.name || item.id);
+    setEditOrder(item.order || 1);
+    setEditColor(item.color || "#105568");
+  }
+
+  function handleSaveEdit(e) {
+    e.preventDefault();
+    if (!editingItem) return;
+    const { type, item } = editingItem;
+    const name = editName.trim();
+    if (!name) return toast("Name is required", true);
+
+    const bundle = getBundle();
+    if (type === "class") {
+      const updated = currentClasses.map((c) =>
+        c.id === item.id ? { ...c, name, order: Number(editOrder) || c.order } : c
+      ).sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+      persistMasters({ ...bundle, classes: updated });
+    } else if (type === "section") {
+      const updated = currentSections.map((s) =>
+        s.id === item.id ? { ...s, name } : s
+      );
+      persistMasters({ ...bundle, sections: updated });
+    } else if (type === "house") {
+      const updated = currentHouses.map((h) =>
+        h.id === item.id ? { ...h, name, color: editColor } : h
+      );
+      persistMasters({ ...bundle, houses: updated });
+    } else if (type === "designation") {
+      const updated = currentDesignations.map((d) =>
+        d.id === item.id ? { ...d, name } : d
+      );
+      persistMasters({ ...bundle, designations: updated });
+    }
+    setEditingItem(null);
+  }
+
+  return (
+    <div className="academic-masters-container">
+      <PageTitle
+        eyebrow="SCHOOL CONFIGURATION & TAXONOMY"
+        title="Academic Masters"
+        subtitle="Configure classes, sections, houses, faculty designations, and system roles with real-time updates."
+      >
+        {saving && (
+          <span className="saving-indicator">
+            <Loader2 size={16} className="spin" /> Saving changes…
+          </span>
+        )}
+      </PageTitle>
+
+      <div className="masters-tabs-bar">
+        <button
+          type="button"
+          className={`master-tab-btn ${activeTab === "classes" ? "active" : ""}`}
+          onClick={() => setActiveTab("classes")}
+        >
+          <GraduationCap size={16} /> Classes ({currentClasses.length})
+        </button>
+        <button
+          type="button"
+          className={`master-tab-btn ${activeTab === "sections" ? "active" : ""}`}
+          onClick={() => setActiveTab("sections")}
+        >
+          <Tag size={16} /> Sections ({currentSections.length})
+        </button>
+        <button
+          type="button"
+          className={`master-tab-btn ${activeTab === "houses" ? "active" : ""}`}
+          onClick={() => setActiveTab("houses")}
+        >
+          <Home size={16} /> Houses ({currentHouses.length})
+        </button>
+        <button
+          type="button"
+          className={`master-tab-btn ${activeTab === "designations" ? "active" : ""}`}
+          onClick={() => setActiveTab("designations")}
+        >
+          <Briefcase size={16} /> Designations ({currentDesignations.length})
+        </button>
+        <button
+          type="button"
+          className={`master-tab-btn ${activeTab === "roles" ? "active" : ""}`}
+          onClick={() => setActiveTab("roles")}
+        >
+          <ShieldCheck size={16} /> System Roles (3)
+        </button>
+      </div>
+
+      {/* CLASSES TAB */}
+      {activeTab === "classes" && (
+        <div className="master-content-card">
+          <div className="master-header-row">
+            <div>
+              <h3>Class Configuration</h3>
+              <p className="hint">
+                Add, reorder, or enable/disable academic standards (e.g. Balvatika-1, Balvatika-2, Balvatika-3, Class 1 to 12).
+              </p>
+            </div>
+            <span className="master-count-badge">
+              {currentClasses.filter((c) => c.active !== false).length} Active Classes
+            </span>
+          </div>
+
+          <form className="masters-add-bar" onSubmit={handleAddClass}>
+            <input
+              required
+              placeholder="Enter new class name (e.g. Balvatika-1, Nursery, 11-PCM)..."
+              value={newClassName}
+              onChange={(e) => setNewClassName(e.target.value)}
+              className="master-input-name"
+            />
+            <input
+              type="number"
+              placeholder="Order"
+              value={newClassOrder}
+              onChange={(e) => setNewClassOrder(e.target.value)}
+              className="master-input-order"
+              title="Display order / sorting number"
+            />
+            <button type="submit" className="btn primary" disabled={saving}>
+              <Plus size={16} /> Add Class
+            </button>
+          </form>
+
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 80 }}>ORDER</th>
+                  <th>CLASS NAME</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: "right" }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentClasses.map((c) => {
+                  const isActive = c.active !== false;
+                  return (
+                    <tr key={c.id} className={!isActive ? "row-disabled" : ""}>
+                      <td>
+                        <span className="order-pill">{c.order ?? "—"}</span>
+                      </td>
+                      <td>
+                        <strong className="class-name-text">Class {c.name}</strong>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${isActive ? "active" : "disabled"}`}>
+                          {isActive ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            className={`icon-button ${isActive ? "disable" : "enable"}`}
+                            title={isActive ? "Disable Class" : "Enable Class"}
+                            onClick={() => handleToggleClass(c)}
+                            disabled={saving}
+                          >
+                            <Power size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            title="Edit Class"
+                            onClick={() => openEdit("class", c)}
+                          >
+                            <PenLine size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button danger"
+                            title="Delete Class"
+                            onClick={() => handleDeleteClass(c)}
+                            disabled={saving}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* SECTIONS TAB */}
+      {activeTab === "sections" && (
+        <div className="master-content-card">
+          <div className="master-header-row">
+            <div>
+              <h3>Section Configuration</h3>
+              <p className="hint">
+                Manage school sections and stream divisions (e.g. Venus, Mars, Jupiter, Science, Arts, Commerce).
+              </p>
+            </div>
+            <span className="master-count-badge">
+              {currentSections.filter((s) => s.active !== false).length} Active Sections
+            </span>
+          </div>
+
+          <form className="masters-add-bar" onSubmit={handleAddSection}>
+            <input
+              required
+              placeholder="Enter new section name (e.g. Jupiter, Science, Section A)..."
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              className="master-input-name"
+            />
+            <button type="submit" className="btn primary" disabled={saving}>
+              <Plus size={16} /> Add Section
+            </button>
+          </form>
+
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>SECTION NAME</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: "right" }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentSections.map((s) => {
+                  const isActive = s.active !== false;
+                  return (
+                    <tr key={s.id} className={!isActive ? "row-disabled" : ""}>
+                      <td>
+                        <strong className="section-name-text">{s.name}</strong>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${isActive ? "active" : "disabled"}`}>
+                          {isActive ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            className={`icon-button ${isActive ? "disable" : "enable"}`}
+                            title={isActive ? "Disable Section" : "Enable Section"}
+                            onClick={() => handleToggleSection(s)}
+                            disabled={saving}
+                          >
+                            <Power size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            title="Edit Section"
+                            onClick={() => openEdit("section", s)}
+                          >
+                            <PenLine size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button danger"
+                            title="Delete Section"
+                            onClick={() => handleDeleteSection(s)}
+                            disabled={saving}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* HOUSES TAB */}
+      {activeTab === "houses" && (
+        <div className="master-content-card">
+          <div className="master-header-row">
+            <div>
+              <h3>House Configuration</h3>
+              <p className="hint">
+                Configure student houses, color themes, and badge styling (e.g. Himalaya, Aravali, Nilgiri, Shivalik).
+              </p>
+            </div>
+            <span className="master-count-badge">
+              {currentHouses.filter((h) => h.active !== false).length} Active Houses
+            </span>
+          </div>
+
+          <form className="masters-add-bar" onSubmit={handleAddHouse}>
+            <input
+              required
+              placeholder="Enter new house name (e.g. Himalaya, Ashoka, Tagore)..."
+              value={newHouseName}
+              onChange={(e) => setNewHouseName(e.target.value)}
+              className="master-input-name"
+            />
+            <div className="color-picker-input-group">
+              <label>Color</label>
+              <input
+                type="color"
+                value={newHouseColor}
+                onChange={(e) => setNewHouseColor(e.target.value)}
+                className="color-swatch-box"
+              />
+              <span className="color-hex-label">{newHouseColor}</span>
+            </div>
+            <button type="submit" className="btn primary" disabled={saving}>
+              <Plus size={16} /> Add House
+            </button>
+          </form>
+
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>HOUSE BADGE</th>
+                  <th>COLOR ACCENT</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: "right" }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentHouses.map((h) => {
+                  const isActive = h.active !== false;
+                  return (
+                    <tr key={h.id} className={!isActive ? "row-disabled" : ""}>
+                      <td>
+                        <span
+                          className="house-preview-badge"
+                          style={{
+                            borderColor: h.color || "#0284c7",
+                            color: h.color || "#0284c7",
+                            backgroundColor: `${h.color || "#0284c7"}18`,
+                          }}
+                        >
+                          <Home size={14} /> {h.name}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                          <span
+                            className="color-dot-indicator"
+                            style={{ backgroundColor: h.color || "#0284c7" }}
+                          />
+                          <code>{h.color || "#0284c7"}</code>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${isActive ? "active" : "disabled"}`}>
+                          {isActive ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            className={`icon-button ${isActive ? "disable" : "enable"}`}
+                            title={isActive ? "Disable House" : "Enable House"}
+                            onClick={() => handleToggleHouse(h)}
+                            disabled={saving}
+                          >
+                            <Power size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            title="Edit House"
+                            onClick={() => openEdit("house", h)}
+                          >
+                            <PenLine size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button danger"
+                            title="Delete House"
+                            onClick={() => handleDeleteHouse(h)}
+                            disabled={saving}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* DESIGNATIONS TAB */}
+      {activeTab === "designations" && (
+        <div className="master-content-card">
+          <div className="master-header-row">
+            <div>
+              <h3>Faculty & Staff Designations</h3>
+              <p className="hint">
+                Manage positions and academic titles (e.g. Principal, Vice Principal, PGT, TGT, PRT, Class Teacher, Subject Teacher).
+              </p>
+            </div>
+            <span className="master-count-badge">
+              {currentDesignations.filter((d) => d.active !== false).length} Active Designations
+            </span>
+          </div>
+
+          <form className="masters-add-bar" onSubmit={handleAddDesignation}>
+            <input
+              required
+              placeholder="Enter designation title (e.g. PGT Physics, Class Teacher, Librarian)..."
+              value={newDesignationName}
+              onChange={(e) => setNewDesignationName(e.target.value)}
+              className="master-input-name"
+            />
+            <button type="submit" className="btn primary" disabled={saving}>
+              <Plus size={16} /> Add Designation
+            </button>
+          </form>
+
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>DESIGNATION / POSITION</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: "right" }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentDesignations.map((d) => {
+                  const isActive = d.active !== false;
+                  return (
+                    <tr key={d.id} className={!isActive ? "row-disabled" : ""}>
+                      <td>
+                        <strong className="designation-name-text">{d.name}</strong>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${isActive ? "active" : "disabled"}`}>
+                          {isActive ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            className={`icon-button ${isActive ? "disable" : "enable"}`}
+                            title={isActive ? "Disable Designation" : "Enable Designation"}
+                            onClick={() => handleToggleDesignation(d)}
+                            disabled={saving}
+                          >
+                            <Power size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            title="Edit Designation"
+                            onClick={() => openEdit("designation", d)}
+                          >
+                            <PenLine size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button danger"
+                            title="Delete Designation"
+                            onClick={() => handleDeleteDesignation(d)}
+                            disabled={saving}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ROLES TAB */}
+      {activeTab === "roles" && (
+        <div className="master-content-card">
+          <div className="master-header-row">
+            <div>
+              <h3>System Roles & Capabilities</h3>
+              <p className="hint">
+                Antigravity ERP enforces a role-based access control (RBAC) hierarchy. Staff members are mapped to one of these system roles.
+              </p>
+            </div>
+          </div>
+
+          <div className="roles-grid-cards">
+            <div className="role-spec-card">
+              <div className="role-spec-head">
+                <span className="role-badge admin">Administrator</span>
+                <code>admin</code>
+              </div>
+              <p className="role-spec-desc">
+                Full administrative authority over the entire ERP platform, student records, staff directory, academic masters, templates, and security logs.
+              </p>
+              <ul className="role-features-list">
+                <li><Check size={14} /> Full access to all students, marks & report cards</li>
+                <li><Check size={14} /> Manage faculty accounts, designations & class assignments</li>
+                <li><Check size={14} /> Manage Academic Masters (Classes, Sections, Houses)</li>
+                <li><Check size={14} /> Excel bulk import, Report Drive, and Activity Audit log</li>
+              </ul>
+            </div>
+
+            <div className="role-spec-card">
+              <div className="role-spec-head">
+                <span className="role-badge principal">Principal</span>
+                <code>principal</code>
+              </div>
+              <p className="role-spec-desc">
+                Executive academic leadership for review, verification, publishing approvals, and parent dispatch across all school classes.
+              </p>
+              <ul className="role-features-list">
+                <li><Check size={14} /> Access to all student records and classes across the school</li>
+                <li><Check size={14} /> Report Review & Approval workflow</li>
+                <li><Check size={14} /> Class-wide performance and analytics dashboards</li>
+                <li><Check size={14} /> Send verified report cards via WhatsApp & Email</li>
+              </ul>
+            </div>
+
+            <div className="role-spec-card">
+              <div className="role-spec-head">
+                <span className="role-badge teacher">Teacher / Faculty</span>
+                <code>teacher</code>
+              </div>
+              <p className="role-spec-desc">
+                Class educators assigned to assess students and enter term marks for their designated classes and sections.
+              </p>
+              <ul className="role-features-list">
+                <li><Check size={14} /> Scoped access to assigned classes & sections only</li>
+                <li><Check size={14} /> Student assessment, term marks, and teacher remarks</li>
+                <li><Check size={14} /> Report card preview and calibration tools</li>
+                <li><Check size={14} /> Multiple classes assignable per teacher</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {editingItem && (
+        <div className="modal-backdrop">
+          <form className="modal master-edit-modal" onSubmit={handleSaveEdit}>
+            <div className="modal-head">
+              <h2>
+                Edit {editingItem.type.charAt(0).toUpperCase() + editingItem.type.slice(1)}: {editingItem.item.name}
+              </h2>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setEditingItem(null)}
+              >
+                <X />
+              </button>
+            </div>
+            <div className="form-grid">
+              <Field label="Name / Title *">
+                <input
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </Field>
+
+              {editingItem.type === "class" && (
+                <Field label="Display Order (Numeric)">
+                  <input
+                    type="number"
+                    value={editOrder}
+                    onChange={(e) => setEditOrder(e.target.value)}
+                  />
+                </Field>
+              )}
+
+              {editingItem.type === "house" && (
+                <Field label="Badge Color">
+                  <div className="color-picker-input-group">
+                    <input
+                      type="color"
+                      value={editColor}
+                      onChange={(e) => setEditColor(e.target.value)}
+                      className="color-swatch-box"
+                    />
+                    <span className="color-hex-label">{editColor}</span>
+                  </div>
+                </Field>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setEditingItem(null)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn primary" disabled={saving}>
+                <Check size={16} /> Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UserAccess({ toast, user: currentUser }) {
   const [users, setUsers] = useState([]),
     [subTab, setSubTab] = useState("Staff_Details"),
@@ -2813,18 +3835,7 @@ function StaffModal({ staff, onClose, onSaved, toast }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const quickDesignations = [
-    "Principal",
-    "Vice Principal",
-    "PGT",
-    "TGT",
-    "PRT",
-    "Class Teacher",
-    "Subject Teacher",
-    "Computer Faculty",
-    "Accountant",
-    "Librarian",
-  ];
+  const quickDesignations = designations.length ? designations : DEFAULT_DESIGNATIONS;
 
   async function handlePhotoUpload(e) {
     const file = e.target.files?.[0];
