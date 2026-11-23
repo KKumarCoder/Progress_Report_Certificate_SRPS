@@ -550,18 +550,27 @@ function App() {
     <div className="app-shell">
       <aside className={"sidebar " + (sidebar ? "shown" : "")}>
         <a className="brand" onClick={() => navigate("dashboard")}>
-          <img
-            className="primary-company-logo"
-            src="/anvayrobo-logo.jpeg"
-            alt="ANVAYROBO"
-            width="72"
-            height="72"
-          />
+          <div className="brand-logo-frame">
+            <img
+              className="primary-company-logo"
+              src="/anvayrobo-logo.jpeg"
+              alt="ANVAYROBO"
+              width="56"
+              height="56"
+            />
+          </div>
           <span className="primary-company-name">
-            ANVAYROBO<span className="brand-sub">SRPS · REPORT STUDIO</span>
+            <span className="brand-wordmark">
+              <span className="brand-anvay">ANVAY</span>
+              <span className="brand-robo">ROBO</span>
+            </span>
+            <span className="brand-sub">AI • ROBOTICS • STEM • AUTOMATION</span>
           </span>
         </a>
-        <div className="school-label">SHREE RAM PUBLIC SCHOOL</div>
+        <div className="school-label">
+          <span className="school-name">SHREE RAM PUBLIC SCHOOL</span>
+          <span className="school-tag">SRPS · REPORT STUDIO</span>
+        </div>
         <div className="workspace-label">WORKSPACE</div>
         <nav>
           {nav.map(([id, label, Icon]) => {
@@ -682,19 +691,29 @@ function App() {
           <div className="topbar-right">
             <span className="session-chip">
               <span className="live-dot" />
-              {config.session}
+              <span>Session {config.session}</span>
             </span>
-            <span className="top-avatar">
-              {user.photo ? (
-                <img
-                  src={user.photo}
-                  alt={user.name}
-                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
-                />
-              ) : (
-                user.name?.slice(0, 1)
-              )}
-            </span>
+            <div
+              className="topbar-user-pill"
+              onClick={() => (hasModule(user, "users") ? setPage("users") : null)}
+              title={user.name}
+            >
+              <span className="top-avatar">
+                {user.photo ? (
+                  <img
+                    src={user.photo}
+                    alt={user.name}
+                    style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                  />
+                ) : (
+                  user.name?.slice(0, 1)
+                )}
+              </span>
+              <span className="topbar-user-info">
+                <b className="topbar-user-name">{user.name?.split(" ")[0] || "User"}</b>
+                <small className="topbar-user-role">{user.designation || user.role}</small>
+              </span>
+            </div>
           </div>
         </header>
         {isDemo() && (
@@ -816,16 +835,21 @@ function App() {
 function CompanyBrand() {
   return (
     <div className="company-brand">
-      <img
-        src="/anvayrobo-logo.jpeg"
-        alt="ANVAYROBO company logo"
-        width="64"
-        height="64"
-      />
+      <div className="brand-logo-frame mini">
+        <img
+          src="/anvayrobo-logo.jpeg"
+          alt="ANVAYROBO company logo"
+          width="44"
+          height="44"
+        />
+      </div>
       <div>
         <span>Powered by</span>
-        <strong>ANVAYROBO</strong>
-        <small>AI · Robotics · STEM · Automation</small>
+        <strong className="brand-wordmark">
+          <span className="brand-anvay">ANVAY</span>
+          <span className="brand-robo">ROBO</span>
+        </strong>
+        <small className="brand-sub">AI • ROBOTICS • STEM • AUTOMATION</small>
       </div>
     </div>
   );
@@ -865,15 +889,15 @@ function Dashboard({ students, config, open, go, user, toast }) {
       <div className="overview-stats">
         {[
           [Users, "Students", students.length, "In your accessible classes"],
-          [School, "Class sections", groups.size, "Venus & Mars"],
+          [School, "Class sections", groups.size, "Active academic cohorts"],
           [
             BookOpen,
             "Academic session",
             config.session,
             "Two terms. One complete picture.",
           ],
-        ].map(([Icon, label, value, detail]) => (
-          <div className="stat-card" key={label}>
+        ].map(([Icon, label, value, detail], idx) => (
+          <div className={`stat-card stat-card-${idx}`} key={label}>
             <div className="stat-label">
               {label}
               <span>
@@ -887,7 +911,7 @@ function Dashboard({ students, config, open, go, user, toast }) {
       </div>
       <section className="welcome-panel">
         <div>
-          <span className="pill gold">MADE FOR YOUR SCHOOL</span>
+          <span className="pill badge-orange">MADE FOR YOUR SCHOOL</span>
           <h2>From marks to milestones.</h2>
           <p>
             Enter assessments on the left. Watch your school’s
