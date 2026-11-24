@@ -11774,6 +11774,79 @@ body[data-theme="dark"],
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
 }
 
+.dark-theme .welcome-panel {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #172554 100%) !important;
+  border: 1px solid #1e293b !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark-theme .welcome-panel h2 {
+  color: #f8fafc !important;
+}
+
+.dark-theme .welcome-panel p {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .mini-report {
+  background: #0d162b !important;
+  border: 1px solid #293854 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark-theme .mini-report em {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .mini-lines {
+  background: linear-gradient(90deg, #1e293b 0%, #334155 100%) !important;
+}
+
+.dark-theme .mini-table {
+  background: #090e1a !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .student-quick {
+  background: #0d162b !important;
+  border: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .student-quick:hover {
+  background: #14203d !important;
+  border-color: #293854 !important;
+}
+
+.dark-theme .student-quick small {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .student-avatar {
+  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%) !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .workflow-step {
+  border-bottom: 1px solid #1e293b !important;
+}
+
+.dark-theme .workflow-step span {
+  background: #14203d !important;
+  color: #38bdf8 !important;
+}
+
+.dark-theme .workflow-step p {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .privacy-note {
+  background: #090e1a !important;
+  border: 1px solid #1e293b !important;
+  color: #94a3b8 !important;
+}
+
 .dark-theme .kpi-number,
 .dark-theme .stat-value {
   color: #f8fafc;

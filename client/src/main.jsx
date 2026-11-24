@@ -710,23 +710,6 @@ function App() {
           <p>Thoughtfully designed for your school’s progress.</p>
           <span className="gold-rule" />
         </div>
-        <div className="edunova-sidebar-ai-widget">
-          <div className="sidebar-ai-inner">
-            <div className="sidebar-ai-icon-circle">
-              <Bot size={22} />
-            </div>
-            <div className="sidebar-ai-text">
-              <b className="sidebar-ai-title">Meet Nova AI</b>
-              <p className="sidebar-ai-sub">Your AI Teaching Assistant for smarter & faster teaching.</p>
-            </div>
-            <button
-              className="btn-chat-nova"
-              onClick={() => notify.info("Nova AI: Hello! How can I assist you with your classes today?")}
-            >
-              Chat with Nova AI
-            </button>
-          </div>
-        </div>
         <CompanyBrand />
         <button className="user-card" onClick={logout}>
           <div className="avatar">
@@ -749,7 +732,7 @@ function App() {
       </aside>
       <main className="workspace">
         <header className="topbar">
-          <div className="topbar-search-cluster">
+          <div>
             <button
               className="icon-button mobile-menu"
               onClick={() => setSidebar(!sidebar)}
@@ -757,37 +740,15 @@ function App() {
             >
               <Menu />
             </button>
-            <div className="topbar-search-holder">
-              <Search size={15} className="topbar-search-icon" />
-              <input
-                type="text"
-                placeholder="Search students, classes, assignments, resources..."
-                className="topbar-search-input"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.target.value) {
-                    setPage("students");
-                  }
-                }}
-              />
-              <span className="topbar-shortcut-pill">⌘ K</span>
-            </div>
+            <span>Workspace</span>
+            <ChevronRight size={14} />
+            <b>{page === "masters" ? "Academic Masters" : nav.find((x) => x[0] === page)?.[1]}</b>
+            <span className="session-chip">
+              <span className="live-dot" />
+              <span>Session {config.session}</span>
+            </span>
           </div>
           <div className="topbar-right">
-            <button
-              className="topbar-icon-action-btn"
-              title="6 Notifications"
-              onClick={() => notify.info("You have 6 unread notifications.")}
-            >
-              <Bell size={18} />
-              <span className="topbar-notif-badge">6</span>
-            </button>
-            <button
-              className="topbar-icon-action-btn"
-              title="Direct Messages"
-              onClick={() => notify.info("Nova AI & Staff chat opened.")}
-            >
-              <MessageSquare size={18} />
-            </button>
             <div
               className={`topbar-user-capsule ${theme === "dark" ? "is-dark" : "is-light"}`}
             >
