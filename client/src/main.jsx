@@ -444,7 +444,24 @@ function App() {
     [studentsMenuOpen, setStudentsMenuOpen] = useState(false),
     [selected, setSelected] = useState(null),
     [sidebar, setSidebar] = useState(false),
+    [collapsed, setCollapsed] = useState(() => {
+      try {
+        return localStorage.getItem("srps_sidebar_collapsed") === "true";
+      } catch {
+        return false;
+      }
+    }),
     [reportDirty, setReportDirty] = useState(false);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("srps_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -580,30 +597,30 @@ function App() {
   if (location.hash.startsWith("#reset-password=") || !user)
     return <Login onLogin={setUser} toast={toast} />;
   const nav = [
-    ["dashboard", "Overview", LayoutDashboard],
-    ["analytics", "Class Analytics", BarChart3],
-    ["students", "Students", Users],
-    ["studio", "Report studio", BookOpen],
+    ["dashboard", "Overview", LayoutDashboard, "blue"],
+    ["analytics", "Class Analytics", BarChart3, "teal"],
+    ["students", "Students", Users, "cyan"],
+    ["studio", "Report studio", BookOpen, "purple"],
     ...(!isDemo() && ["admin", "principal"].includes(user.role)
-      ? [["review", "Report Review", ClipboardCheck]]
+      ? [["review", "Report Review", ClipboardCheck, "amber"]]
       : []),
-    ["bulk", "Bulk print", Printer],
+    ["bulk", "Bulk print", Printer, "rose"],
     ...(user.role === "admin"
       ? [
-          ["import", "Excel import", Upload],
-          ["users", "Users & access", ShieldCheck],
+          ["import", "Excel import", Upload, "emerald"],
+          ["users", "Users & access", ShieldCheck, "indigo"],
         ]
       : []),
     ...(["admin", "principal"].includes(user.role)
-      ? [["audit", "Activity log", History]]
+      ? [["audit", "Activity log", History, "orange"]]
       : []),
-    ...(user.role === "admin" ? [["drive", "Report Drive", HardDrive]] : []),
-    ["settings", "Settings", Settings],
+    ...(user.role === "admin" ? [["drive", "Report Drive", HardDrive, "sky"]] : []),
+    ["settings", "Settings", Settings, "slate"],
   ].filter(([id]) => canOpenPage(user, id));
   return (
-    <div className={`app-shell ${theme === "dark" ? "dark-theme" : ""}`}>
-      <aside className={"sidebar " + (sidebar ? "shown" : "")}>
-        <a className="brand" onClick={() => navigate("dashboard")}>
+    <div className={`app-shell ${theme === "dark" ? "dark-theme" : ""} ${collapsed ? "sidebar-collapsed" : ""}`}>
+      <aside className={`sidebar ${sidebar ? "shown" : ""} ${collapsed ? "collapsed" : ""}`}>
+        <a className="brand" onClick={() => navigate("dashboard")} title="ANVAYROBO ERP">
           <div className="brand-logo-frame">
             <img
               className="primary-company-logo"
@@ -621,13 +638,13 @@ function App() {
             <span className="brand-sub">AI • ROBOTICS • STEM • AUTOMATION</span>
           </span>
         </a>
-        <div className="school-label">
+        <div className="school-label" title="SHREE RAM PUBLIC SCHOOL · SRPS REPORT STUDIO">
           <span className="school-name">SHREE RAM PUBLIC SCHOOL</span>
           <span className="school-tag">SRPS · REPORT STUDIO</span>
         </div>
         <div className="workspace-label">WORKSPACE</div>
         <nav>
-          {nav.map(([id, label, Icon]) => {
+          {nav.map(([id, label, Icon, colorClass]) => {
             if (id === "students") {
               const isStudentsActive = page === "students" || page === "masters";
               return (
@@ -638,10 +655,13 @@ function App() {
                       setStudentsMenuOpen((prev) => !prev);
                       navigate("students");
                       setStudentSubTab("directory");
-                      setSidebar(false);
+                      if (window.innerWidth <= 800) setSidebar(false);
                     }}
+                    title={label}
                   >
-                    <Icon size={19} />
+                    <span className={`nav-icon-badge color-${colorClass} ${isStudentsActive ? "active-glow" : ""}`}>
+                      <Icon size={18} />
+                    </span>
                     <span className="nav-label-text">{label}</span>
                     <span
                       className={`dropdown-chevron ${studentsMenuOpen ? "open" : ""}`}
@@ -662,11 +682,14 @@ function App() {
                         onClick={() => {
                           navigate("students");
                           setStudentSubTab("directory");
-                          setSidebar(false);
+                          if (window.innerWidth <= 800) setSidebar(false);
                         }}
+                        title="Student Directory"
                       >
-                        <Users size={15} />
-                        Student Directory
+                        <span className="nav-sub-icon-pill">
+                          <Users size={14} />
+                        </span>
+                        <span className="nav-sub-label">Student Directory</span>
                       </button>
                       {user.role === "admin" && (
                         <button
@@ -674,11 +697,14 @@ function App() {
                           onClick={() => {
                             navigate("masters");
                             setStudentSubTab("masters");
-                            setSidebar(false);
+                            if (window.innerWidth <= 800) setSidebar(false);
                           }}
+                          title="Academic Masters"
                         >
-                          <Layers size={15} />
-                          Academic Masters
+                          <span className="nav-sub-icon-pill">
+                            <Layers size={14} />
+                          </span>
+                          <span className="nav-sub-label">Academic Masters</span>
                         </button>
                       )}
                     </div>
@@ -692,11 +718,14 @@ function App() {
                 className={page === id ? "active" : ""}
                 onClick={() => {
                   navigate(id);
-                  setSidebar(false);
+                  if (window.innerWidth <= 800) setSidebar(false);
                 }}
+                title={label}
               >
-                <Icon size={19} />
-                {label}
+                <span className={`nav-icon-badge color-${colorClass} ${page === id ? "active-glow" : ""}`}>
+                  <Icon size={18} />
+                </span>
+                <span className="nav-label-text">{label}</span>
                 {page === id && <span className="nav-dot" />}
               </button>
             );
@@ -711,7 +740,7 @@ function App() {
           <span className="gold-rule" />
         </div>
         <CompanyBrand />
-        <button className="user-card" onClick={logout}>
+        <button className="user-card" onClick={logout} title={`${user.name} (${user.designation || user.role}) - Click to logout`}>
           <div className="avatar">
             {user.photo ? (
               <img
@@ -730,6 +759,13 @@ function App() {
           <LogOut size={17} />
         </button>
       </aside>
+      {sidebar && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setSidebar(false)}
+          aria-hidden="true"
+        />
+      )}
       <main className="workspace">
         <header className="topbar">
           <div>
@@ -739,6 +775,14 @@ function App() {
               aria-label="Open navigation"
             >
               <Menu />
+            </button>
+            <button
+              className="icon-button desktop-collapse-btn"
+              onClick={toggleCollapsed}
+              title={collapsed ? "Expand sidebar to full view" : "Collapse sidebar to compact icon rail"}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <PanelLeft size={18} />
             </button>
             <span>Workspace</span>
             <ChevronRight size={14} />
