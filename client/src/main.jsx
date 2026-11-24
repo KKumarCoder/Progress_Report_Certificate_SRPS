@@ -74,6 +74,9 @@ import {
   IndianRupee,
   QrCode,
   FileSpreadsheet,
+  Bell,
+  MessageSquare,
+  Bot,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -92,6 +95,7 @@ import ClassAnalytics from "./ClassAnalytics";
 import Attendance from "./Attendance";
 import Fees from "./Fees";
 import Transport from "./Transport";
+import Dashboard from "./Dashboard";
 import templateMapping from "../../shared/template-mapping.json";
 import { exportReportPdf, printReports } from "./report-export";
 import "@fontsource/dm-sans/400.css";
@@ -985,6 +989,23 @@ function App() {
           <p>Thoughtfully designed for your school’s progress.</p>
           <span className="gold-rule" />
         </div>
+        <div className="edunova-sidebar-ai-widget">
+          <div className="sidebar-ai-inner">
+            <div className="sidebar-ai-icon-circle">
+              <Bot size={22} />
+            </div>
+            <div className="sidebar-ai-text">
+              <b className="sidebar-ai-title">Meet Nova AI</b>
+              <p className="sidebar-ai-sub">Your AI Teaching Assistant for smarter & faster teaching.</p>
+            </div>
+            <button
+              className="btn-chat-nova"
+              onClick={() => notify.info("Nova AI: Hello! How can I assist you with your classes today?")}
+            >
+              Chat with Nova AI
+            </button>
+          </div>
+        </div>
         <CompanyBrand />
         <button className="user-card" onClick={logout}>
           <div className="avatar">
@@ -1007,7 +1028,7 @@ function App() {
       </aside>
       <main className="workspace">
         <header className="topbar">
-          <div>
+          <div className="topbar-search-cluster">
             <button
               className="icon-button mobile-menu"
               onClick={() => setSidebar(!sidebar)}
@@ -1015,21 +1036,43 @@ function App() {
             >
               <Menu />
             </button>
-            <span>Workspace</span>
-            <ChevronRight size={14} />
-            <b>{page === "masters" ? "Academic Masters" : nav.find((x) => x[0] === page)?.[1]}</b>
+            <div className="topbar-search-holder">
+              <Search size={15} className="topbar-search-icon" />
+              <input
+                type="text"
+                placeholder="Search students, classes, assignments, resources..."
+                className="topbar-search-input"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.target.value) {
+                    setPage("students");
+                  }
+                }}
+              />
+              <span className="topbar-shortcut-pill">⌘ K</span>
+            </div>
           </div>
           <div className="topbar-right">
-            <span className="session-chip">
-              <span className="live-dot" />
-              <span>Session {config.session}</span>
-            </span>
+            <button
+              className="topbar-icon-action-btn"
+              title="6 Notifications"
+              onClick={() => notify.info("You have 6 unread notifications.")}
+            >
+              <Bell size={18} />
+              <span className="topbar-notif-badge">6</span>
+            </button>
+            <button
+              className="topbar-icon-action-btn"
+              title="Direct Messages"
+              onClick={() => notify.info("Nova AI & Staff chat opened.")}
+            >
+              <MessageSquare size={18} />
+            </button>
             <div
-              className="topbar-user-pill"
+              className="topbar-user-capsule"
               onClick={() => (hasModule(user, "users") ? setPage("users") : null)}
               title={user.name}
             >
-              <span className="top-avatar">
+              <span className="topbar-avatar-circle">
                 {user.photo ? (
                   <img
                     src={user.photo}
@@ -1037,13 +1080,13 @@ function App() {
                     style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
                   />
                 ) : (
-                  user.name?.slice(0, 1)
+                  user.name?.slice(0, 1) || "R"
                 )}
               </span>
-              <span className="topbar-user-info">
-                <b className="topbar-user-name">{user.name?.split(" ")[0] || "User"}</b>
-                <small className="topbar-user-role">{user.designation || user.role}</small>
-              </span>
+              <div className="topbar-user-text">
+                <span className="user-capsule-name">{user.name || "Ms. Ria"}</span>
+                <span className="user-capsule-role">{user.designation || (user.role === "admin" ? "Administrator" : "Teacher")}</span>
+              </div>
             </div>
           </div>
         </header>
@@ -1217,298 +1260,6 @@ function PageTitle({ eyebrow, title, subtitle, children }) {
         <p>{subtitle}</p>
       </div>
       <div className="title-actions">{children}</div>
-    </div>
-  );
-}
-function Dashboard({ students, config, open, go, user, toast }) {
-  const [feeStats, setFeeStats] = useState({
-    paidMonthly: 1387822,
-    todayCollection: 0,
-    todayCash: 0,
-    todayOnline: 0,
-    pendingFeesAllTime: 9024899,
-  });
-  const [attStats, setAttStats] = useState({
-    todayPresent: 0,
-    todayAbsent: 0,
-    todayLate: 0,
-    todayAdmissions: 0,
-  });
-
-  useEffect(() => {
-    if (hasModule(user, "fees")) {
-      api("/fees/stats")
-        .then((s) => {
-          if (s) setFeeStats(s);
-        })
-        .catch(() => {});
-    }
-    api("/attendance/stats/today")
-      .then((a) => {
-        if (a) setAttStats(a);
-      })
-      .catch(() => {});
-  }, [user]);
-
-  const groups = new Set(students.map((s) => s.className + "/" + s.section));
-
-  return (
-    <div className="erp-dashboard-container">
-      {/* Top School Greeting & Quick Actions Bar */}
-      <div className="erp-dashboard-banner">
-        <div className="erp-banner-left">
-          <div className="erp-status-pills">
-            <span className="erp-live-pill">
-              <span className="pulse-dot" /> Live Session Active
-            </span>
-            <span className="erp-session-pill">{config.session || "2026-2027"} Active</span>
-          </div>
-          <h1 className="erp-greeting">Shree Ram Public School! 👋</h1>
-          <p className="erp-subtitle">
-            Summary of fees collection, student admissions, attendance, and daily school activities.
-          </p>
-        </div>
-        <div className="erp-banner-actions">
-          {hasStudentAction(user, "studentCreate") && (
-            <button className="erp-banner-btn white" onClick={() => go("students")}>
-              <UserPlus size={16} /> New Admission
-            </button>
-          )}
-          {hasModule(user, "fees") && (
-            <button className="erp-banner-btn yellow" onClick={() => go("fees")}>
-              <FileSpreadsheet size={16} /> Fee Register
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 6 Modern ERP KPI Cards Grid */}
-      <div className="erp-kpi-grid">
-        {/* KPI 1: Paid Fees Monthly */}
-        <div className="erp-kpi-card purple" onClick={() => hasModule(user, "fees") && go("fees")}>
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">PAID FEES (MONTHLY)</span>
-            <span className="erp-kpi-icon"><Wallet size={18} /></span>
-          </div>
-          <div className="erp-kpi-val">₹{Number(feeStats.paidMonthly || 0).toLocaleString("en-IN")}</div>
-          <div className="erp-kpi-footer">
-            <span className="erp-kpi-tag">Current Month</span>
-          </div>
-        </div>
-
-        {/* KPI 2: Today Collection */}
-        <div className="erp-kpi-card green" onClick={() => hasModule(user, "fees") && go("fees")}>
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">TODAY COLLECTION</span>
-            <span className="erp-kpi-icon"><IndianRupee size={18} /></span>
-          </div>
-          <div className="erp-kpi-val">₹{Number(feeStats.todayCollection || 0).toLocaleString("en-IN")}</div>
-          <div className="erp-kpi-footer text-muted">
-            <span>Cash: <b>₹{Number(feeStats.todayCash || 0).toLocaleString("en-IN")}</b></span>
-            <span className="sep">•</span>
-            <span>Online: <b>₹{Number(feeStats.todayOnline || 0).toLocaleString("en-IN")}</b></span>
-          </div>
-        </div>
-
-        {/* KPI 3: Pending Fees All Time */}
-        <div className="erp-kpi-card red" onClick={() => hasModule(user, "fees") && go("fees")}>
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">PENDING FEES (ALL TIME)</span>
-            <span className="erp-kpi-icon"><AlertTriangle size={18} /></span>
-          </div>
-          <div className="erp-kpi-val">₹{Number(feeStats.pendingFeesAllTime || 0).toLocaleString("en-IN")}</div>
-          <div className="erp-kpi-footer">
-            <span className="erp-kpi-tag danger">Action Required</span>
-          </div>
-        </div>
-
-        {/* KPI 4: Today Admissions */}
-        <div className="erp-kpi-card blue" onClick={() => go("students")}>
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">TODAY ADMISSIONS</span>
-            <span className="erp-kpi-icon"><GraduationCap size={18} /></span>
-          </div>
-          <div className="erp-kpi-val">{attStats.todayAdmissions || 0}</div>
-          <div className="erp-kpi-footer">
-            <span className="erp-kpi-tag">New Today</span>
-          </div>
-        </div>
-
-        {/* KPI 5: Today Present */}
-        <div className="erp-kpi-card emerald" onClick={() => hasModule(user, "attendance") && go("attendance")}>
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">TODAY PRESENT</span>
-            <span className="erp-kpi-icon"><CheckCircle2 size={18} /></span>
-          </div>
-          <div className="erp-kpi-val">{attStats.todayPresent || 0}</div>
-          <div className="erp-kpi-footer">
-            <span className="erp-kpi-tag success">Marked Present</span>
-          </div>
-        </div>
-
-        {/* KPI 6: Today Absent */}
-        <div className="erp-kpi-card amber" onClick={() => hasModule(user, "attendance") && go("attendance")}>
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">TODAY ABSENT</span>
-            <span className="erp-kpi-icon"><X size={18} /></span>
-          </div>
-          <div className="erp-kpi-val">{attStats.todayAbsent || 0}</div>
-          <div className="erp-kpi-footer">
-            <span className="erp-kpi-tag warning">Marked Absent</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Fast Shortcuts for Daily Tasks */}
-      <div className="erp-shortcuts-section">
-        <span className="erp-shortcuts-title">Fast shortcuts for daily tasks</span>
-        <div className="erp-shortcuts-row">
-          <button className="erp-shortcut-item" onClick={() => go("students")}>
-            <div className="shortcut-icon-box blue"><UserPlus size={20} /></div>
-            <span>Add Admission</span>
-          </button>
-          <button className="erp-shortcut-item" onClick={() => go("attendance")}>
-            <div className="shortcut-icon-box green"><CalendarCheck size={20} /></div>
-            <span>Attendance</span>
-          </button>
-          <button className="erp-shortcut-item" onClick={() => go("fees")}>
-            <div className="shortcut-icon-box red"><AlertTriangle size={20} /></div>
-            <span>Defaulters</span>
-          </button>
-          <button className="erp-shortcut-item" onClick={() => go("fees")}>
-            <div className="shortcut-icon-box purple"><TrendingUp size={20} /></div>
-            <span>Finance Report</span>
-          </button>
-          <button className="erp-shortcut-item" onClick={() => go("students")}>
-            <div className="shortcut-icon-box cyan"><Users size={20} /></div>
-            <span>Students List</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Standard Academic Workspace */}
-      <div className="overview-stats">
-        {[
-          [Users, "Total Enrolled Students", students.length, "In active school cohorts"],
-          [School, "Class Sections", groups.size, "Active academic cohorts"],
-          [
-            BookOpen,
-            "Academic Session",
-            config.session,
-            "Two terms. One complete picture.",
-          ],
-        ].map(([Icon, label, value, detail], idx) => (
-          <div className={`stat-card stat-card-${idx}`} key={label}>
-            <div className="stat-label">
-              {label}
-              <span>
-                <Icon size={19} />
-              </span>
-            </div>
-            <strong>{value}</strong>
-            <small>{detail}</small>
-          </div>
-        ))}
-      </div>
-
-      <section className="welcome-panel">
-        <div>
-          <span className="pill badge-orange">MADE FOR YOUR SCHOOL</span>
-          <h2>From marks to milestones.</h2>
-          <p>
-            Enter assessments on the left. Watch your school’s
-            <br />
-            signature report take shape on the right.
-          </p>
-          {hasModule(user, "studio") && (
-            <button
-              className="btn primary"
-              onClick={() => (students[0] ? open(students[0]) : go("students"))}
-            >
-              Open report studio <ArrowRight size={16} />
-            </button>
-          )}
-        </div>
-        <div className="mini-report">
-          <div className="mini-crest">
-            <GraduationCap />
-          </div>
-          <b>SHREE RAM PUBLIC SCHOOL</b>
-          <em>Progress Report</em>
-          <div className="mini-lines" />
-          <div className="mini-table" />
-          <span>
-            <CheckCircle2 size={15} /> A brighter way to report.
-          </span>
-        </div>
-        <div className="welcome-circle" />
-      </section>
-      <div className="dashboard-grid">
-        {hasModule(user, "studio") && <section className="card">
-          <div className="card-heading">
-            <div>
-              <h3>Student workspace</h3>
-              <p>Pick up with a student.</p>
-            </div>
-            <button className="text-button" onClick={() => go("students")}>
-              View all <ArrowRight size={15} />
-            </button>
-          </div>
-          {students.length ? (
-            students.slice(0, 5).map((s) => (
-              <button
-                className="student-quick"
-                key={s._id}
-                onClick={() => open(s)}
-              >
-                <div className="student-avatar">{s.name[0]}</div>
-                <div>
-                  <b>{s.name}</b>
-                  <small>
-                    {s.admissionNo} · Class {s.className}, {s.section}
-                  </small>
-                </div>
-                <ChevronRight size={17} />
-              </button>
-            ))
-          ) : (
-            <Empty text="Add your first students" />
-          )}
-        </section>}
-        <section className="card steps-card">
-          <div className="card-heading">
-            <div>
-              <h3>Your report workflow</h3>
-              <p>Clear steps. Reliable records.</p>
-            </div>
-            <ShieldCheck size={22} />
-          </div>
-          {[
-            ["01", "Bring students in", "Import your Excel sheet once."],
-            [
-              "02",
-              "Assess with confidence",
-              "Enter Term I & II with live totals.",
-            ],
-            [
-              "03",
-              "Review, publish, celebrate",
-              "Approve reports and export to PDF.",
-            ],
-          ].map(([n, t, d]) => (
-            <div className="workflow-step" key={n}>
-              <span>{n}</span>
-              <div>
-                <b>{t}</b>
-                <p>{d}</p>
-              </div>
-            </div>
-          ))}
-          <div className="privacy-note">
-            <LockKeyhole size={17} /> Teachers see only their assigned classes.
-          </div>
-        </section>
-      </div>
     </div>
   );
 }
