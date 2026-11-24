@@ -8,8 +8,6 @@ import {
   ArrowRight,
   ShieldCheck,
   LockKeyhole,
-  BarChart3,
-  Plus,
   ChevronRight,
   FileText,
 } from "lucide-react";
@@ -42,28 +40,9 @@ export default function Dashboard({
   toast,
 }) {
   const groups = new Set(students.map((s) => s.className + "/" + s.section));
-  const firstName = user?.name ? user.name.split(" ")[0] : "educator";
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">YOUR SCHOOL, AT A GLANCE</span>
-          <h1>Good to see you, {firstName}.</h1>
-          <p>A little less paperwork. A lot more progress.</p>
-        </div>
-        {hasModule(user, "studio") && (
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button className="btn" onClick={() => go("analytics")}>
-              <BarChart3 size={17} /> Class Analytics
-            </button>
-            <button className="btn primary" onClick={() => go("studio")}>
-              <Plus size={17} /> Create report
-            </button>
-          </div>
-        )}
-      </div>
-
       <div className="overview-stats">
         {[
           [Users, "Students", students.length, "In your accessible classes"],
