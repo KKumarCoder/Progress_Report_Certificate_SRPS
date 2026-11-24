@@ -17,6 +17,8 @@ import {
   ChevronRight,
   ChevronDown,
   Plus,
+  Minus,
+  SlidersHorizontal,
   Download,
   Printer,
   Save,
@@ -231,13 +233,12 @@ const Field = ({ label, children }) => (
 );
 
 function Pagination({
-  currentPage,
-  totalItems,
-  pageSize,
+  currentPage = 1,
+  totalItems = 0,
+  pageSize = 4,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100],
-  itemLabel = "items",
+  itemLabel = "entries",
 }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safeCurrent = Math.min(Math.max(1, currentPage), totalPages);
@@ -247,110 +248,82 @@ function Pagination({
   const startIdx = (safeCurrent - 1) * pageSize + 1;
   const endIdx = Math.min(safeCurrent * pageSize, totalItems);
 
-  const getPageNumbers = () => {
-    const pages = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (safeCurrent <= 4) {
-        for (let i = 1; i <= 5; i++) pages.push(i);
-        pages.push("...");
-        pages.push(totalPages);
-      } else if (safeCurrent >= totalPages - 3) {
-        pages.push(1);
-        pages.push("...");
-        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        pages.push("...");
-        pages.push(safeCurrent - 1);
-        pages.push(safeCurrent);
-        pages.push(safeCurrent + 1);
-        pages.push("...");
-        pages.push(totalPages);
-      }
+  const handleStepSize = (delta) => {
+    const next = Math.max(4, pageSize + delta);
+    if (next !== pageSize) {
+      onPageSizeChange(next);
+      onPageChange(1);
     }
-    return pages;
   };
 
   return (
     <div className="pagination-bar">
       <div className="pagination-info">
-        Showing <strong>{startIdx}–{endIdx}</strong> of <strong>{totalItems}</strong> {itemLabel}
+        <span className="pagination-info-badge">
+          <Layers size={14} className="pagination-info-icon" />
+          <span>
+            Showing <b>{startIdx}–{endIdx}</b> of <b>{totalItems}</b> {itemLabel}
+          </span>
+        </span>
       </div>
 
       <div className="pagination-controls">
-        <div className="page-size-selector">
-          <span>Rows per page:</span>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              onPageSizeChange(Number(e.target.value));
-              onPageChange(1);
-            }}
+        <div className="page-size-controller" title="Adjust entries per page (±5)">
+          <span className="controller-label-icon" title="Entries per page">
+            <SlidersHorizontal size={14} />
+          </span>
+          <button
+            type="button"
+            className="step-btn minus-btn"
+            disabled={pageSize <= 4}
+            onClick={() => handleStepSize(-5)}
+            title="Decrease by 5 entries (Minimum: 4)"
+            aria-label="Decrease entries per page"
           >
-            {pageSizeOptions.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
+            <Minus size={13} strokeWidth={2.5} />
+          </button>
+          <span className="page-size-display-badge">
+            <b>{pageSize}</b>
+            <small>/ page</small>
+          </span>
+          <button
+            type="button"
+            className="step-btn plus-btn"
+            onClick={() => handleStepSize(5)}
+            title="Increase by 5 entries (+5)"
+            aria-label="Increase entries per page"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+          </button>
         </div>
 
-        <div className="page-buttons-group">
+        <div className="page-nav-pill-group">
           <button
             type="button"
-            className="page-btn nav-btn"
-            disabled={safeCurrent <= 1}
-            onClick={() => onPageChange(1)}
-            title="First Page"
-          >
-            <ChevronsLeft size={16} />
-          </button>
-          <button
-            type="button"
-            className="page-btn nav-btn"
+            className="page-nav-btn prev-btn"
             disabled={safeCurrent <= 1}
             onClick={() => onPageChange(safeCurrent - 1)}
             title="Previous Page"
+            aria-label="Previous Page"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} strokeWidth={2.2} />
           </button>
 
-          {getPageNumbers().map((p, idx) =>
-            p === "..." ? (
-              <span key={`dots-${idx}`} className="pagination-dots">
-                …
-              </span>
-            ) : (
-              <button
-                type="button"
-                key={p}
-                className={`page-btn num-btn ${safeCurrent === p ? "active" : ""}`}
-                onClick={() => onPageChange(p)}
-              >
-                {p}
-              </button>
-            ),
-          )}
+          <div className="current-page-pill" title={`Page ${safeCurrent} of ${totalPages}`}>
+            <span className="page-curr-num">{safeCurrent}</span>
+            <span className="page-slash">/</span>
+            <span className="page-total-num">{totalPages}</span>
+          </div>
 
           <button
             type="button"
-            className="page-btn nav-btn"
+            className="page-nav-btn next-btn"
             disabled={safeCurrent >= totalPages}
             onClick={() => onPageChange(safeCurrent + 1)}
             title="Next Page"
+            aria-label="Next Page"
           >
-            <ChevronRight size={16} />
-          </button>
-          <button
-            type="button"
-            className="page-btn nav-btn"
-            disabled={safeCurrent >= totalPages}
-            onClick={() => onPageChange(totalPages)}
-            title="Last Page"
-          >
-            <ChevronsRight size={16} />
+            <ChevronRight size={16} strokeWidth={2.2} />
           </button>
         </div>
       </div>
@@ -1076,7 +1049,7 @@ function Students({
     [whatsappBusyId, setWhatsappBusyId] = useState(""),
     [emailBusyId, setEmailBusyId] = useState(""),
     [currentPage, setCurrentPage] = useState(1),
-    [pageSize, setPageSize] = useState(compact ? 10 : 25);
+    [pageSize, setPageSize] = useState(4);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -2985,6 +2958,27 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
     ? masters.designations
     : DEFAULT_DESIGNATIONS.map((d) => ({ id: d, name: d, active: true }));
 
+  const [classPage, setClassPage] = useState(1);
+  const [classPageSize, setClassPageSize] = useState(4);
+  const [secPage, setSecPage] = useState(1);
+  const [secPageSize, setSecPageSize] = useState(4);
+  const [housePage, setHousePage] = useState(1);
+  const [housePageSize, setHousePageSize] = useState(4);
+  const [desigPage, setDesigPage] = useState(1);
+  const [desigPageSize, setDesigPageSize] = useState(4);
+
+  const safeClassPage = Math.min(Math.max(1, classPage), Math.max(1, Math.ceil(currentClasses.length / classPageSize)));
+  const pagedClasses = currentClasses.slice((safeClassPage - 1) * classPageSize, safeClassPage * classPageSize);
+
+  const safeSecPage = Math.min(Math.max(1, secPage), Math.max(1, Math.ceil(currentSections.length / secPageSize)));
+  const pagedSections = currentSections.slice((safeSecPage - 1) * secPageSize, safeSecPage * secPageSize);
+
+  const safeHousePage = Math.min(Math.max(1, housePage), Math.max(1, Math.ceil(currentHouses.length / housePageSize)));
+  const pagedHouses = currentHouses.slice((safeHousePage - 1) * housePageSize, safeHousePage * housePageSize);
+
+  const safeDesigPage = Math.min(Math.max(1, desigPage), Math.max(1, Math.ceil(currentDesignations.length / desigPageSize)));
+  const pagedDesignations = currentDesignations.slice((safeDesigPage - 1) * desigPageSize, safeDesigPage * desigPageSize);
+
   const getBundle = () => ({
     classes: currentClasses,
     sections: currentSections,
@@ -3259,7 +3253,7 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
                 </tr>
               </thead>
               <tbody>
-                {currentClasses.map((c) => {
+                {pagedClasses.map((c) => {
                   const isActive = c.active !== false;
                   return (
                     <tr key={c.id} className={!isActive ? "row-disabled" : ""}>
@@ -3310,6 +3304,14 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safeClassPage}
+            totalItems={currentClasses.length}
+            pageSize={classPageSize}
+            onPageChange={setClassPage}
+            onPageSizeChange={setClassPageSize}
+            itemLabel="classes"
+          />
         </div>
       )}
 
@@ -3351,7 +3353,7 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
                 </tr>
               </thead>
               <tbody>
-                {currentSections.map((s) => {
+                {pagedSections.map((s) => {
                   const isActive = s.active !== false;
                   return (
                     <tr key={s.id} className={!isActive ? "row-disabled" : ""}>
@@ -3399,6 +3401,14 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safeSecPage}
+            totalItems={currentSections.length}
+            pageSize={secPageSize}
+            onPageChange={setSecPage}
+            onPageSizeChange={setSecPageSize}
+            itemLabel="sections"
+          />
         </div>
       )}
 
@@ -3451,7 +3461,7 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
                 </tr>
               </thead>
               <tbody>
-                {currentHouses.map((h) => {
+                {pagedHouses.map((h) => {
                   const isActive = h.active !== false;
                   return (
                     <tr key={h.id} className={!isActive ? "row-disabled" : ""}>
@@ -3517,6 +3527,14 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safeHousePage}
+            totalItems={currentHouses.length}
+            pageSize={housePageSize}
+            onPageChange={setHousePage}
+            onPageSizeChange={setHousePageSize}
+            itemLabel="houses"
+          />
         </div>
       )}
 
@@ -3558,7 +3576,7 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
                 </tr>
               </thead>
               <tbody>
-                {currentDesignations.map((d) => {
+                {pagedDesignations.map((d) => {
                   const isActive = d.active !== false;
                   return (
                     <tr key={d.id} className={!isActive ? "row-disabled" : ""}>
@@ -3606,6 +3624,14 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safeDesigPage}
+            totalItems={currentDesignations.length}
+            pageSize={desigPageSize}
+            onPageChange={setDesigPage}
+            onPageSizeChange={setDesigPageSize}
+            itemLabel="designations"
+          />
         </div>
       )}
 
@@ -3760,9 +3786,9 @@ function UserAccess({ toast, user: currentUser }) {
     [as, setAs] = useState("Venus"),
     [busyActionId, setBusyActionId] = useState(""),
     [staffPage, setStaffPage] = useState(1),
-    [staffPageSize, setStaffPageSize] = useState(10),
+    [staffPageSize, setStaffPageSize] = useState(4),
     [permPage, setPermPage] = useState(1),
-    [permPageSize, setPermPageSize] = useState(10);
+    [permPageSize, setPermPageSize] = useState(4);
 
   useEffect(() => {
     setStaffPage(1);
@@ -5017,6 +5043,8 @@ function StaffViewModal({ staff, onClose, onEdit, onManageAccess }) {
 function ReportReview({ session, open, toast, user }) {
   const [rows, setRows] = useState([]);
   const [busyId, setBusyId] = useState("");
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewPageSize, setReviewPageSize] = useState(4);
   async function load() {
     try {
       setRows(await api(`/review?session=${encodeURIComponent(session)}`));
@@ -5132,7 +5160,11 @@ function ReportReview({ session, open, toast, user }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {(() => {
+                const totalReviewPages = Math.max(1, Math.ceil(rows.length / reviewPageSize));
+                const safeReviewPage = Math.min(Math.max(1, reviewPage), totalReviewPages);
+                const pagedReviewRows = rows.slice((safeReviewPage - 1) * reviewPageSize, safeReviewPage * reviewPageSize);
+                return pagedReviewRows.map((row) => (
                 <tr key={row._id}>
                   <td>
                     <strong>{row.student.name}</strong>
@@ -5219,9 +5251,18 @@ function ReportReview({ session, open, toast, user }) {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ));
+              })()}
             </tbody>
           </table>
+          <Pagination
+            currentPage={reviewPage}
+            totalItems={rows.length}
+            pageSize={reviewPageSize}
+            onPageChange={setReviewPage}
+            onPageSizeChange={setReviewPageSize}
+            itemLabel="reports"
+          />
         </div>
       )}
     </>
@@ -5231,7 +5272,7 @@ function ReportReview({ session, open, toast, user }) {
 function AuditLog() {
   const [rows, setRows] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(4);
   useEffect(() => {
     api("/audit").then(setRows);
   }, []);
@@ -5599,7 +5640,9 @@ function BulkReports({ students, config, user, toast }) {
     [session, setSession] = useState(config.session),
     [records, setRecords] = useState([]),
     [busy, setBusy] = useState(false),
-    [bulkWhatsappOpen, setBulkWhatsappOpen] = useState(false);
+    [bulkWhatsappOpen, setBulkWhatsappOpen] = useState(false),
+    [bulkPage, setBulkPage] = useState(1),
+    [bulkPageSize, setBulkPageSize] = useState(4);
   async function prepare() {
     setBusy(true);
     try {
@@ -5715,15 +5758,34 @@ function BulkReports({ students, config, user, toast }) {
             </button>
           )}
         </div>
-        {records.map((r) => (
-          <div className="bulk-row" key={r.student._id}>
-            <CheckCircle2 size={18} />
-            <b>{r.student.name}</b>
-            <span>{r.student.admissionNo}</span>
-            <span>2 pages · Published</span>
-          </div>
-        ))}
-        {!records.length && <Empty text="Prepare your published reports" />}
+        {(() => {
+          const totalBulkPages = Math.max(1, Math.ceil(records.length / bulkPageSize));
+          const safeBulkPage = Math.min(Math.max(1, bulkPage), totalBulkPages);
+          const pagedRecords = records.slice((safeBulkPage - 1) * bulkPageSize, safeBulkPage * bulkPageSize);
+          return (
+            <>
+              {pagedRecords.map((r) => (
+                <div className="bulk-row" key={r.student._id}>
+                  <CheckCircle2 size={18} />
+                  <b>{r.student.name}</b>
+                  <span>{r.student.admissionNo}</span>
+                  <span>2 pages · Published</span>
+                </div>
+              ))}
+              {!records.length && <Empty text="Prepare your published reports" />}
+              {records.length > 0 && (
+                <Pagination
+                  currentPage={safeBulkPage}
+                  totalItems={records.length}
+                  pageSize={bulkPageSize}
+                  onPageChange={setBulkPage}
+                  onPageSizeChange={setBulkPageSize}
+                  itemLabel="reports"
+                />
+              )}
+            </>
+          );
+        })()}
       </section>
       <BulkWhatsappModal
         isOpen={bulkWhatsappOpen}
