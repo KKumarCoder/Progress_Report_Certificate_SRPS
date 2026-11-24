@@ -647,24 +647,35 @@ function App() {
   return (
     <div className={`app-shell ${theme === "dark" ? "dark-theme" : ""} ${collapsed ? "sidebar-collapsed" : ""}`}>
       <aside className={`sidebar ${sidebar ? "shown" : ""} ${collapsed ? "collapsed" : ""}`}>
-        <a className="brand" onClick={() => navigate("dashboard")} title="ANVAYROBO ERP">
-          <div className="brand-logo-frame">
-            <img
-              className="primary-company-logo"
-              src="/anvayrobo-logo.jpeg"
-              alt="ANVAYROBO"
-              width="56"
-              height="56"
-            />
-          </div>
-          <span className="primary-company-name">
-            <span className="brand-wordmark">
-              <span className="brand-anvay">ANVAY</span>
-              <span className="brand-robo">ROBO</span>
+        <div className="sidebar-brand-header">
+          <a className="brand" onClick={() => navigate("dashboard")} title="ANVAYROBO ERP">
+            <div className="brand-logo-frame">
+              <img
+                className="primary-company-logo"
+                src="/anvayrobo-logo.jpeg"
+                alt="ANVAYROBO"
+                width="56"
+                height="56"
+              />
+            </div>
+            <span className="primary-company-name">
+              <span className="brand-wordmark">
+                <span className="brand-anvay">ANVAY</span>
+                <span className="brand-robo">ROBO</span>
+              </span>
+              <span className="brand-sub">AI • ROBOTICS • STEM • AUTOMATION</span>
             </span>
-            <span className="brand-sub">AI • ROBOTICS • STEM • AUTOMATION</span>
-          </span>
-        </a>
+          </a>
+          <button
+            type="button"
+            className="sidebar-chevron-toggle"
+            onClick={toggleCollapsed}
+            title={collapsed ? "Expand sidebar (>>)" : "Collapse sidebar (<<)"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronsRight size={15} /> : <ChevronsLeft size={15} />}
+          </button>
+        </div>
         <div className="school-label" title="SHREE RAM PUBLIC SCHOOL · SRPS REPORT STUDIO">
           <span className="school-name">SHREE RAM PUBLIC SCHOOL</span>
           <span className="school-tag">SRPS · REPORT STUDIO</span>
@@ -800,17 +811,9 @@ function App() {
         <header className="topbar">
           <div>
             <button
-              className="icon-button sidebar-toggle-btn mobile-menu"
-              onClick={() => {
-                if (window.innerWidth <= 768) {
-                  setSidebar((prev) => !prev);
-                } else {
-                  toggleCollapsed();
-                  setSidebar(false);
-                }
-              }}
-              title={collapsed ? "Expand sidebar to full view" : "Collapse sidebar to compact icon rail"}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="icon-button mobile-only-toggle mobile-menu"
+              onClick={() => setSidebar((prev) => !prev)}
+              aria-label="Open navigation drawer"
             >
               <Menu size={18} />
             </button>
