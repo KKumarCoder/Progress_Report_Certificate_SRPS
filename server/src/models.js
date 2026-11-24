@@ -59,7 +59,6 @@ const studentSchema = new Schema(
   { timestamps: true },
 );
 studentSchema.index({ className: 1, section: 1 });
-studentSchema.index({ admissionNo: 1 });
 export const Student = model("Student", studentSchema);
 
 /* --- Attendance Models --- */
@@ -227,7 +226,6 @@ const feeTransactionSchema = new Schema(
   { timestamps: true },
 );
 feeTransactionSchema.index({ admissionNo: 1, session: 1 });
-feeTransactionSchema.index({ receiptNo: 1 });
 export const FeeTransaction = model("FeeTransaction", feeTransactionSchema);
 
 const feeApprovalSchema = new Schema(

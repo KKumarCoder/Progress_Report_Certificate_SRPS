@@ -44,6 +44,7 @@ import {
   Flame,
   Trees,
   Sun,
+  Moon,
   HardDrive,
   Folder,
   ChevronLeft,
@@ -440,6 +441,15 @@ function WhatsAppIcon({ size = 20 }) {
   );
 }
 function App() {
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("srps_theme") || "light";
+    } catch {
+      return "light";
+    }
+  });
+  const [viewingProfile, setViewingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [user, setUser] = useState(null),
     [checking, setChecking] = useState(true),
     [page, setPage] = useState("dashboard"),
@@ -457,6 +467,17 @@ function App() {
     [selected, setSelected] = useState(null),
     [sidebar, setSidebar] = useState(false),
     [reportDirty, setReportDirty] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("srps_theme", theme);
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
   const navigate = (id) => {
     if (reportDirty && !confirm("Discard unsaved report changes?")) return;
     setReportDirty(false);
@@ -611,7 +632,7 @@ function App() {
     ["settings", "Settings", Settings],
   ].filter(([id]) => canOpenPage(user, id));
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${theme === "dark" ? "dark-theme" : ""}`}>
       <aside className={"sidebar " + (sidebar ? "shown" : "")}>
         <a className="brand" onClick={() => navigate("dashboard")}>
           <div className="brand-logo-frame">
@@ -1068,28 +1089,72 @@ function App() {
               <MessageSquare size={18} />
             </button>
             <div
-              className="topbar-user-capsule"
-              onClick={() => (hasModule(user, "users") ? setPage("users") : null)}
-              title={user.name}
+              className={`topbar-user-capsule ${theme === "dark" ? "is-dark" : "is-light"}`}
             >
-              <span className="topbar-avatar-circle">
+              <button
+                type="button"
+                className="topbar-avatar-circle topbar-toggle-knob"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleTheme();
+                }}
+                title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                aria-label={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
                 {user.photo ? (
                   <img
                     src={user.photo}
                     alt={user.name}
-                    style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                    className="topbar-avatar-img"
                   />
                 ) : (
-                  user.name?.slice(0, 1) || "R"
+                  <span className="topbar-avatar-letter">
+                    {user.name?.slice(0, 1) || "S"}
+                  </span>
                 )}
-              </span>
-              <div className="topbar-user-text">
-                <span className="user-capsule-name">{user.name || "Ms. Ria"}</span>
-                <span className="user-capsule-role">{user.designation || (user.role === "admin" ? "Administrator" : "Teacher")}</span>
+                <span className="theme-toggle-indicator">
+                  {theme === "dark" ? <Moon size={9} /> : <Sun size={9} />}
+                </span>
+              </button>
+              <div
+                className="topbar-user-text"
+                onClick={() => setViewingProfile(true)}
+                title="Click to view/edit profile"
+              >
+                <span className="user-capsule-name">{user.name?.split(" ")[0] || "School"}</span>
+                <span className="user-capsule-role">{user.designation || (user.role === "admin" ? "Principal" : "Staff")}</span>
               </div>
             </div>
           </div>
         </header>
+        {viewingProfile && (
+          <StaffViewModal
+            staff={user}
+            onClose={() => setViewingProfile(false)}
+            onEdit={() => {
+              setViewingProfile(false);
+              setEditingProfile(true);
+            }}
+            onManageAccess={user.role === "admin" ? () => {
+              setViewingProfile(false);
+              setPage("users");
+            } : null}
+          />
+        )}
+        {editingProfile && (
+          <StaffModal
+            staff={user}
+            currentUser={user}
+            onClose={() => setEditingProfile(false)}
+            onSaved={(updatedUser) => {
+              setEditingProfile(false);
+              setUser(updatedUser);
+              window.dispatchEvent(new CustomEvent("srps:user-updated", { detail: updatedUser }));
+              toast("Profile updated successfully");
+            }}
+            toast={toast}
+          />
+        )}
         {isDemo() && (
           <div className="demo-banner">
             <Eye size={15} />
@@ -5236,11 +5301,18 @@ function StaffViewModal({ staff, onClose, onEdit, onManageAccess }) {
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn" onClick={onManageAccess}>
-            <ShieldCheck size={16} /> Manage Permissions
-          </button>
-          <button type="button" className="btn primary" onClick={onEdit}>
-            <PenLine size={16} /> Edit Details
+          {onManageAccess && (
+            <button type="button" className="btn" onClick={onManageAccess}>
+              <ShieldCheck size={16} /> Manage Permissions
+            </button>
+          )}
+          {onEdit && (
+            <button type="button" className="btn primary" onClick={onEdit}>
+              <PenLine size={16} /> Edit Details
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onClose}>
+            Close
           </button>
         </div>
       </div>
