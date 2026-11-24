@@ -71,6 +71,7 @@ import {
   Navigation,
   UserPlus,
   Wallet,
+  IndianRupee,
   QrCode,
   FileSpreadsheet,
 } from "lucide-react";
@@ -5977,8 +5978,46 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
     </>
   );
 }
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("UI Error caught by ErrorBoundary:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif" }}>
+          <h2>Something went wrong in the workspace</h2>
+          <p style={{ color: "#dc2626", margin: "16px 0" }}>{this.state.error?.message || "Unknown error"}</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: "10px 20px",
+              background: "#2563eb",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 createRoot(document.getElementById("root")).render(
-  <>
+  <ErrorBoundary>
     <App />
     <ToastContainer
       position="bottom-right"
@@ -5989,7 +6028,7 @@ createRoot(document.getElementById("root")).render(
       draggable
       theme="light"
     />
-  </>,
+  </ErrorBoundary>,
 );
 function BulkReports({ students, config, user, toast }) {
   const [cls, setCls] = useState("6"),
