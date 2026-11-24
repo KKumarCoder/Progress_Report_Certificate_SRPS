@@ -479,6 +479,20 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, [sidebar]);
 
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        if (collapsed) {
+          setStudentsMenuOpen(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [collapsed]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
@@ -486,6 +500,9 @@ function App() {
     if (reportDirty && !confirm("Discard unsaved report changes?")) return;
     setReportDirty(false);
     setPage(id);
+    if (id !== "students" && id !== "masters") {
+      setStudentsMenuOpen(false);
+    }
     if (window.innerWidth <= 768) setSidebar(false);
   };
   const toast = (message, error = false) => {
@@ -658,7 +675,7 @@ function App() {
             if (id === "students") {
               const isStudentsActive = page === "students" || page === "masters";
               return (
-                <div key={id} className="nav-dropdown-group">
+                <div key={id} ref={dropdownRef} className="nav-dropdown-group">
                   <button
                     className={`nav-parent-btn ${isStudentsActive ? "active" : ""}`}
                     onClick={() => {
@@ -687,11 +704,13 @@ function App() {
                   </button>
                   {studentsMenuOpen && (
                     <div className="nav-sub-menu">
+                      <div className="nav-sub-header">STUDENTS MODULE</div>
                       <button
                         className={`nav-sub-btn ${page === "students" && studentSubTab === "directory" ? "active" : ""}`}
                         onClick={() => {
                           navigate("students");
                           setStudentSubTab("directory");
+                          if (collapsed) setStudentsMenuOpen(false);
                           if (window.innerWidth <= 800) setSidebar(false);
                         }}
                         title="Student Directory"
@@ -707,6 +726,7 @@ function App() {
                           onClick={() => {
                             navigate("masters");
                             setStudentSubTab("masters");
+                            if (collapsed) setStudentsMenuOpen(false);
                             if (window.innerWidth <= 800) setSidebar(false);
                           }}
                           title="Academic Masters"
