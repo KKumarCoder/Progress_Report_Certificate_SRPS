@@ -411,16 +411,16 @@ export default function Dashboard({ students = [], config = {}, open, go, user =
               </div>
             </div>
 
-            {/* KPI 4: Pending Leave Requests */}
-            <div className="edunova-stat-card amber" onClick={() => go("attendance")}>
+            {/* KPI 4: Academic Performance */}
+            <div className="edunova-stat-card amber" onClick={() => go("analytics")}>
               <div className="stat-card-header">
                 <div>
-                  <span className="stat-card-label">Pending Leave Requests</span>
-                  <div className="stat-card-value">2</div>
-                  <div className="stat-card-subtext">Requires your approval</div>
+                  <span className="stat-card-label">Academic Analytics</span>
+                  <div className="stat-card-value">98.4%</div>
+                  <div className="stat-card-subtext">Overall pass score</div>
                 </div>
                 <div className="stat-card-icon amber">
-                  <UserCheck size={20} />
+                  <TrendingUp size={20} />
                 </div>
               </div>
               <div className="stat-card-sparkline-row">
@@ -460,11 +460,11 @@ export default function Dashboard({ students = [], config = {}, open, go, user =
                 <span>Lesson Plans</span>
               </button>
 
-              <button className="quick-link-btn" onClick={() => go("attendance")}>
+              <button className="quick-link-btn" onClick={() => go("review")}>
                 <div className="quick-icon-pill cyan">
-                  <CheckCircle2 size={18} />
+                  <ClipboardList size={18} />
                 </div>
-                <span>Attendance</span>
+                <span>Report Review</span>
               </button>
 
               <button className="quick-link-btn" onClick={() => go("analytics")}>

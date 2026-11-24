@@ -66,15 +66,8 @@ import {
   Tag,
   Home,
   Briefcase,
-  CalendarCheck,
-  CreditCard,
-  Bus,
-  Navigation,
   UserPlus,
-  Wallet,
-  IndianRupee,
   QrCode,
-  FileSpreadsheet,
   Bell,
   MessageSquare,
   Bot,
@@ -93,9 +86,6 @@ import BulkWhatsappModal from "./BulkWhatsappModal";
 import GrowthChart from "./GrowthChart";
 import SmartRemarks from "./SmartRemarks";
 import ClassAnalytics from "./ClassAnalytics";
-import Attendance from "./Attendance";
-import Fees from "./Fees";
-import Transport from "./Transport";
 import Dashboard from "./Dashboard";
 import templateMapping from "../../shared/template-mapping.json";
 import { exportReportPdf, printReports } from "./report-export";
@@ -161,13 +151,10 @@ let houses = [...DEFAULT_HOUSES];
 let designations = [...DEFAULT_DESIGNATIONS];
 
 const ROLE_MODULES = {
-  teacher: ["overview", "students", "attendance", "studio", "bulk", "settings"],
+  teacher: ["overview", "students", "studio", "bulk", "settings"],
   principal: [
     "overview",
     "students",
-    "fees",
-    "transport",
-    "attendance",
     "studio",
     "review",
     "bulk",
@@ -178,9 +165,6 @@ const ROLE_MODULES = {
 const MODULE_LABELS = [
   ["overview", "Overview"],
   ["students", "Students"],
-  ["fees", "Fees & Billing"],
-  ["transport", "Transport Fleet"],
-  ["attendance", "Attendance"],
   ["studio", "Report studio"],
   ["review", "Report Review"],
   ["bulk", "Bulk print / export"],
@@ -458,12 +442,6 @@ function App() {
     [masters, setMasters] = useState(null),
     [studentSubTab, setStudentSubTab] = useState("directory"),
     [studentsMenuOpen, setStudentsMenuOpen] = useState(false),
-    [feesMenuOpen, setFeesMenuOpen] = useState(false),
-    [feeSubTab, setFeeSubTab] = useState("collect"),
-    [transportMenuOpen, setTransportMenuOpen] = useState(false),
-    [transportSubTab, setTransportSubTab] = useState("routes"),
-    [attendanceMenuOpen, setAttendanceMenuOpen] = useState(false),
-    [attendanceSubTab, setAttendanceSubTab] = useState("student_manual"),
     [selected, setSelected] = useState(null),
     [sidebar, setSidebar] = useState(false),
     [reportDirty, setReportDirty] = useState(false);
@@ -517,9 +495,6 @@ function App() {
         const firstPage = [
           "dashboard",
           "students",
-          "fees",
-          "transport",
-          "attendance",
           "studio",
           "review",
           "bulk",
@@ -566,9 +541,6 @@ function App() {
       const firstPage = [
         "dashboard",
         "students",
-        "fees",
-        "transport",
-        "attendance",
         "studio",
         "review",
         "bulk",
@@ -611,9 +583,6 @@ function App() {
     ["dashboard", "Overview", LayoutDashboard],
     ["analytics", "Class Analytics", BarChart3],
     ["students", "Students", Users],
-    ...(!isDemo() && hasModule(user, "fees") ? [["fees", "Fees", CreditCard]] : []),
-    ...(!isDemo() && hasModule(user, "transport") ? [["transport", "Transport", Bus]] : []),
-    ...(!isDemo() && hasModule(user, "attendance") ? [["attendance", "Attendance", CalendarCheck]] : []),
     ["studio", "Report studio", BookOpen],
     ...(!isDemo() && ["admin", "principal"].includes(user.role)
       ? [["review", "Report Review", ClipboardCheck]]
@@ -710,275 +679,6 @@ function App() {
                         >
                           <Layers size={15} />
                           Academic Masters
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            if (id === "fees") {
-              const isFeesActive = page === "fees";
-              return (
-                <div key={id} className="nav-dropdown-group">
-                  <button
-                    className={`nav-parent-btn ${isFeesActive ? "active" : ""}`}
-                    onClick={() => {
-                      setFeesMenuOpen((prev) => !prev);
-                      navigate("fees");
-                      setFeeSubTab("collect");
-                      setSidebar(false);
-                    }}
-                  >
-                    <Icon size={19} />
-                    <span className="nav-label-text">{label}</span>
-                    <span
-                      className={`dropdown-chevron ${feesMenuOpen ? "open" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFeesMenuOpen((prev) => !prev);
-                      }}
-                      title="Toggle Fees Submenu"
-                    >
-                      <ChevronDown size={15} />
-                    </span>
-                    {isFeesActive && <span className="nav-dot" />}
-                  </button>
-                  {feesMenuOpen && (
-                    <div className="nav-sub-menu">
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "structure" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("structure");
-                          setSidebar(false);
-                        }}
-                      >
-                        <Settings size={15} />
-                        Fees Configure
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "receipt" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("receipt");
-                          setSidebar(false);
-                        }}
-                      >
-                        <CreditCard size={15} />
-                        Fees Receipt
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "revert" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("revert");
-                          setSidebar(false);
-                        }}
-                      >
-                        <RefreshCw size={15} />
-                        Payment Revert
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "discounts" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("discounts");
-                          setSidebar(false);
-                        }}
-                      >
-                        <Tag size={15} />
-                        Discount Fees
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "demand" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("demand");
-                          setSidebar(false);
-                        }}
-                      >
-                        <FileText size={15} />
-                        Demand Bill
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "carry-forward" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("carry-forward");
-                          setSidebar(false);
-                        }}
-                      >
-                        <ArrowRight size={15} />
-                        Fees Carry Forward
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "assign" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("assign");
-                          setSidebar(false);
-                        }}
-                      >
-                        <CheckCircle2 size={15} />
-                        Assign Fees
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "approvals" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("approvals");
-                          setSidebar(false);
-                        }}
-                      >
-                        <ShieldCheck size={15} />
-                        Fee Approvals
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            if (id === "transport") {
-              const isTransportActive = page === "transport";
-              return (
-                <div key={id} className="nav-dropdown-group">
-                  <button
-                    className={`nav-parent-btn ${isTransportActive ? "active" : ""}`}
-                    onClick={() => {
-                      setTransportMenuOpen((prev) => !prev);
-                      navigate("transport");
-                      setTransportSubTab("routes");
-                      setSidebar(false);
-                    }}
-                  >
-                    <Icon size={19} />
-                    <span className="nav-label-text">{label}</span>
-                    <span
-                      className={`dropdown-chevron ${transportMenuOpen ? "open" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTransportMenuOpen((prev) => !prev);
-                      }}
-                      title="Toggle Transport Submenu"
-                    >
-                      <ChevronDown size={15} />
-                    </span>
-                    {isTransportActive && <span className="nav-dot" />}
-                  </button>
-                  {transportMenuOpen && (
-                    <div className="nav-sub-menu">
-                      <button
-                        className={`nav-sub-btn ${page === "transport" && transportSubTab === "routes" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("transport");
-                          setTransportSubTab("routes");
-                          setSidebar(false);
-                        }}
-                      >
-                        <Navigation size={15} />
-                        Route Master & Stops
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "transport" && transportSubTab === "vehicles" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("transport");
-                          setTransportSubTab("vehicles");
-                          setSidebar(false);
-                        }}
-                      >
-                        <Bus size={15} />
-                        Vehicles & Fleet
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "transport" && transportSubTab === "roster" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("transport");
-                          setTransportSubTab("roster");
-                          setSidebar(false);
-                        }}
-                      >
-                        <Users size={15} />
-                        Passenger Roster
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            if (id === "attendance") {
-              const isAttActive = page === "attendance";
-              return (
-                <div key={id} className="nav-dropdown-group">
-                  <button
-                    className={`nav-parent-btn ${isAttActive ? "active" : ""}`}
-                    onClick={() => {
-                      setAttendanceMenuOpen((prev) => !prev);
-                      navigate("attendance");
-                      setAttendanceSubTab("student_manual");
-                      setSidebar(false);
-                    }}
-                  >
-                    <Icon size={19} />
-                    <span className="nav-label-text">{label}</span>
-                    <span
-                      className={`dropdown-chevron ${attendanceMenuOpen ? "open" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAttendanceMenuOpen((prev) => !prev);
-                      }}
-                      title="Toggle Attendance Submenu"
-                    >
-                      <ChevronDown size={15} />
-                    </span>
-                    {isAttActive && <span className="nav-dot" />}
-                  </button>
-                  {attendanceMenuOpen && (
-                    <div className="nav-sub-menu">
-                      <button
-                        className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "student_manual" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("attendance");
-                          setAttendanceSubTab("student_manual");
-                          setSidebar(false);
-                        }}
-                      >
-                        <CalendarCheck size={15} />
-                        Daily Class Roll-Call
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "student_qr" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("attendance");
-                          setAttendanceSubTab("student_qr");
-                          setSidebar(false);
-                        }}
-                      >
-                        <QrCode size={15} />
-                        Gate QR Scanner Kiosk
-                      </button>
-                      <button
-                        className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "monthly_report" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("attendance");
-                          setAttendanceSubTab("monthly_report");
-                          setSidebar(false);
-                        }}
-                      >
-                        <FileSpreadsheet size={15} />
-                        Monthly Muster Roll
-                      </button>
-                      {["admin", "principal"].includes(user.role) && (
-                        <button
-                          className={`nav-sub-btn ${page === "attendance" && attendanceSubTab === "staff" ? "active" : ""}`}
-                          onClick={() => {
-                            navigate("attendance");
-                            setAttendanceSubTab("staff");
-                            setSidebar(false);
-                          }}
-                        >
-                          <ShieldCheck size={15} />
-                          Staff Attendance
                         </button>
                       )}
                     </div>
@@ -1210,29 +910,7 @@ function App() {
               toast={toast}
             />
           )}
-          {page === "fees" && (
-            <Fees
-              user={user}
-              config={config}
-              toast={toast}
-              initialTab={feeSubTab}
-              onTabChange={setFeeSubTab}
-            />
-          )}
-          {page === "transport" && (
-            <Transport
-              user={user}
-              toast={toast}
-              initialTab={transportSubTab}
-            />
-          )}
-          {page === "attendance" && (
-            <Attendance
-              user={user}
-              toast={toast}
-              initialTab={attendanceSubTab}
-            />
-          )}
+
           {page === "studio" &&
             (selected ? (
               <Studio
@@ -2178,8 +1856,6 @@ function StudentModal({ student, user, close, reload, toast }) {
       mobile: "",
       emergencyContact: "",
       email: "",
-      transportOpted: false,
-      transportStop: "",
       ...student,
     }),
     [busy, setBusy] = useState(false);
@@ -2309,25 +1985,6 @@ function StudentModal({ student, user, close, reload, toast }) {
               ))}
             </select>
           </Field>
-          <Field label="School Transport Opted?">
-            <select
-              value={data.transportOpted ? "yes" : "no"}
-              onChange={(e) => set("transportOpted", e.target.value === "yes")}
-            >
-              <option value="no">No (Self Conveyance)</option>
-              <option value="yes">Yes (School Bus / Van)</option>
-            </select>
-          </Field>
-          {data.transportOpted && (
-            <Field label="Boarding / Drop Bus Stop">
-              <input
-                type="text"
-                placeholder="e.g. Civil Lines Chowk"
-                value={data.transportStop || ""}
-                onChange={(e) => set("transportStop", e.target.value)}
-              />
-            </Field>
-          )}
           {(user.role === "admin" || hasStudentAction(user, student._id ? "studentEdit" : "studentCreate")) && (
             <Field label="Student photo · PNG / JPG">
               <div className="student-photo-upload">

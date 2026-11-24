@@ -11768,8 +11768,7 @@ body[data-theme="dark"],
 .dark-theme .smart-remarks-card,
 .dark-theme .bulk-actions-bar,
 .dark-theme .kpi-card,
-.dark-theme .quick-action-card,
-.dark-theme .attendance-sheet-box {
+.dark-theme .quick-action-card {
   background: #111b33 !important;
   border: 1px solid #1e293b !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
@@ -11950,37 +11949,6 @@ body[data-theme="dark"],
   background: #0c1427;
   border-color: #1e293b;
   color: #f8fafc;
-}
-
-/* Fees POS & Billing */
-.dark-theme .fee-collect-container,
-.dark-theme .fee-summary-box,
-.dark-theme .fee-history-card,
-.dark-theme .receipt-preview-box,
-.dark-theme .fee-sub-tab-btn {
-  background: #111b33;
-  border-color: #1e293b;
-  color: #cbd5e1;
-}
-
-.dark-theme .fee-sub-tab-btn.active {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-.dark-theme .fee-head-chip {
-  background: #0d162b;
-  border-color: #293854;
-  color: #f8fafc;
-}
-
-/* Attendance & Transport */
-.dark-theme .attendance-kpi-card,
-.dark-theme .route-card,
-.dark-theme .vehicle-card {
-  background: #111b33;
-  border-color: #1e293b;
-  color: #cbd5e1;
 }
 
 /* Report Drive & 2FA */
