@@ -23,7 +23,6 @@ import {
   Check,
   ArrowLeft,
   ArrowRight,
-  PanelLeft,
   LogOut,
   FileText,
   RefreshCw,
@@ -470,6 +469,16 @@ function App() {
     } catch {}
   }, [theme]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768 && sidebar) {
+        setSidebar(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [sidebar]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
@@ -477,6 +486,7 @@ function App() {
     if (reportDirty && !confirm("Discard unsaved report changes?")) return;
     setReportDirty(false);
     setPage(id);
+    if (window.innerWidth <= 768) setSidebar(false);
   };
   const toast = (message, error = false) => {
     if (error) notify.error(message);
@@ -759,7 +769,7 @@ function App() {
           <LogOut size={17} />
         </button>
       </aside>
-      {sidebar && (
+      {sidebar && typeof window !== "undefined" && window.innerWidth <= 768 && (
         <div
           className="sidebar-backdrop"
           onClick={() => setSidebar(false)}
@@ -770,19 +780,19 @@ function App() {
         <header className="topbar">
           <div>
             <button
-              className="icon-button mobile-menu"
-              onClick={() => setSidebar(!sidebar)}
-              aria-label="Open navigation"
-            >
-              <Menu />
-            </button>
-            <button
-              className="icon-button desktop-collapse-btn"
-              onClick={toggleCollapsed}
+              className="icon-button sidebar-toggle-btn mobile-menu"
+              onClick={() => {
+                if (window.innerWidth <= 768) {
+                  setSidebar((prev) => !prev);
+                } else {
+                  toggleCollapsed();
+                  setSidebar(false);
+                }
+              }}
               title={collapsed ? "Expand sidebar to full view" : "Collapse sidebar to compact icon rail"}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <PanelLeft size={18} />
+              <Menu size={18} />
             </button>
             <span>Workspace</span>
             <ChevronRight size={14} />

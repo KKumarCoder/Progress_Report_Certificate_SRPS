@@ -706,45 +706,63 @@ nav button.active .nav-icon-badge.color-slate,
   display: inline !important;
 }
 
-/* Desktop Collapse Toggle Button in Topbar */
-.desktop-collapse-btn {
-  display: inline-flex;
+/* Sidebar Toggle Button in Topbar (Works smoothly on both desktop & mobile) */
+.sidebar-toggle-btn,
+.desktop-collapse-btn,
+.mobile-menu {
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
-  color: #64748b;
+  color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
   margin-right: 12px;
+  flex-shrink: 0;
 }
-.desktop-collapse-btn:hover {
+.sidebar-toggle-btn:hover,
+.desktop-collapse-btn:hover,
+.mobile-menu:hover {
   background: #f1f5f9;
   color: #0f172a;
   border-color: #cbd5e1;
 }
-.dark-theme .desktop-collapse-btn {
+.dark-theme .sidebar-toggle-btn,
+.dark-theme .desktop-collapse-btn,
+.dark-theme .mobile-menu {
   background: #111b33;
   border-color: #1e293b;
   color: #94a3b8;
 }
-.dark-theme .desktop-collapse-btn:hover {
+.dark-theme .sidebar-toggle-btn:hover,
+.dark-theme .desktop-collapse-btn:hover,
+.dark-theme .mobile-menu:hover {
   background: #14203d;
   color: #f8fafc;
   border-color: #293854;
 }
 
-/* Sidebar Backdrop on Mobile */
+/* Sidebar Backdrop on Mobile ONLY - strictly disabled on desktop so desktop never blurs */
 .sidebar-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
-  z-index: 18;
-  animation: backdropFade 0.2s ease-out;
+  display: none !important;
+  pointer-events: none !important;
+}
+@media (max-width: 768px) {
+  .sidebar-backdrop {
+    display: block !important;
+    pointer-events: auto !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999;
+    animation: backdropFade 0.2s ease-out;
+  }
 }
 @keyframes backdropFade {
   from { opacity: 0; }
