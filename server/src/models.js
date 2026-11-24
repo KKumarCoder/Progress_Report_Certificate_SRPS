@@ -118,6 +118,44 @@ staffAttendanceSchema.index({ date: 1 });
 export const StaffAttendance = model("StaffAttendance", staffAttendanceSchema);
 
 /* --- Fee Management Models --- */
+const feeHeadSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    groupName: { type: String, default: "TUITION FEE" },
+    frequency: { type: String, default: "MONTHLY" },
+    accountName: { type: String, default: "TUITION FEE" },
+    months: [{ type: String }], // ["Apr", "May", "Jun", ...]
+    session: { type: String, default: "2026-2027" },
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+export const FeeHead = model("FeeHead", feeHeadSchema);
+
+const feeFrequencySchema = new Schema(
+  {
+    name: { type: String, required: true, unique: true },
+    months: [{ type: String }],
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+export const FeeFrequency = model("FeeFrequency", feeFrequencySchema);
+
+const feePlanSchema = new Schema(
+  {
+    heading: { type: String, required: true },
+    classes: [{ type: String }],
+    dueDate: { type: String, default: "" },
+    category: { type: String, default: "NA" },
+    amount: { type: Number, required: true },
+    session: { type: String, default: "2026-2027" },
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+export const FeePlan = model("FeePlan", feePlanSchema);
+
 const feeStructureSchema = new Schema(
   {
     name: { type: String, required: true },
@@ -149,8 +187,12 @@ const feeTransactionSchema = new Schema(
     studentName: { type: String, required: true },
     className: { type: String, required: true },
     section: { type: String, required: true },
+    fatherName: { type: String, default: "" },
+    mobile: { type: String, default: "" },
+    rollNo: { type: String, default: "" },
     session: { type: String, required: true },
     period: { type: String, required: true }, // e.g. "April 2026"
+    months: [{ type: String }],
     breakdown: [
       {
         head: String,
@@ -161,12 +203,13 @@ const feeTransactionSchema = new Schema(
     discount: { type: Number, default: 0 },
     discountReason: { type: String, default: "" },
     fine: { type: Number, default: 0 },
+    prevDues: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, required: true },
     balanceDue: { type: Number, default: 0 },
     paymentMode: {
       type: String,
-      enum: ["Cash", "UPI", "Cheque", "Bank Transfer", "Online"],
+      enum: ["Cash", "UPI", "Cheque", "Bank Transfer", "Online", "DD"],
       default: "Cash",
     },
     referenceNo: { type: String, default: "" },
@@ -176,6 +219,8 @@ const feeTransactionSchema = new Schema(
       default: "paid",
     },
     revertReason: { type: String, default: "" },
+    revertedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    revertedAt: { type: Date },
     collectedBy: { type: Schema.Types.ObjectId, ref: "User" },
     paidAt: { type: Date, default: Date.now },
   },
@@ -184,6 +229,30 @@ const feeTransactionSchema = new Schema(
 feeTransactionSchema.index({ admissionNo: 1, session: 1 });
 feeTransactionSchema.index({ receiptNo: 1 });
 export const FeeTransaction = model("FeeTransaction", feeTransactionSchema);
+
+const feeApprovalSchema = new Schema(
+  {
+    student: { type: Schema.Types.ObjectId, ref: "Student" },
+    admissionNo: { type: String, required: true },
+    studentName: { type: String, required: true },
+    className: { type: String, default: "" },
+    section: { type: String, default: "" },
+    amount: { type: Number, required: true },
+    paymentMode: { type: String, default: "Online" },
+    referenceNo: { type: String, default: "" },
+    receiptFile: { type: String, default: "" },
+    uploadDate: { type: Date, default: Date.now },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    reviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    reviewNote: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
+export const FeeApproval = model("FeeApproval", feeApprovalSchema);
 
 /* --- Transport Models --- */
 const vehicleSchema = new Schema(

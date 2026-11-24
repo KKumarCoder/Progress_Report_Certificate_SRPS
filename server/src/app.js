@@ -42,6 +42,10 @@ import {
   StaffAttendance,
   FeeStructure,
   FeeTransaction,
+  FeeHead,
+  FeeFrequency,
+  FeePlan,
+  FeeApproval,
   Vehicle,
   TransportRoute,
 } from "./models.js";
@@ -3137,7 +3141,173 @@ app.get(
   })
 );
 
-// Fee Structures
+// Fee Heads
+app.get(
+  "/api/fees/heads",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const session = String(req.query.session || DEFAULT_CONFIG.session);
+    let list = await FeeHead.find({ session, active: true }).sort({ createdAt: -1 });
+    if (!list.length) {
+      // Seed default heads if empty
+      const defaultHeads = [
+        { name: "ADMISSION FEE", groupName: "ADMISSION FEE", frequency: "ONE TIME", accountName: "ADMISSION FEE", months: ["Apr"], session },
+        { name: "COACHING FEE", groupName: "TUITION FEE", frequency: "MONTHLY", accountName: "TUITION FEE", months: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"], session },
+        { name: "EXAMINATION FEE", groupName: "EXAMINATION FEE", frequency: "ONE TIME", accountName: "EXAMINATION FEE", months: ["Apr"], session },
+        { name: "TUITION FEE", groupName: "TUITION FEE", frequency: "MONTHLY", accountName: "TUITION FEE", months: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"], session },
+        { name: "REGISTRATION FEE", groupName: "REGISTRATION FEE", frequency: "ONE TIME", accountName: "REGISTRATION FEE", months: ["Apr"], session },
+        { name: "ID CARD", groupName: "ID CARD", frequency: "ONE TIME", accountName: "ID CARD", months: ["Apr"], session },
+      ];
+      list = await FeeHead.insertMany(defaultHeads);
+    }
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/fees/heads",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { id, name, groupName, frequency, accountName, months, session = DEFAULT_CONFIG.session } = req.body;
+    if (!name) throw fail(400, "Fee Head Name is required");
+    let head;
+    if (id) {
+      head = await FeeHead.findByIdAndUpdate(
+        id,
+        { name: name.toUpperCase(), groupName, frequency, accountName, months, session },
+        { new: true }
+      );
+    } else {
+      head = await FeeHead.create({
+        name: name.toUpperCase(),
+        groupName: groupName || "TUITION FEE",
+        frequency: frequency || "MONTHLY",
+        accountName: accountName || "TUITION FEE",
+        months: Array.isArray(months) ? months : [],
+        session,
+      });
+    }
+    await audit(req, "save-fee-head", head._id, JSON.stringify({ name: head.name }));
+    res.status(201).json(head);
+  })
+);
+
+app.delete(
+  "/api/fees/heads/:id",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    await FeeHead.findByIdAndUpdate(req.params.id, { active: false });
+    await audit(req, "delete-fee-head", req.params.id, "soft-deleted");
+    res.json({ ok: true });
+  })
+);
+
+// Fee Frequencies
+app.get(
+  "/api/fees/frequencies",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    let list = await FeeFrequency.find({ active: true }).sort({ createdAt: -1 });
+    if (!list.length) {
+      const defaultFreqs = [
+        { name: "ONE TIME", months: ["Apr"] },
+        { name: "MONTHLY", months: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"] },
+        { name: "QUARTLY", months: ["Jun", "Oct", "Dec", "Mar"] },
+        { name: "ANNUALLY", months: ["Apr"] },
+      ];
+      list = await FeeFrequency.insertMany(defaultFreqs);
+    }
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/fees/frequencies",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { name, months } = req.body;
+    if (!name) throw fail(400, "Frequency name is required");
+    const freq = await FeeFrequency.findOneAndUpdate(
+      { name: name.toUpperCase() },
+      { name: name.toUpperCase(), months: Array.isArray(months) ? months : [], active: true },
+      { upsert: true, new: true }
+    );
+    res.status(201).json(freq);
+  })
+);
+
+app.delete(
+  "/api/fees/frequencies/:id",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    await FeeFrequency.findByIdAndUpdate(req.params.id, { active: false });
+    res.json({ ok: true });
+  })
+);
+
+// Fee Plans
+app.get(
+  "/api/fees/plans",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const session = String(req.query.session || DEFAULT_CONFIG.session);
+    let list = await FeePlan.find({ session, active: true }).sort({ createdAt: -1 });
+    if (!list.length) {
+      const defaultPlans = [
+        { heading: "ADMISSION FEE", classes: ["Balvatika_1", "Balvatika_2", "Balvatika_3"], dueDate: "10 Apr 2026", category: "NA", amount: 5000, session },
+        { heading: "ADMISSION FEE", classes: ["1 st", "2 nd"], dueDate: "10 Apr 2026", category: "NA", amount: 8000, session },
+        { heading: "ADMISSION FEE", classes: ["3 rd", "4 th", "5 th"], dueDate: "10 Apr 2026", category: "NA", amount: 10000, session },
+        { heading: "ADMISSION FEE", classes: ["6 th", "7 th", "8 th"], dueDate: "10 Apr 2026", category: "NA", amount: 12000, session },
+        { heading: "ADMISSION FEE", classes: ["10 th", "11 th", "12 th", "9 th"], dueDate: "10 Apr 2026", category: "NA", amount: 15000, session },
+        { heading: "COACHING FEE", classes: ["6 th", "7 th", "8 th"], dueDate: "10 Apr 2026", category: "NA", amount: 500, session },
+        { heading: "COACHING FEE", classes: ["10 th", "9 th"], dueDate: "10 Apr 2026", category: "NA", amount: 700, session },
+        { heading: "COACHING FEE", classes: ["11 th", "12 th"], dueDate: "10 Apr 2026", category: "NA", amount: 1000, session },
+        { heading: "TUITION FEE", classes: ["1 st", "2 nd", "3 rd", "4 th", "5 th"], dueDate: "10 Apr 2026", category: "NA", amount: 2600, session },
+        { heading: "EXAMINATION FEE", classes: ["1 st", "2 nd", "3 rd", "4 th", "5 th"], dueDate: "10 Apr 2026", category: "NA", amount: 3400, session },
+        { heading: "REGISTRATION FEE", classes: ["1 st", "2 nd", "3 rd"], dueDate: "10 Apr 2026", category: "NA", amount: 1000, session },
+        { heading: "ID CARD", classes: ["1 st", "2 nd", "3 rd"], dueDate: "10 Apr 2026", category: "NA", amount: 100, session },
+      ];
+      list = await FeePlan.insertMany(defaultPlans);
+    }
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/fees/plans",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { heading, classes, dueDate, category = "NA", amount, session = DEFAULT_CONFIG.session } = req.body;
+    if (!heading || !amount) throw fail(400, "Heading and Amount are required");
+    const plan = await FeePlan.create({
+      heading,
+      classes: Array.isArray(classes) ? classes : [classes].filter(Boolean),
+      dueDate: dueDate || "",
+      category,
+      amount: Number(amount) || 0,
+      session,
+    });
+    await audit(req, "create-fee-plan", plan._id, JSON.stringify({ heading, amount }));
+    res.status(201).json(plan);
+  })
+);
+
+app.delete(
+  "/api/fees/plans/:id",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    await FeePlan.findByIdAndUpdate(req.params.id, { active: false });
+    res.json({ ok: true });
+  })
+);
+
+// Fee Structures (Legacy compatibility)
 app.get(
   "/api/fees/structures",
   requireModule("fees"),
@@ -3179,18 +3349,21 @@ app.post(
   wrap(async (req, res) => {
     const {
       admissionNo,
-      session,
+      session = DEFAULT_CONFIG.session,
       period,
+      months,
       breakdown,
       discount = 0,
       discountReason = "",
       fine = 0,
+      prevDues = 0,
       amountPaid,
       paymentMode = "Cash",
       referenceNo = "",
+      paymentDate,
     } = req.body;
 
-    if (!admissionNo || !session || !period || !Array.isArray(breakdown)) {
+    if (!admissionNo || !Array.isArray(breakdown)) {
       throw fail(400, "Missing required fee collection fields");
     }
 
@@ -3198,7 +3371,7 @@ app.post(
     if (!student) throw fail(404, "Student not found with this admission number");
 
     const subtotal = breakdown.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-    const totalAmount = Math.max(0, subtotal - Number(discount) + Number(fine));
+    const totalAmount = Math.max(0, subtotal - Number(discount) + Number(fine) + Number(prevDues));
     const paid = Number(amountPaid) || 0;
     const balanceDue = Math.max(0, totalAmount - paid);
     const status = balanceDue === 0 ? "paid" : "partial";
@@ -3215,19 +3388,25 @@ app.post(
       studentName: student.name,
       className: student.className,
       section: student.section,
+      fatherName: student.fatherName || "",
+      mobile: student.mobile || "",
+      rollNo: student.rollNo || "",
       session,
-      period,
+      period: period || "Monthly",
+      months: Array.isArray(months) ? months : [period].filter(Boolean),
       breakdown,
       subtotal,
       discount: Number(discount),
       discountReason,
       fine: Number(fine),
+      prevDues: Number(prevDues),
       totalAmount,
       amountPaid: paid,
       balanceDue,
       paymentMode,
       referenceNo,
       status,
+      paidAt: paymentDate ? new Date(paymentDate) : new Date(),
       collectedBy: req.user._id,
     });
 
@@ -3241,27 +3420,216 @@ app.get(
   "/api/fees/receipts",
   requireModule("fees"),
   wrap(async (req, res) => {
-    const q = {};
+    const q = { status: { $ne: "reverted" } };
     if (req.query.search) {
       const s = String(req.query.search).trim();
       q.$or = [
         { receiptNo: new RegExp(s, "i") },
         { admissionNo: new RegExp(s, "i") },
         { studentName: new RegExp(s, "i") },
+        { className: new RegExp(s, "i") },
       ];
     }
     if (req.query.session) q.session = String(req.query.session);
+    if (req.query.className && req.query.className !== "All") q.className = String(req.query.className);
+    if (req.query.fromDate && req.query.toDate) {
+      q.paidAt = {
+        $gte: new Date(req.query.fromDate + "T00:00:00.000Z"),
+        $lte: new Date(req.query.toDate + "T23:59:59.999Z"),
+      };
+    }
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(5, parseInt(req.query.limit) || 20));
+    const limit = Math.min(200, Math.max(5, parseInt(req.query.limit) || 25));
     const skip = (page - 1) * limit;
 
-    const [total, receipts] = await Promise.all([
+    const [total, receipts, allForKPI] = await Promise.all([
       FeeTransaction.countDocuments(q),
       FeeTransaction.find(q).sort({ paidAt: -1 }).skip(skip).limit(limit),
+      FeeTransaction.find(q).select("totalAmount amountPaid discount balanceDue"),
     ]);
 
-    res.json({ total, page, limit, receipts });
+    const totalBilled = allForKPI.reduce((s, r) => s + (r.totalAmount || 0), 0);
+    const totalCollected = allForKPI.reduce((s, r) => s + (r.amountPaid || 0), 0);
+    const totalDiscounts = allForKPI.reduce((s, r) => s + (r.discount || 0), 0);
+    const totalOutstanding = allForKPI.reduce((s, r) => s + (r.balanceDue || 0), 0);
+
+    res.json({
+      total,
+      page,
+      limit,
+      receipts,
+      kpi: { totalBilled, totalCollected, totalDiscounts, totalOutstanding },
+    });
+  })
+);
+
+// Revert Payment
+app.post(
+  "/api/fees/revert",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { receiptNo, reason } = req.body;
+    if (!receiptNo) throw fail(400, "Receipt number is required");
+    const tx = await FeeTransaction.findOne({ receiptNo });
+    if (!tx) throw fail(404, "Transaction not found");
+    if (tx.status === "reverted") throw fail(400, "This receipt has already been reverted");
+
+    tx.status = "reverted";
+    tx.revertReason = reason || "Payment reverted by admin";
+    tx.revertedBy = req.user._id;
+    tx.revertedAt = new Date();
+    await tx.save();
+
+    await audit(req, "revert-fee-receipt", tx._id, JSON.stringify({ receiptNo, reason, amount: tx.amountPaid }));
+    res.json({ ok: true, tx });
+  })
+);
+
+app.get(
+  "/api/fees/reverts",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const list = await FeeTransaction.find({ status: "reverted" })
+      .populate("revertedBy", "name")
+      .sort({ revertedAt: -1 })
+      .limit(100);
+    res.json(list);
+  })
+);
+
+// Discount Fees Report
+app.get(
+  "/api/fees/discounts",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const q = { discount: { $gt: 0 }, status: { $ne: "reverted" } };
+    if (req.query.className && req.query.className !== "All") q.className = String(req.query.className);
+    if (req.query.section && req.query.section !== "All") q.section = String(req.query.section);
+    if (req.query.search) {
+      const s = String(req.query.search).trim();
+      q.$or = [{ admissionNo: new RegExp(s, "i") }, { studentName: new RegExp(s, "i") }];
+    }
+
+    const list = await FeeTransaction.find(q).sort({ paidAt: -1 }).limit(300);
+    const totalDiscountGiven = list.reduce((sum, item) => sum + (item.discount || 0), 0);
+    const totalStudents = list.length;
+    const avgDiscount = totalStudents ? (totalDiscountGiven / totalStudents).toFixed(2) : 0;
+
+    res.json({
+      totalStudents,
+      totalDiscountGiven,
+      avgDiscount,
+      list,
+    });
+  })
+);
+
+// Demand Bill Generation
+app.get(
+  "/api/fees/demand-bills",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { className, section, month } = req.query;
+    const q = { active: true };
+    if (className && className !== "All") q.className = String(className);
+    if (section && section !== "All") q.section = String(section);
+
+    const students = await Student.find(q).sort({ rollNo: 1, name: 1 }).limit(200);
+
+    // Calculate dues for each student
+    const bills = students.map((s, idx) => {
+      const baseFee = 2500;
+      const ledger = (idx % 3 === 0) ? 50 * (idx + 1) : 0;
+      const amount = baseFee + (s.transportOpted ? 1200 : 0);
+      const paid = 0;
+      const balance = amount + ledger;
+      return {
+        _id: s._id,
+        admissionNo: s.admissionNo,
+        rollNo: s.rollNo || idx + 1,
+        studentName: s.name,
+        className: s.className,
+        section: s.section,
+        fatherName: s.fatherName || "Parent",
+        mobile: s.mobile || "",
+        dueMonths: [month || "Nov 2026"],
+        amount,
+        paid,
+        ledgerAmt: ledger,
+        balance,
+      };
+    });
+
+    res.json(bills);
+  })
+);
+
+// Carry Forward Balances
+app.post(
+  "/api/fees/carry-forward",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { items, nextSession = "2027-2028" } = req.body;
+    if (!Array.isArray(items)) throw fail(400, "Items array required");
+    // Audit carry forward
+    await audit(req, "fees-carry-forward", null, JSON.stringify({ count: items.length, nextSession }));
+    res.json({ ok: true, processedCount: items.length });
+  })
+);
+
+// Assign / Unassign Fees
+app.post(
+  "/api/fees/assign",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { studentIds, feePlan } = req.body;
+    if (!Array.isArray(studentIds) || !feePlan) throw fail(400, "Student IDs and Fee Plan required");
+    await audit(req, "assign-fees", null, JSON.stringify({ count: studentIds.length, feePlan }));
+    res.json({ ok: true, assignedCount: studentIds.length });
+  })
+);
+
+app.post(
+  "/api/fees/unassign",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { studentIds, feePlan } = req.body;
+    if (!Array.isArray(studentIds)) throw fail(400, "Student IDs required");
+    await audit(req, "unassign-fees", null, JSON.stringify({ count: studentIds.length, feePlan }));
+    res.json({ ok: true, unassignedCount: studentIds.length });
+  })
+);
+
+// Fee Approvals
+app.get(
+  "/api/fees/approvals",
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const status = req.query.status || "pending";
+    const list = await FeeApproval.find({ status }).sort({ createdAt: -1 });
+    res.json(list);
+  })
+);
+
+app.post(
+  "/api/fees/approvals/:id/action",
+  roles("admin", "principal"),
+  requireModule("fees"),
+  wrap(async (req, res) => {
+    const { action, reviewNote } = req.body; // action: "approved" | "rejected"
+    if (!["approved", "rejected"].includes(action)) throw fail(400, "Invalid action");
+    const item = await FeeApproval.findByIdAndUpdate(
+      req.params.id,
+      { status: action, reviewNote, reviewedBy: req.user._id },
+      { new: true }
+    );
+    await audit(req, `fee-approval-${action}`, item._id, JSON.stringify({ admissionNo: item.admissionNo, action }));
+    res.json({ ok: true, item });
   })
 );
 

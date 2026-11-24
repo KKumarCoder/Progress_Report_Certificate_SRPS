@@ -722,17 +722,6 @@ function App() {
                   {feesMenuOpen && (
                     <div className="nav-sub-menu">
                       <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "collect" ? "active" : ""}`}
-                        onClick={() => {
-                          navigate("fees");
-                          setFeeSubTab("collect");
-                          setSidebar(false);
-                        }}
-                      >
-                        <CreditCard size={15} />
-                        Fee Collection (POS)
-                      </button>
-                      <button
                         className={`nav-sub-btn ${page === "fees" && feeSubTab === "structure" ? "active" : ""}`}
                         onClick={() => {
                           navigate("fees");
@@ -740,30 +729,85 @@ function App() {
                           setSidebar(false);
                         }}
                       >
-                        <Layers size={15} />
+                        <Settings size={15} />
                         Fees Configure
                       </button>
                       <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "receipts" ? "active" : ""}`}
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "receipt" ? "active" : ""}`}
                         onClick={() => {
                           navigate("fees");
-                          setFeeSubTab("receipts");
+                          setFeeSubTab("receipt");
+                          setSidebar(false);
+                        }}
+                      >
+                        <CreditCard size={15} />
+                        Fees Receipt
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "revert" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("revert");
+                          setSidebar(false);
+                        }}
+                      >
+                        <RefreshCw size={15} />
+                        Payment Revert
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "discounts" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("discounts");
+                          setSidebar(false);
+                        }}
+                      >
+                        <Tag size={15} />
+                        Discount Fees
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "demand" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("demand");
                           setSidebar(false);
                         }}
                       >
                         <FileText size={15} />
-                        Fees Receipts
+                        Demand Bill
                       </button>
                       <button
-                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "defaulters" ? "active" : ""}`}
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "carry-forward" ? "active" : ""}`}
                         onClick={() => {
                           navigate("fees");
-                          setFeeSubTab("defaulters");
+                          setFeeSubTab("carry-forward");
                           setSidebar(false);
                         }}
                       >
-                        <AlertTriangle size={15} />
-                        Defaulters
+                        <ArrowRight size={15} />
+                        Fees Carry Forward
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "assign" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("assign");
+                          setSidebar(false);
+                        }}
+                      >
+                        <CheckCircle2 size={15} />
+                        Assign Fees
+                      </button>
+                      <button
+                        className={`nav-sub-btn ${page === "fees" && feeSubTab === "approvals" ? "active" : ""}`}
+                        onClick={() => {
+                          navigate("fees");
+                          setFeeSubTab("approvals");
+                          setSidebar(false);
+                        }}
+                      >
+                        <ShieldCheck size={15} />
+                        Fee Approvals
                       </button>
                     </div>
                   )}
@@ -1064,6 +1108,7 @@ function App() {
               config={config}
               toast={toast}
               initialTab={feeSubTab}
+              onTabChange={setFeeSubTab}
             />
           )}
           {page === "transport" && (
