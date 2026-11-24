@@ -38,6 +38,7 @@ import {
   Settings,
   ArrowLeft,
   FileSpreadsheet,
+  GraduationCap,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { api, isDemo } from "./api";
