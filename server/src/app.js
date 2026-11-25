@@ -52,6 +52,7 @@ const uploads = path.join(root, "server/uploads");
 const reportDriveRoot = path.join(root, "server/report-drive");
 export const app = express();
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 app.use(
   helmet({
     contentSecurityPolicy: {
