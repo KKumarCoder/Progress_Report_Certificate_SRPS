@@ -121,6 +121,10 @@ export default function Login({ onLogin }) {
         setError(
           "Google sign-in popup was blocked by browser. Please enable popups.",
         );
+      } else if (err.code === "auth/unauthorized-domain") {
+        setError(
+          "Domain 'report.srpskanhra.com' Firebase Console me authorized nahi hai. Firebase Console > Authentication > Settings > Authorized domains me 'report.srpskanhra.com' add karein.",
+        );
       } else if (err.code === "auth/network-request-failed") {
         setError(
           "Network error connecting to Google. Please check your internet connection.",
@@ -347,7 +351,10 @@ export default function Login({ onLogin }) {
                         required
                         placeholder="you@school.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setError("");
+                        }}
                       />
                     </label>
                     <label>
@@ -359,7 +366,10 @@ export default function Login({ onLogin }) {
                           required
                           placeholder="Enter your password"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            setError("");
+                          }}
                         />
                         <button
                           type="button"
