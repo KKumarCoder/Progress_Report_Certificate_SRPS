@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Loader from "./Loader";
 import {
   ArrowRight,
   ArrowLeft,
@@ -8,14 +9,43 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
-  Loader2,
   Search,
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
 import { api, startDemo } from "./api";
+import { signInWithGoogle, signInWithFirebaseEmail } from "./firebase";
 import "./login.css";
 import PasswordReset from "./PasswordReset";
+
+function GoogleIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+      />
+    </svg>
+  );
+}
 
 const roles = [
   {
@@ -59,6 +89,7 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const selected = roles.find((r) => r.id === role);
@@ -67,6 +98,41 @@ export default function Login({ onLogin }) {
     setError("");
     setResult(null);
   }
+
+  async function handleGoogleLogin() {
+    if (busy || googleBusy) return;
+    setError("");
+    setGoogleBusy(true);
+    try {
+      const cred = await signInWithGoogle();
+      const idToken = await cred.user.getIdToken();
+      await api("/auth/firebase-login", {
+        method: "POST",
+        body: { idToken, role },
+      });
+      onLogin(await api("/auth/me"));
+    } catch (err) {
+      if (
+        err.code === "auth/popup-closed-by-user" ||
+        err.code === "auth/cancelled-popup-request"
+      ) {
+        setError("Google sign-in was cancelled.");
+      } else if (err.code === "auth/popup-blocked") {
+        setError(
+          "Google sign-in popup was blocked by browser. Please enable popups.",
+        );
+      } else if (err.code === "auth/network-request-failed") {
+        setError(
+          "Network error connecting to Google. Please check your internet connection.",
+        );
+      } else {
+        setError(err.message || "Failed to sign in with Google.");
+      }
+    } finally {
+      setGoogleBusy(false);
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
@@ -79,10 +145,23 @@ export default function Login({ onLogin }) {
           await api("/public/results", { method: "POST", body: fields }),
         );
       } else {
-        await api("/auth/login", {
-          method: "POST",
-          body: { email, password, role },
-        });
+        try {
+          await api("/auth/login", {
+            method: "POST",
+            body: { email, password, role },
+          });
+        } catch (backendErr) {
+          try {
+            const fbCred = await signInWithFirebaseEmail(email, password);
+            const idToken = await fbCred.user.getIdToken();
+            await api("/auth/firebase-login", {
+              method: "POST",
+              body: { idToken, role },
+            });
+          } catch {
+            throw backendErr;
+          }
+        }
         onLogin(await api("/auth/me"));
       }
     } catch (err) {
@@ -92,45 +171,26 @@ export default function Login({ onLogin }) {
     }
   }
   return (
-    <main className="anv-login">
+    <main className={`anv-login role-${role}`}>
+      <div className="anv-ambient-grid" aria-hidden="true" />
       <div className="anv-ambient anv-ambient-one" aria-hidden="true" />
       <div className="anv-ambient anv-ambient-two" aria-hidden="true" />
-      <header className="anv-header">
-        <a href="/" className="anv-wordmark">
-          <img src="/anvayrobo-logo.jpeg" alt="" />
-          <span>
-            ANVAY<span>ROBO</span>
-            <small>AI · ROBOTICS · STEM · AUTOMATION</small>
-          </span>
-        </a>
-        <div className="anv-client">
-          <span>BUILT FOR</span>
-          <strong>
-            SRPS <i>/</i> Report Studio
-          </strong>
-        </div>
-      </header>
+      <div className="anv-ambient anv-ambient-three" aria-hidden="true" />
       <div className="anv-layout">
         <section className="anv-story">
-          <div className="anv-eyebrow">
-            <span /> A SMARTER SCHOOL EXPERIENCE
-          </div>
           <h1>
             Big dreams.
             <br />
             Brighter minds.
             <br />
-            <span>Connected.</span>
+            <span className="anv-gradient-text">Connected.</span>
           </h1>
-          <p>
-            A little less paperwork. A lot more possibility.
-            <br />
-            Your school’s progress, beautifully connected.
-          </p>
           <div className="anv-scene" aria-hidden="true">
             <div className="anv-orbit" />
             <div className="anv-orbit second" />
+            <div className="anv-orbit-dot" />
             <div className="anv-core">
+              <div className="anv-core-glow" />
               <img src="/anvayrobo-logo.jpeg" alt="" />
             </div>
             <div className="anv-float float-one">
@@ -140,7 +200,7 @@ export default function Login({ onLogin }) {
               <span>
                 Made for educators<strong>More time to inspire</strong>
               </span>
-              <CheckCircle2 size={17} />
+              <CheckCircle2 size={17} className="anv-check-icon" />
             </div>
             <div className="anv-float float-two">
               <span className="anv-bars">
@@ -154,7 +214,7 @@ export default function Login({ onLogin }) {
               </span>
             </div>
             <div className="anv-float float-three">
-              <Sparkles size={18} />
+              <Sparkles size={18} className="anv-sparkle-icon" />
               <span>Powered by possibility</span>
             </div>
           </div>
@@ -165,16 +225,9 @@ export default function Login({ onLogin }) {
           </div>
         </section>
         <section
-          className="anv-access"
+          className={`anv-access role-${role} ${studentMode ? "is-student-mode" : ""}`}
           aria-label={studentMode ? "Student results" : "Staff sign in"}
         >
-          <div className="anv-access-top">
-            <span>
-              <span className="anv-status-dot" />
-              {studentMode ? "STUDENT PORTAL" : "STAFF PORTAL"}
-            </span>
-            <LockKeyhole size={16} />
-          </div>
           {recovering ? (
             <PasswordReset
               token={resetToken}
@@ -183,21 +236,12 @@ export default function Login({ onLogin }) {
             />
           ) : (
             <>
-              <div className="anv-card-heading">
-                <span className="anv-section-number">
-                  {studentMode
-                    ? "YOUR NEXT CHAPTER"
-                    : "LET’S MAKE GREAT THINGS HAPPEN"}
-                </span>
-                <h2>
-                  {studentMode ? "Your results, right here." : "Welcome back."}
-                </h2>
-                <p>
-                  {studentMode
-                    ? "Check your published school result securely."
-                    : "Choose your role to enter your workspace."}
-                </p>
-              </div>
+              {studentMode && (
+                <div className="anv-card-heading">
+                  <h2>Your results, right here.</h2>
+                  <p>Check your published school result securely.</p>
+                </div>
+              )}
               {!studentMode && (
                 <div className="anv-roles" aria-label="Choose your role">
                   {roles.map(({ id, name, icon: Icon }) => (
@@ -205,7 +249,7 @@ export default function Login({ onLogin }) {
                       type="button"
                       key={id}
                       disabled={busy}
-                      className={role === id ? "selected" : ""}
+                      className={`anv-role-btn role-${id} ${role === id ? "selected" : ""}`}
                       aria-pressed={role === id}
                       onClick={() => {
                         setRole(id);
@@ -215,7 +259,7 @@ export default function Login({ onLogin }) {
                       <span className="anv-role-icon">
                         <Icon size={23} />
                       </span>
-                      {name}
+                      <span className="anv-role-title">{name}</span>
                       <span className="anv-role-dot" />
                     </button>
                   ))}
@@ -225,6 +269,34 @@ export default function Login({ onLogin }) {
                 <div className="anv-role-intro" key={role}>
                   <strong>{selected.description}</strong>
                   <span>{selected.hint}</span>
+                </div>
+              )}
+              {!studentMode && (
+                <div className="anv-social-auth">
+                  <button
+                    type="button"
+                    className="anv-google-btn"
+                    onClick={handleGoogleLogin}
+                    disabled={busy || googleBusy}
+                  >
+                    {googleBusy ? (
+                      <Loader size={18} inline />
+                    ) : (
+                      <GoogleIcon size={19} />
+                    )}
+                    <span>
+                      {googleBusy
+                        ? "Connecting to Google…"
+                        : "Continue with Google"}
+                    </span>
+                  </button>
+                  <div className="anv-auth-divider">
+                    <span className="anv-auth-divider-line" />
+                    <span className="anv-auth-divider-text">
+                      or sign in with email
+                    </span>
+                    <span className="anv-auth-divider-line" />
+                  </div>
                 </div>
               )}
               <form
@@ -324,7 +396,7 @@ export default function Login({ onLogin }) {
                 )}
                 <button className="anv-submit" disabled={busy}>
                   {busy ? (
-                    <Loader2 className="spin" size={19} />
+                    <Loader size={18} inline />
                   ) : studentMode ? (
                     <Search size={18} />
                   ) : (

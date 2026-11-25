@@ -130,6 +130,96 @@ test("Teacher cannot administer users, imports or students", async () => {
   );
   assert.equal((await teacher.get("/api/import/template")).status, 403);
 });
+test("Teacher cannot access analytics without module grant; admin can grant and revoke", async () => {
+  // Shared teacher by default has no analytics module
+  assert.equal((await teacher.get("/api/analytics/class?session=2025-26")).status, 403);
+
+  // Create dedicated teacher to test grant & revoke without affecting shared fixtures
+  const passwordHash = await bcrypt.hash("Testing-School-Password!", 4);
+  const dedicatedTeacher = await User.create({
+    name: "Analytics Teacher",
+    email: "analytics.teacher@test.local",
+    passwordHash,
+    role: "teacher",
+    assignments: [{ className: "6", section: "Venus" }],
+  });
+  const tAgent = request.agent(app);
+  await tAgent
+    .post("/api/auth/login")
+    .set(header)
+    .send({ email: "analytics.teacher@test.local", password: "Testing-School-Password!" });
+
+  // Initially denied (403)
+  assert.equal((await tAgent.get("/api/analytics/class?session=2025-26")).status, 403);
+
+  // Admin grants analytics module
+  const grantRes = await admin
+    .put(`/api/users/${dedicatedTeacher._id}`)
+    .set(header)
+    .send({ moduleAccess: ["overview", "students", "studio", "bulk", "settings", "analytics"] });
+  assert.equal(grantRes.status, 200);
+
+  // Re-login with updated session
+  await tAgent
+    .post("/api/auth/login")
+    .set(header)
+    .send({ email: "analytics.teacher@test.local", password: "Testing-School-Password!" });
+
+  // Now granted (200)
+  assert.equal((await tAgent.get("/api/analytics/class?session=2025-26")).status, 200);
+
+  // Admin revokes analytics module
+  const revokeRes = await admin
+    .put(`/api/users/${dedicatedTeacher._id}`)
+    .set(header)
+    .send({ moduleAccess: ["overview", "students", "studio", "bulk", "settings"] });
+  assert.equal(revokeRes.status, 200);
+
+  // Re-login with updated session
+  await tAgent
+    .post("/api/auth/login")
+    .set(header)
+    .send({ email: "analytics.teacher@test.local", password: "Testing-School-Password!" });
+
+  // Denied again (403)
+  assert.equal((await tAgent.get("/api/analytics/class?session=2025-26")).status, 403);
+});
+
+test("Firebase / Google login verifies token, role and active status", async () => {
+  const agent = request.agent(app);
+
+  // Missing token
+  const noToken = await agent.post("/api/auth/firebase-login").set(header).send({});
+  assert.equal(noToken.status, 400);
+
+  // Unregistered email
+  const unreg = await agent.post("/api/auth/firebase-login").set(header).send({
+    idToken: "mock-firebase-token:stranger@unknown.com",
+    role: "teacher",
+  });
+  assert.equal(unreg.status, 403);
+
+  // Mismatched role (teacher trying to log in as admin)
+  const mismatch = await agent.post("/api/auth/firebase-login").set(header).send({
+    idToken: "mock-firebase-token:teacher@test.local",
+    role: "admin",
+  });
+  assert.equal(mismatch.status, 403);
+
+  // Successful login as teacher
+  const valid = await agent.post("/api/auth/firebase-login").set(header).send({
+    idToken: "mock-firebase-token:teacher@test.local",
+    role: "teacher",
+  });
+  assert.equal(valid.status, 200);
+  assert.equal(valid.body.ok, true);
+
+  // Check that session cookie was set and /api/auth/me works
+  const meRes = await agent.get("/api/auth/me");
+  assert.equal(meRes.status, 200);
+  assert.equal(meRes.body.email, "teacher@test.local");
+  assert.equal(meRes.body.role, "teacher");
+});
 test("Save, revision conflict, invalid range, submit and publish", async () => {
   const url = `/api/reports/${student._id}/2025-26`;
   let r = await teacher

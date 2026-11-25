@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useState } from "react";
 import fontkit from "@pdf-lib/fontkit";
+import Loader from "./Loader";
 import defaultMapping from "../../shared/template-mapping.json";
 import {
   reportValues,
@@ -92,7 +93,11 @@ export default function ReportPage(props) {
       </div>
     );
   if (!fonts)
-    return <div className="template-loading">Loading report fonts…</div>;
+    return (
+      <div className="template-loading">
+        <Loader size={80} text="Loading report fonts…" />
+      </div>
+    );
   const page = mapping.pages[side],
     place = pagePlacement(mapping, side);
   let values, elements;

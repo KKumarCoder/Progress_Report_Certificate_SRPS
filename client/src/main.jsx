@@ -32,9 +32,10 @@ import {
   Power,
   Send,
   Eye,
+  EyeOff,
+  FileSpreadsheet,
   CheckCircle2,
   X,
-  Menu,
   PenLine,
   Loader2,
   School,
@@ -90,6 +91,7 @@ import ClassAnalytics from "./ClassAnalytics";
 import Dashboard from "./Dashboard";
 import templateMapping from "../../shared/template-mapping.json";
 import { exportReportPdf, printReports } from "./report-export";
+import Loader from "./Loader";
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/600.css";
 import "@fontsource/dm-sans/700.css";
@@ -155,6 +157,7 @@ const ROLE_MODULES = {
   teacher: ["overview", "students", "studio", "bulk", "settings"],
   principal: [
     "overview",
+    "analytics",
     "students",
     "studio",
     "review",
@@ -165,10 +168,12 @@ const ROLE_MODULES = {
 };
 const MODULE_LABELS = [
   ["overview", "Overview"],
+  ["analytics", "Class Analytics"],
   ["students", "Students"],
   ["studio", "Report studio"],
   ["review", "Report Review"],
   ["bulk", "Bulk print / export"],
+  ["audit", "Activity log"],
   ["settings", "Settings"],
   ["audit", "Activity log"],
 ];
@@ -180,7 +185,12 @@ const ACTION_LABELS = [
 ];
 const hasModule = (user, id) => user.role === "admin" ||
   (Array.isArray(user.moduleAccess) ? user.moduleAccess : ROLE_MODULES[user.role] || []).includes(id);
-const canOpenPage = (user, id) => id === "masters" ? user.role === "admin" : hasModule(user, id === "dashboard" || id === "analytics" ? "overview" : id);
+const canOpenPage = (user, id) => {
+  if (user.role === "admin") return true;
+  if (id === "masters") return false;
+  if (id === "dashboard") return hasModule(user, "overview");
+  return hasModule(user, id);
+};
 const hasStudentAction = (user, id) => user.role === "admin" ||
   (Array.isArray(user.studentActions) ? user.studentActions : user.role === "teacher" ? ACTION_LABELS.map(([key]) => key) : user.role === "principal" ? ["studentWhatsapp", "studentEmail"] : []).includes(id);
 const HOUSE_BADGES = {
@@ -430,7 +440,7 @@ function App() {
       const next = !prev;
       try {
         localStorage.setItem("srps_sidebar_collapsed", String(next));
-      } catch {}
+      } catch { }
       return next;
     });
   };
@@ -439,8 +449,14 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
     try {
       localStorage.setItem("srps_theme", theme);
-    } catch {}
+    } catch { }
   }, [theme]);
+
+  useEffect(() => {
+    if (user && !canOpenPage(user, page)) {
+      setPage("dashboard");
+    }
+  }, [user, page]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -520,7 +536,7 @@ function App() {
         ].find((id) => canOpenPage(currentUser, id));
         setPage(firstPage || "dashboard");
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setChecking(false));
   }, []);
   async function load(forUser = user) {
@@ -544,7 +560,7 @@ function App() {
       setPage("dashboard");
     };
     const handleUserUpdate = () => {
-      api("/auth/me").then(setUser).catch(() => {});
+      api("/auth/me").then(setUser).catch(() => { });
     };
     window.addEventListener("srps:session-expired", expireSession);
     window.addEventListener("srps:user-updated", handleUserUpdate);
@@ -591,7 +607,7 @@ function App() {
   if (checking)
     return (
       <div className="loading-screen">
-        <Loader2 className="spin" /> Opening Report Studio…
+        <Loader size={130} text="Opening Report Studio…" />
       </div>
     );
   if (location.hash.startsWith("#reset-password=") || !user)
@@ -601,17 +617,17 @@ function App() {
     ["analytics", "Class Analytics", BarChart3, "teal"],
     ["students", "Students", Users, "cyan"],
     ["studio", "Report studio", BookOpen, "purple"],
-    ...(!isDemo() && ["admin", "principal"].includes(user.role)
+    ...(!isDemo() && (["admin", "principal"].includes(user.role) || hasModule(user, "review"))
       ? [["review", "Report Review", ClipboardCheck, "amber"]]
       : []),
     ["bulk", "Bulk print", Printer, "rose"],
     ...(user.role === "admin"
       ? [
-          ["import", "Excel import", Upload, "emerald"],
-          ["users", "Users & access", ShieldCheck, "indigo"],
-        ]
+        ["import", "Excel import", Upload, "emerald"],
+        ["users", "Users & access", ShieldCheck, "indigo"],
+      ]
       : []),
-    ...(["admin", "principal"].includes(user.role)
+    ...((["admin", "principal"].includes(user.role) || hasModule(user, "audit"))
       ? [["audit", "Activity log", History, "orange"]]
       : []),
     ...(user.role === "admin" ? [["drive", "Report Drive", HardDrive, "sky"]] : []),
@@ -783,13 +799,6 @@ function App() {
       <main className="workspace">
         <header className="topbar">
           <div>
-            <button
-              className="icon-button mobile-only-toggle mobile-menu"
-              onClick={() => setSidebar((prev) => !prev)}
-              aria-label="Open navigation drawer"
-            >
-              <Menu size={18} />
-            </button>
             <span>Workspace</span>
             <ChevronRight size={14} />
             <b>{page === "masters" ? "Academic Masters" : nav.find((x) => x[0] === page)?.[1]}</b>
@@ -1017,6 +1026,455 @@ function PageTitle({ eyebrow, title, subtitle, children }) {
     </div>
   );
 }
+
+function StudentFlipBook({
+  student,
+  session,
+  reportStatus,
+  onOpen,
+  onEdit,
+  onToggleStatus,
+  onDelete,
+  onIdCard,
+  onWhatsApp,
+  onEmail,
+  user,
+  teacher,
+  statusBusy = false,
+  whatsappBusy = false,
+  emailBusy = false,
+}) {
+  const [page, setPage] = useState(1);
+  const badge = getHouseBadge(student.house);
+  const HouseIcon = badge?.Icon || Home;
+  const isPublished = reportStatus?.published;
+
+  const canEdit = hasStudentAction(user, "studentEdit");
+  const canStatus = hasStudentAction(user, "studentStatus");
+  const canDelete = hasStudentAction(user, "studentDelete");
+  const canWhatsapp = hasStudentAction(user, "studentWhatsapp");
+  const canEmail = hasStudentAction(user, "studentEmail");
+
+  const whatsappReady = Boolean(student.active && isPublished);
+  const emailReady = Boolean(student.active && isPublished && student.email);
+
+  return (
+    <div
+      className="student-book-wrapper"
+      onClick={onOpen}
+      onMouseLeave={() => setPage(1)}
+      title={`Click to open ${student.name} in Report Studio`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      <div className="student-book">
+        {/* Inside Page (Realistic 3-page interactive mini book) */}
+        <div className={`student-book-inside page-${page}`}>
+          {/* Top Page Switch Tabs (Report, Actions, Faculty) */}
+          <div className="book-page-nav-bar" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={`book-nav-tab ${page === 1 ? "active" : ""}`}
+              onClick={() => setPage(1)}
+              title="Page 1: Progress Report Preview"
+            >
+              <FileText size={10} />
+              <span>Report</span>
+            </button>
+            <button
+              type="button"
+              className={`book-nav-tab ${page === 2 ? "active" : ""}`}
+              onClick={() => setPage(2)}
+              title="Page 2: Student Actions"
+            >
+              <Sparkles size={10} />
+              <span>Actions</span>
+            </button>
+            <button
+              type="button"
+              className={`book-nav-tab ${page === 3 ? "active" : ""}`}
+              onClick={() => setPage(3)}
+              title="Page 3: Class Teacher Profile"
+            >
+              <GraduationCap size={10} />
+              <span>Teacher</span>
+            </button>
+            <span className="book-page-counter">{page}/3</span>
+          </div>
+
+          {page === 1 && (
+            /* PAGE 1: Academic Progress Report Card Preview */
+            <div className="book-page-content page-report">
+              <div className="mini-report-header">
+                <img
+                  src="/srps-logo.png"
+                  alt="SRPS Emblem"
+                  className="mini-emblem-img"
+                />
+                <div className="mini-header-text">
+                  <h4>SHREE RAM PUBLIC SCHOOL</h4>
+                  <p>PROGRESS REPORT CARD</p>
+                  <small>SESSION {session || "2025-26"}</small>
+                </div>
+              </div>
+
+              <div className="mini-student-meta">
+                <div className="mini-meta-row">
+                  <span>Student:</span>
+                  <b>{student.name}</b>
+                </div>
+                <div className="mini-meta-row">
+                  <span>Adm No:</span>
+                  <b>#{student.admissionNo}</b>
+                </div>
+                <div className="mini-meta-row">
+                  <span>Class & Sec:</span>
+                  <b>Class {student.className} - {student.section}</b>
+                </div>
+                <div className="mini-meta-row">
+                  <span>House:</span>
+                  <b>{badge?.label || student.house || "—"}</b>
+                </div>
+              </div>
+
+              <div className="mini-scorecard-preview">
+                <div className="mini-score-row">
+                  <span className="term-tag">Term 1 Assessment</span>
+                  <div className="mini-progress-track">
+                    <div className="mini-progress-fill" style={{ width: "85%" }} />
+                  </div>
+                </div>
+                <div className="mini-score-row">
+                  <span className="term-tag">Term 2 Assessment</span>
+                  <div className="mini-progress-track">
+                    <div className="mini-progress-fill term2" style={{ width: "78%" }} />
+                  </div>
+                </div>
+                <div className="mini-status-row">
+                  <span className="mini-status-label">Status:</span>
+                  <span className={`mini-status-badge ${isPublished ? "published" : "draft"}`}>
+                    {isPublished ? "Published" : "Assessment Active"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mini-book-action-row" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="open-studio-action-btn"
+                  onClick={onOpen}
+                  title="Open Report Studio"
+                >
+                  <SquareArrowOutUpRight size={12} />
+                  <span>Open Studio</span>
+                </button>
+                <button
+                  type="button"
+                  className="book-page-turn-btn"
+                  onClick={() => setPage(2)}
+                  title="Turn to Page 2: Student Actions"
+                >
+                  <span>Actions</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {page === 2 && (
+            /* PAGE 2: Creative Student Action Buttons */
+            <div className="book-page-content page-actions">
+              <div className="page2-header" onClick={(e) => e.stopPropagation()}>
+                <span className="page2-title-tag">STUDENT ACTIONS</span>
+                <span className="page2-sub-tag">{student.name.split(" ")[0]}</span>
+              </div>
+
+              {/* Creative Actions Cluster matching user images */}
+              <div className="creative-actions-cluster" onClick={(e) => e.stopPropagation()}>
+                {/* 1. Edit details */}
+                {canEdit && onEdit && (
+                  <button
+                    type="button"
+                    className="creative-action-btn edit-action"
+                    title={`Edit ${student.name}'s details`}
+                    onClick={onEdit}
+                  >
+                    <div className="action-circle edit-circle">
+                      <PenLine size={16} />
+                    </div>
+                    <span className="action-label">Edit</span>
+                  </button>
+                )}
+
+                {/* 2. Disable / Enable status */}
+                {canStatus && onToggleStatus && (
+                  <button
+                    type="button"
+                    className={`creative-action-btn status-action ${student.active ? "active" : "disabled"}`}
+                    title={`${student.active ? "Disable" : "Enable"} ${student.name}`}
+                    disabled={statusBusy}
+                    onClick={onToggleStatus}
+                  >
+                    <div className={`action-circle status-circle ${student.active ? "active" : "disabled"}`}>
+                      {statusBusy ? (
+                        <Loader size={14} inline />
+                      ) : student.active ? (
+                        <Power size={16} />
+                      ) : (
+                        <CheckCircle2 size={16} />
+                      )}
+                    </div>
+                    <span className="action-label">{student.active ? "Active" : "Disabled"}</span>
+                  </button>
+                )}
+
+                {/* 3. WhatsApp Report Delivery */}
+                {canWhatsapp && onWhatsApp && (
+                  <button
+                    type="button"
+                    className={`creative-action-btn whatsapp-action ${whatsappReady ? "ready" : "locked"}`}
+                    title={
+                      !student.active
+                        ? "Enable student before sending report"
+                        : isPublished
+                          ? `${reportStatus?.sentAt ? "Resend" : "Send"} published report by WhatsApp`
+                          : "Available after the report is published"
+                    }
+                    disabled={!whatsappReady || whatsappBusy}
+                    onClick={onWhatsApp}
+                  >
+                    <div className="action-circle whatsapp-circle">
+                      {whatsappBusy ? (
+                        <Loader size={14} inline />
+                      ) : (
+                        <WhatsAppIcon size={17} />
+                      )}
+                      {reportStatus?.sentAt && (
+                        <span className="action-tick-badge" title="Delivered">✓</span>
+                      )}
+                    </div>
+                    <span className="action-label">WhatsApp</span>
+                  </button>
+                )}
+
+                {/* 4. Email Report Delivery */}
+                {canEmail && onEmail && (
+                  <button
+                    type="button"
+                    className={`creative-action-btn email-action ${emailReady ? "ready" : "locked"}`}
+                    title={
+                      !student.active
+                        ? "Enable student before sending report"
+                        : !student.email
+                          ? "Add parent/guardian email in Edit student"
+                          : isPublished
+                            ? `${reportStatus?.emailSentAt ? "Resend" : "Send"} published report by email`
+                            : "Available after the report is published"
+                    }
+                    disabled={!emailReady || emailBusy}
+                    onClick={onEmail}
+                  >
+                    <div className="action-circle email-circle">
+                      {emailBusy ? (
+                        <Loader size={14} inline />
+                      ) : (
+                        <Mail size={16} />
+                      )}
+                      {reportStatus?.emailSentAt && (
+                        <span className="action-tick-badge" title="Email sent">✓</span>
+                      )}
+                    </div>
+                    <span className="action-label">Email</span>
+                  </button>
+                )}
+
+                {/* 5. Print ID Card with QR */}
+                {student.active && onIdCard && (
+                  <button
+                    type="button"
+                    className="creative-action-btn idcard-action"
+                    title={`Print ID Card with QR for ${student.name}`}
+                    onClick={onIdCard}
+                  >
+                    <div className="action-circle idcard-circle">
+                      <QrCode size={16} />
+                    </div>
+                    <span className="action-label">ID Card</span>
+                  </button>
+                )}
+
+                {/* 6. Delete Student (admin only) */}
+                {canDelete && onDelete && (
+                  <button
+                    type="button"
+                    className="creative-action-btn delete-action"
+                    title={`Permanently delete ${student.name}`}
+                    onClick={onDelete}
+                  >
+                    <div className="action-circle delete-circle">
+                      <Trash2 size={16} />
+                    </div>
+                    <span className="action-label">Delete</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="mini-book-action-row nav-two-way" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="book-back-turn-btn"
+                  onClick={() => setPage(1)}
+                  title="Back to Report Preview"
+                >
+                  <ChevronLeft size={13} />
+                  <span>Report</span>
+                </button>
+                <button
+                  type="button"
+                  className="book-page-turn-btn"
+                  onClick={() => setPage(3)}
+                  title="Turn to Page 3: Class Teacher"
+                >
+                  <span>Teacher</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {page === 3 && (
+            /* PAGE 3: Class Teacher (Faculty) Profile */
+            <div className="book-page-content page-teacher">
+              <div className="page3-header" onClick={(e) => e.stopPropagation()}>
+                <span className="faculty-badge-pill">
+                  <GraduationCap size={11} />
+                  <span>CLASS IN-CHARGE</span>
+                </span>
+                <span className="faculty-class-tag">
+                  Class {student.className} · {student.section}
+                </span>
+              </div>
+
+              <div className="teacher-showcase-card">
+                <div className="teacher-avatar-wrapper">
+                  {teacher?.photo ? (
+                    <img
+                      src={teacher.photo}
+                      alt={teacher.name || "Class Teacher"}
+                      className="teacher-avatar-large"
+                    />
+                  ) : (
+                    <div className="teacher-avatar-placeholder">
+                      <span>{teacher?.name ? teacher.name.trim().charAt(0).toUpperCase() : (user?.name ? user.name.trim().charAt(0).toUpperCase() : "T")}</span>
+                    </div>
+                  )}
+                  <span className="teacher-verified-shield" title="Verified Faculty">✓</span>
+                </div>
+
+                <div className="teacher-profile-info">
+                  <h4 className="teacher-name-title" title={teacher?.name || user?.name || "Class Teacher"}>
+                    {teacher?.name || (user?.role === "teacher" ? user.name : "Class Educator")}
+                  </h4>
+                  <div className="teacher-designation-badge">
+                    <span>{teacher?.designation || (user?.role === "teacher" ? user.designation : "PRT") || "PRT"}</span>
+                  </div>
+                  <p className="teacher-role-description">
+                    SRPS Academic Educator & Class Mentor
+                  </p>
+                </div>
+
+                <div className="teacher-contact-capsule">
+                  <span className="capsule-item">Class {student.className}-{student.section}</span>
+                  <span className="capsule-dot">•</span>
+                  <span className="capsule-item">In-Charge</span>
+                </div>
+              </div>
+
+              <div className="mini-book-action-row nav-two-way" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="book-back-turn-btn"
+                  onClick={() => setPage(2)}
+                  title="Back to Actions"
+                >
+                  <ChevronLeft size={13} />
+                  <span>Actions</span>
+                </button>
+                <button
+                  type="button"
+                  className="open-studio-action-btn compact"
+                  onClick={onOpen}
+                  title="Open Report Studio"
+                >
+                  <SquareArrowOutUpRight size={12} />
+                  <span>Studio</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Front Cover (3D flap that rotates -82deg on hover) */}
+        <div className="student-book-cover">
+          <div className="cover-spine-crease" />
+
+          <div className="cover-top-badge">
+            <span className="school-mini-tag">SRPS REPORT STUDIO</span>
+            <span className="session-pill">{session || "2025-26"}</span>
+          </div>
+
+          <div className="cover-portrait-box">
+            {student.photo ? (
+              <img
+                src={student.photo}
+                alt={student.name}
+                className="cover-avatar-img"
+              />
+            ) : (
+              <div className={`cover-avatar-fallback house-${badge?.className || "default"}`}>
+                <span>{student.name ? student.name[0] : "S"}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="cover-info-block">
+            <h3 className="cover-student-name" title={student.name}>
+              {student.name}
+            </h3>
+            <div className="cover-class-pill">
+              <GraduationCap size={13} />
+              <span>Class {student.className} · {student.section}</span>
+            </div>
+            <div className="cover-adm-badge">
+              <span>Adm No: <b>{student.admissionNo}</b></span>
+              {student.rollNo && student.rollNo !== student.admissionNo && (
+                <span>Roll: <b>{student.rollNo}</b></span>
+              )}
+            </div>
+          </div>
+
+          <div className="cover-footer-row">
+            <span className={`cover-house-tag house-${badge?.className || "default"}`}>
+              <HouseIcon size={12} />
+              <span>{badge?.label || student.house || "School"}</span>
+            </span>
+            <span className="cover-flip-hint">
+              <span>Hover to preview</span>
+              <span className="flip-arrow">➔</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Students({
   students,
   open,
@@ -1048,8 +1506,22 @@ function Students({
     [reportStatuses, setReportStatuses] = useState({}),
     [whatsappBusyId, setWhatsappBusyId] = useState(""),
     [emailBusyId, setEmailBusyId] = useState(""),
+    [classTeachers, setClassTeachers] = useState([]),
     [currentPage, setCurrentPage] = useState(1),
-    [pageSize, setPageSize] = useState(4);
+    [pageSize, setPageSize] = useState(4),
+    [viewMode, setViewMode] = useState(() => {
+      try {
+        return localStorage.getItem("srps_students_view_mode") || "list";
+      } catch {
+        return "list";
+      }
+    });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("srps_students_view_mode", viewMode);
+    } catch { }
+  }, [viewMode]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1083,7 +1555,7 @@ function Students({
         .then((data) => {
           if (!cancelled) setReportStatuses(data);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     fetchStatus();
     const timer = setInterval(fetchStatus, 8000);
@@ -1092,6 +1564,18 @@ function Students({
       clearInterval(timer);
     };
   }, [session, students, user.role, user.studentActions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api("/class-teachers")
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setClassTeachers(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const filtered = shown.filter(
     (s) =>
       (!cls || s.className === cls) &&
@@ -1200,52 +1684,16 @@ function Students({
   }
   if (!compact && user.role === "admin" && subTab === "masters") {
     return (
-      <>
-        <div className="students-subnav">
-          <button
-            type="button"
-            className={subTab === "directory" ? "active" : ""}
-            onClick={() => setSubTab("directory")}
-          >
-            <Users size={16} /> Student Directory
-          </button>
-          <button
-            type="button"
-            className={subTab === "masters" ? "active" : ""}
-            onClick={() => setSubTab("masters")}
-          >
-            <Layers size={16} /> Academic Masters (Classes, Sections, Houses, Designations)
-          </button>
-        </div>
-        <AcademicMasters
-          masters={masters}
-          onUpdateMasters={onUpdateMasters}
-          toast={toast}
-        />
-      </>
+      <AcademicMasters
+        masters={masters}
+        onUpdateMasters={onUpdateMasters}
+        toast={toast}
+      />
     );
   }
 
   return (
     <>
-      {!compact && user.role === "admin" && (
-        <div className="students-subnav">
-          <button
-            type="button"
-            className={subTab === "directory" ? "active" : ""}
-            onClick={() => setSubTab("directory")}
-          >
-            <Users size={16} /> Student Directory
-          </button>
-          <button
-            type="button"
-            className={subTab === "masters" ? "active" : ""}
-            onClick={() => setSubTab("masters")}
-          >
-            <Layers size={16} /> Academic Masters (Classes, Sections, Houses, Designations)
-          </button>
-        </div>
-      )}
       {!compact && (
         <PageTitle
           eyebrow="STUDENT DIRECTORY"
@@ -1313,154 +1761,220 @@ function Students({
               <option key={s}>{s}</option>
             ))}
           </select>
+          <div className="view-mode-toggle" title="Switch layout view">
+            <button
+              type="button"
+              className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
+              onClick={() => setViewMode("list")}
+              title="List View"
+              aria-label="List View"
+            >
+              <List size={17} />
+            </button>
+            <button
+              type="button"
+              className={`view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
+              onClick={() => setViewMode("grid")}
+              title="3D Flip Book Grid View"
+              aria-label="3D Flip Book Grid View"
+            >
+              <LayoutGrid size={17} />
+            </button>
+          </div>
         </div>
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>STUDENT</th>
-                <th>ADMISSION NO.</th>
-                <th>CLASS & SECTION</th>
-                <th>HOUSE</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {pagedStudents.map((s) => (
-                <tr key={s._id}>
-                  <td>
-                    <div className="student-cell">
-                      <span className="student-avatar">{s.name[0]}</span>
-                      <b>{s.name}</b>
-                      {!s.active && <span className="pill">Disabled</span>}
-                    </div>
-                  </td>
-                  <td>{s.admissionNo}</td>
-                  <td>
-                    Class {s.className}
-                    <span className="muted"> · {s.section}</span>
-                  </td>
-                  <td>
-                    {(() => {
-                      const badge = getHouseBadge(s.house);
-                      const HouseIcon = badge?.Icon;
-                      return (
-                        <span
-                          className={`house-pill house-icon-only ${badge?.className || ""}`}
-                          title={badge?.label || s.house || "Unassigned"}
-                          aria-label={badge?.label || s.house || "Unassigned"}
-                        >
-                          {HouseIcon ? (
-                            <HouseIcon size={17} aria-hidden="true" />
-                          ) : (
-                            <span aria-hidden="true">—</span>
-                          )}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      {s.active && hasModule(user, "studio") && (
-                        <button
-                          className="icon-button open-studio-button"
-                          title={`Open ${s.name} in report studio`}
-                          aria-label={`Open ${s.name} in report studio`}
-                          onClick={() => open(s)}
-                        >
-                          <SquareArrowOutUpRight size={17} />
-                        </button>
-                      )}
-                      {s.active && (
-                        <button
-                          className="icon-button"
-                          title={`Print ID Card with QR for ${s.name}`}
-                          aria-label={`Print ID Card with QR for ${s.name}`}
-                          onClick={() => setIdCardStudent(s)}
-                        >
-                          <QrCode size={16} />
-                        </button>
-                      )}
-                      {canManageStudents && (
-                        <>
-                          {hasStudentAction(user, "studentEdit") && (
+        {viewMode === "list" ? (
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>STUDENT</th>
+                  <th>ADMISSION NO.</th>
+                  <th>CLASS & SECTION</th>
+                  <th>HOUSE</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {pagedStudents.map((s) => (
+                  <tr key={s._id}>
+                    <td>
+                      <div className="student-cell">
+                        <span className="student-avatar">{s.name[0]}</span>
+                        <b>{s.name}</b>
+                        {!s.active && <span className="pill">Disabled</span>}
+                      </div>
+                    </td>
+                    <td>{s.admissionNo}</td>
+                    <td>
+                      Class {s.className}
+                      <span className="muted"> · {s.section}</span>
+                    </td>
+                    <td>
+                      {(() => {
+                        const badge = getHouseBadge(s.house);
+                        const HouseIcon = badge?.Icon;
+                        return (
+                          <span
+                            className={`house-pill house-icon-only ${badge?.className || ""}`}
+                            title={badge?.label || s.house || "Unassigned"}
+                            aria-label={badge?.label || s.house || "Unassigned"}
+                          >
+                            {HouseIcon ? (
+                              <HouseIcon size={17} aria-hidden="true" />
+                            ) : (
+                              <span aria-hidden="true">—</span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        {s.active && hasModule(user, "studio") && (
+                          <button
+                            className="icon-button open-studio-button"
+                            title={`Open ${s.name} in report studio`}
+                            aria-label={`Open ${s.name} in report studio`}
+                            onClick={() => open(s)}
+                          >
+                            <SquareArrowOutUpRight size={17} />
+                          </button>
+                        )}
+                        {s.active && (
                           <button
                             className="icon-button"
-                            title="Edit student"
-                            onClick={() => setEditing(s)}
+                            title={`Print ID Card with QR for ${s.name}`}
+                            aria-label={`Print ID Card with QR for ${s.name}`}
+                            onClick={() => setIdCardStudent(s)}
                           >
-                            <PenLine size={16} />
+                            <QrCode size={16} />
                           </button>
-                          )}
-                          {hasStudentAction(user, "studentStatus") && (
-                          <button
-                            className={`icon-button student-status-icon ${s.active ? "disable" : "enable"}`}
-                            title={`${s.active ? "Disable" : "Enable"} ${s.name}`}
-                            aria-label={`${s.active ? "Disable" : "Enable"} ${s.name}`}
-                            disabled={statusBusy}
-                            onClick={() => toggleStatus(s)}
-                          >
-                            {s.active ? <Power size={17} /> : <CheckCircle2 size={17} />}
-                          </button>
-                          )}
-                          {hasStudentAction(user, "studentDelete") && (
-                          <button
-                            className="icon-button danger"
-                            title="Permanently delete student and all reports"
-                            aria-label="Permanently delete student and all reports"
-                            onClick={() => permanentlyDelete(s)}
-                          >
-                              <Trash2 size={16} />
-                          </button>
-                          )}
-                        </>
-                      )}
-                      {(hasStudentAction(user, "studentWhatsapp") || hasStudentAction(user, "studentEmail")) && (
-                      <div className="report-delivery-actions">
-                      {hasStudentAction(user, "studentWhatsapp") && (
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          <button
-                            className={`icon-button whatsapp-icon-button ${reportStatuses[String(s._id)]?.published && s.active ? "ready" : "not-ready"}`}
-                            title={
-                              !s.active
-                                ? "Enable student before sending report"
-                                : reportStatuses[String(s._id)]?.published
-                                  ? `${reportStatuses[String(s._id)]?.sentAt ? "Resend" : "Send"} published report by WhatsApp`
-                                  : "Available after the report is published by administration"
-                            }
-                            aria-label={`WhatsApp report for ${s.name}${reportStatuses[String(s._id)]?.published ? "" : " (available after publication)"}`}
-                            disabled={
-                              !s.active ||
-                              !reportStatuses[String(s._id)]?.published ||
-                              whatsappBusyId === String(s._id)
-                            }
-                            onClick={() => sendStudentReport(s)}
-                          >
-                            <WhatsAppIcon size={19} />
-                          </button>
-                          <WhatsAppDeliveryBadge statusObj={reportStatuses[String(s._id)]} compact />
-                        </div>
-                      )}
-                      {hasStudentAction(user, "studentEmail") && (
-                        <button
-                          className={`icon-button email-report-button ${reportStatuses[String(s._id)]?.published && s.active ? "ready" : "not-ready"}`}
-                          title={!s.active ? "Enable student before sending report" : !s.email ? "Add parent/guardian email in Edit student" : reportStatuses[String(s._id)]?.published ? `${reportStatuses[String(s._id)]?.emailSentAt ? "Resend" : "Send"} published report by email` : "Available after the report is published"}
-                          aria-label={`Email report for ${s.name}`}
-                          disabled={!s.active || !s.email || !reportStatuses[String(s._id)]?.published || emailBusyId === String(s._id)}
-                          onClick={() => sendStudentEmail(s)}
-                        >
-                          {emailBusyId === String(s._id) ? <Loader2 size={18} className="spin" /> : <Mail size={18} />}
-                        </button>
-                      )}
+                        )}
+                        {canManageStudents && (
+                          <>
+                            {hasStudentAction(user, "studentEdit") && (
+                              <button
+                                className="icon-button"
+                                title="Edit student"
+                                onClick={() => setEditing(s)}
+                              >
+                                <PenLine size={16} />
+                              </button>
+                            )}
+                            {hasStudentAction(user, "studentStatus") && (
+                              <button
+                                className={`icon-button student-status-icon ${s.active ? "disable" : "enable"}`}
+                                title={`${s.active ? "Disable" : "Enable"} ${s.name}`}
+                                aria-label={`${s.active ? "Disable" : "Enable"} ${s.name}`}
+                                disabled={statusBusy}
+                                onClick={() => toggleStatus(s)}
+                              >
+                                {s.active ? <Power size={17} /> : <CheckCircle2 size={17} />}
+                              </button>
+                            )}
+                            {hasStudentAction(user, "studentDelete") && (
+                              <button
+                                className="icon-button danger"
+                                title="Permanently delete student and all reports"
+                                aria-label="Permanently delete student and all reports"
+                                onClick={() => permanentlyDelete(s)}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {(hasStudentAction(user, "studentWhatsapp") || hasStudentAction(user, "studentEmail")) && (
+                          <div className="report-delivery-actions">
+                            {hasStudentAction(user, "studentWhatsapp") && (
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <button
+                                  className={`icon-button whatsapp-icon-button ${reportStatuses[String(s._id)]?.published && s.active ? "ready" : "not-ready"}`}
+                                  title={
+                                    !s.active
+                                      ? "Enable student before sending report"
+                                      : reportStatuses[String(s._id)]?.published
+                                        ? `${reportStatuses[String(s._id)]?.sentAt ? "Resend" : "Send"} published report by WhatsApp`
+                                        : "Available after the report is published by administration"
+                                  }
+                                  aria-label={`WhatsApp report for ${s.name}${reportStatuses[String(s._id)]?.published ? "" : " (available after publication)"}`}
+                                  disabled={
+                                    !s.active ||
+                                    !reportStatuses[String(s._id)]?.published ||
+                                    whatsappBusyId === String(s._id)
+                                  }
+                                  onClick={() => sendStudentReport(s)}
+                                >
+                                  <WhatsAppIcon size={19} />
+                                </button>
+                                <WhatsAppDeliveryBadge statusObj={reportStatuses[String(s._id)]} compact />
+                              </div>
+                            )}
+                            {hasStudentAction(user, "studentEmail") && (
+                              <button
+                                className={`icon-button email-report-button ${reportStatuses[String(s._id)]?.published && s.active ? "ready" : "not-ready"}`}
+                                title={!s.active ? "Enable student before sending report" : !s.email ? "Add parent/guardian email in Edit student" : reportStatuses[String(s._id)]?.published ? `${reportStatuses[String(s._id)]?.emailSentAt ? "Resend" : "Send"} published report by email` : "Available after the report is published"}
+                                aria-label={`Email report for ${s.name}`}
+                                disabled={!s.active || !s.email || !reportStatuses[String(s._id)]?.published || emailBusyId === String(s._id)}
+                                onClick={() => sendStudentEmail(s)}
+                              >
+                                {emailBusyId === String(s._id) ? <Loader size={18} inline /> : <Mail size={18} />}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="students-book-grid">
+            {pagedStudents.map((s) => {
+              const classTeacher =
+                classTeachers.find((t) =>
+                  (t.assignments || []).some(
+                    (a) =>
+                      String(a.className || "").trim().toLowerCase() === String(s.className || "").trim().toLowerCase() &&
+                      String(a.section || "").trim().toLowerCase() === String(s.section || "").trim().toLowerCase(),
+                  ),
+                ) ||
+                (user.role === "teacher" &&
+                (user.assignments || []).some(
+                  (a) =>
+                    String(a.className || "").trim().toLowerCase() === String(s.className || "").trim().toLowerCase() &&
+                    String(a.section || "").trim().toLowerCase() === String(s.section || "").trim().toLowerCase(),
+                )
+                  ? user
+                  : user.role === "teacher"
+                    ? user
+                    : null);
+
+              return (
+                <StudentFlipBook
+                  key={s._id}
+                  student={s}
+                  session={session}
+                  reportStatus={reportStatuses[String(s._id)]}
+                  onOpen={() => open(s)}
+                  onEdit={() => setEditing(s)}
+                  onToggleStatus={() => toggleStatus(s)}
+                  onDelete={() => permanentlyDelete(s)}
+                  onIdCard={() => setIdCardStudent(s)}
+                  onWhatsApp={() => sendStudentReport(s)}
+                  onEmail={() => sendStudentEmail(s)}
+                  user={user}
+                  teacher={classTeacher}
+                  statusBusy={statusBusy}
+                  whatsappBusy={whatsappBusyId === String(s._id)}
+                  emailBusy={emailBusyId === String(s._id)}
+                />
+              );
+            })}
+          </div>
+        )}
         {!filtered.length && <Empty text="No students found" />}
         <Pagination
           currentPage={safeCurrentPage}
@@ -1849,26 +2363,26 @@ function PromotionModal({ students, classes, sections, reload, toast, onClose })
 }
 function StudentModal({ student, user, close, reload, toast }) {
   const [data, setData] = useState({
-      admissionNo: "",
-      rollNo: "",
-      name: "",
-      className: student?.className || classes[0] || "6",
-      section: student?.section || sections[0] || "Venus",
-      house: student?.house || houses[0] || "Himalaya",
-      gender: "Male",
-      bloodGroup: "B+",
-      aadhaarNo: "",
-      penNo: "",
-      category: "General",
-      motherName: "",
-      fatherName: "",
-      dob: "",
-      address: "",
-      mobile: "",
-      emergencyContact: "",
-      email: "",
-      ...student,
-    }),
+    admissionNo: "",
+    rollNo: "",
+    name: "",
+    className: student?.className || classes[0] || "6",
+    section: student?.section || sections[0] || "Venus",
+    house: student?.house || houses[0] || "Himalaya",
+    gender: "Male",
+    bloodGroup: "B+",
+    aadhaarNo: "",
+    penNo: "",
+    category: "General",
+    motherName: "",
+    fatherName: "",
+    dob: "",
+    address: "",
+    mobile: "",
+    emergencyContact: "",
+    email: "",
+    ...student,
+  }),
     [busy, setBusy] = useState(false);
   const set = (k, v) => setData({ ...data, [k]: v });
   async function save(e) {
@@ -2213,8 +2727,7 @@ function Studio({
   if (!report || !loaded)
     return (
       <div className="loading-screen">
-        <Loader2 className="spin" />
-        Loading report…
+        <Loader size={130} text="Loading report…" />
       </div>
     );
   const calc = calculate(report.marks, config),
@@ -2272,7 +2785,7 @@ function Studio({
           </button>
           <button className="btn" onClick={pdf} disabled={pdfBusy}>
             {pdfBusy ? (
-              <Loader2 size={16} className="spin" />
+              <Loader size={16} inline />
             ) : (
               <Download size={16} />
             )}{" "}
@@ -2523,7 +3036,7 @@ function Studio({
                   disabled={locked}
                   value={
                     otherRemark ||
-                    (report.remarks && !teacherRemarks.includes(report.remarks))
+                      (report.remarks && !teacherRemarks.includes(report.remarks))
                       ? "other"
                       : teacherRemarks.includes(report.remarks)
                         ? report.remarks
@@ -2556,20 +3069,20 @@ function Studio({
               {(otherRemark ||
                 (report.remarks &&
                   !teacherRemarks.includes(report.remarks))) && (
-                <Field label="Write your own remark">
-                  <textarea
-                    autoFocus
-                    disabled={locked}
-                    placeholder="Write your remarks here…"
-                    maxLength={1000}
-                    value={report.remarks}
-                    onChange={(e) =>
-                      update({ ...report, remarks: e.target.value })
-                    }
-                    rows={4}
-                  />
-                </Field>
-              )}
+                  <Field label="Write your own remark">
+                    <textarea
+                      autoFocus
+                      disabled={locked}
+                      placeholder="Write your remarks here…"
+                      maxLength={1000}
+                      value={report.remarks}
+                      onChange={(e) =>
+                        update({ ...report, remarks: e.target.value })
+                      }
+                      rows={4}
+                    />
+                  </Field>
+                )}
               <p className="hint">
                 Upload signatures in Settings. Student photos are managed in the
                 directory.
@@ -2857,7 +3370,7 @@ function ImportStudents({ reload, toast }) {
             disabled={!file || busy}
             onClick={() => process(false)}
           >
-            {busy ? <Loader2 className="spin" size={17} /> : <Eye size={17} />}{" "}
+            {busy ? <Loader size={17} inline /> : <Eye size={17} />}{" "}
             Validate & preview
           </button>
         </div>
@@ -2948,11 +3461,11 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
   const currentHouses = Array.isArray(masters?.houses) && masters.houses.length
     ? masters.houses
     : DEFAULT_HOUSES.map((h, i) => ({
-        id: h,
-        name: h,
-        color: ["#0284c7", "#f59e0b", "#10b981", "#8b5cf6"][i % 4],
-        active: true,
-      }));
+      id: h,
+      name: h,
+      color: ["#0284c7", "#f59e0b", "#10b981", "#8b5cf6"][i % 4],
+      active: true,
+    }));
 
   const currentDesignations = Array.isArray(masters?.designations) && masters.designations.length
     ? masters.designations
@@ -3163,7 +3676,7 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
       >
         {saving && (
           <span className="saving-indicator">
-            <Loader2 size={16} className="spin" /> Saving changes…
+            <Loader size={16} inline /> Saving changes…
           </span>
         )}
       </PageTitle>
@@ -3876,6 +4389,20 @@ function UserAccess({ toast, user: currentUser }) {
     setAssignments(u.assignments || []);
     setModuleAccess(u.moduleAccess || []);
     setStudentActions(u.studentActions || []);
+    setModuleAccess(
+      Array.isArray(u.moduleAccess) && u.moduleAccess.length > 0
+        ? u.moduleAccess
+        : ROLE_MODULES[u.role] || []
+    );
+    setStudentActions(
+      Array.isArray(u.studentActions) && u.studentActions.length > 0
+        ? u.studentActions
+        : u.role === "teacher"
+          ? ACTION_LABELS.map(([key]) => key)
+          : u.role === "principal"
+            ? ["studentWhatsapp", "studentEmail"]
+            : []
+    );
   }
 
   async function saveAccess() {
@@ -4203,9 +4730,8 @@ function UserAccess({ toast, user: currentUser }) {
                             </button>
 
                             <button
-                              className={`icon-button ${
-                                u.active ? "btn-disable" : "btn-enable"
-                              }`}
+                              className={`icon-button ${u.active ? "btn-disable" : "btn-enable"
+                                }`}
                               title={
                                 u.active
                                   ? "Disable staff account"
@@ -4406,49 +4932,52 @@ function UserAccess({ toast, user: currentUser }) {
               <p>Choose which modules and student actions this account can use.</p>
               <h3>Module access</h3>
               <div className="permission-grid">
-                {(ROLE_MODULES[permissionUser.role] || []).map((moduleId) => {
-                  const label =
-                    MODULE_LABELS.find(([id]) => id === moduleId)?.[1] ||
-                    moduleId;
+                {MODULE_LABELS.map(([moduleId, label]) => {
                   return (
-                    <label className="permission-check" key={moduleId}>
-                      <input
-                        type="checkbox"
-                        checked={moduleAccess.includes(moduleId)}
-                        onChange={(e) => {
-                          const enabled = e.target.checked;
-                          setModuleAccess((current) => {
-                            if (enabled)
-                              return moduleId === "students" ||
-                                current.includes("students")
-                                ? [...new Set([...current, moduleId])]
-                                : [
-                                    ...new Set([
-                                      ...current,
-                                      "students",
-                                      moduleId,
-                                    ]),
-                                  ];
-                            if (moduleId === "students")
-                              return current.filter(
-                                (id) =>
-                                  ![
-                                    "students",
+                        <label className="permission-check" key={moduleId}>
+                          <input
+                            type="checkbox"
+                            checked={moduleAccess.includes(moduleId)}
+                            onChange={(e) => {
+                              const enabled = e.target.checked;
+                              setModuleAccess((current) => {
+                                if (enabled) {
+                                  const requiresStudents = [
                                     "overview",
+                                    "analytics",
                                     "studio",
+                                    "review",
                                     "bulk",
-                                  ].includes(id),
-                              );
-                            return current.filter((id) => id !== moduleId);
-                          });
-                          if (moduleId === "students" && !enabled)
-                            setStudentActions([]);
-                        }}
-                      />
-                      <span>{label}</span>
-                    </label>
-                  );
-                })}
+                                  ].includes(moduleId);
+                                  if (requiresStudents && !current.includes("students")) {
+                                    return [...new Set([...current, "students", moduleId])];
+                                  }
+                                  return [...new Set([...current, moduleId])];
+                                }
+                                if (moduleId === "students") {
+                                  return current.filter(
+                                    (id) =>
+                                      ![
+                                        "students",
+                                        "overview",
+                                        "analytics",
+                                        "studio",
+                                        "review",
+                                        "bulk",
+                                      ].includes(id),
+                                  );
+                                }
+                                return current.filter((id) => id !== moduleId);
+                              });
+                              if (moduleId === "students" && !enabled)
+                                setStudentActions([]);
+                            }}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      );
+                    })
+                  }
               </div>
 
               <h3>Student actions</h3>
@@ -4699,7 +5228,7 @@ function StaffModal({ staff, currentUser, onClose, onSaved, toast }) {
           <div className="staff-photo-controls">
             <label className="btn text-btn-upload">
               {uploading ? (
-                <Loader2 size={15} className="spin" />
+                <Loader size={15} inline />
               ) : (
                 <Upload size={15} />
               )}
@@ -4786,9 +5315,8 @@ function StaffModal({ staff, currentUser, onClose, onSaved, toast }) {
                   <button
                     type="button"
                     key={d}
-                    className={`suggestion-pill ${
-                      designation === d ? "selected" : ""
-                    }`}
+                    className={`suggestion-pill ${designation === d ? "selected" : ""
+                      }`}
                     onClick={() => setDesignation(d)}
                   >
                     {d}
@@ -4911,7 +5439,7 @@ function StaffModal({ staff, currentUser, onClose, onSaved, toast }) {
           <button type="submit" className="btn primary" disabled={saving}>
             {saving ? (
               <>
-                <Loader2 size={16} className="spin" /> Saving…
+                <Loader size={16} inline /> Saving…
               </>
             ) : isEdit ? (
               "Save Changes"
@@ -5057,7 +5585,7 @@ function ReportReview({ session, open, toast, user }) {
     const timer = setInterval(() => {
       api(`/review?session=${encodeURIComponent(session)}`)
         .then(setRows)
-        .catch(() => {});
+        .catch(() => { });
     }, 10000);
     return () => clearInterval(timer);
   }, [session]);
@@ -5165,93 +5693,93 @@ function ReportReview({ session, open, toast, user }) {
                 const safeReviewPage = Math.min(Math.max(1, reviewPage), totalReviewPages);
                 const pagedReviewRows = rows.slice((safeReviewPage - 1) * reviewPageSize, safeReviewPage * reviewPageSize);
                 return pagedReviewRows.map((row) => (
-                <tr key={row._id}>
-                  <td>
-                    <strong>{row.student.name}</strong>
-                    <small>{row.student.admissionNo}</small>
-                  </td>
-                  <td>
-                    {row.student.className} / {row.student.section}
-                  </td>
-                  <td>
-                    <span className={`status-badge ${row.status}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                  <td>
-                    {row.submittedAt
-                      ? new Date(row.submittedAt).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td>
-                    <WhatsAppDeliveryBadge
-                      statusObj={{
-                        published: row.status === "published",
-                        sentAt: row.whatsappSentAt,
-                        whatsappDeliveryStatus: row.whatsappDeliveryStatus,
-                        whatsappDeliveredAt: row.whatsappDeliveredAt,
-                        whatsappReadAt: row.whatsappReadAt,
-                        whatsappFailureReason: row.whatsappFailureReason,
-                      }}
-                    />
-                  </td>
-                  <td>
-                    {row.emailSentAt
-                      ? `Sent ${new Date(row.emailSentAt).toLocaleDateString()}`
-                      : row.status === "published"
-                        ? "Not sent"
+                  <tr key={row._id}>
+                    <td>
+                      <strong>{row.student.name}</strong>
+                      <small>{row.student.admissionNo}</small>
+                    </td>
+                    <td>
+                      {row.student.className} / {row.student.section}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${row.status}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td>
+                      {row.submittedAt
+                        ? new Date(row.submittedAt).toLocaleDateString()
                         : "—"}
-                  </td>
-                  <td>
-                    <div className="review-row-actions">
-                      {hasModule(user, "studio") && (
-                        <button className="btn" onClick={() => open(row.student)}>
-                          <Eye size={15} /> Review
-                        </button>
-                      )}
-                      {row.status === "submitted" ? (
-                        <button
-                          className="btn primary"
-                          disabled={busyId === String(row._id)}
-                          onClick={() => transition(row, "publish")}
-                        >
-                          <CheckCircle2 size={15} /> All done · Publish
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            className="btn"
-                            disabled={busyId === String(row._id)}
-                            onClick={() => transition(row, "reopen")}
-                          >
-                            <RefreshCw size={15} /> Reopen
+                    </td>
+                    <td>
+                      <WhatsAppDeliveryBadge
+                        statusObj={{
+                          published: row.status === "published",
+                          sentAt: row.whatsappSentAt,
+                          whatsappDeliveryStatus: row.whatsappDeliveryStatus,
+                          whatsappDeliveredAt: row.whatsappDeliveredAt,
+                          whatsappReadAt: row.whatsappReadAt,
+                          whatsappFailureReason: row.whatsappFailureReason,
+                        }}
+                      />
+                    </td>
+                    <td>
+                      {row.emailSentAt
+                        ? `Sent ${new Date(row.emailSentAt).toLocaleDateString()}`
+                        : row.status === "published"
+                          ? "Not sent"
+                          : "—"}
+                    </td>
+                    <td>
+                      <div className="review-row-actions">
+                        {hasModule(user, "studio") && (
+                          <button className="btn" onClick={() => open(row.student)}>
+                            <Eye size={15} /> Review
                           </button>
-                          {hasModule(user, "students") && hasStudentAction(user, "studentWhatsapp") && <button
-                            className="icon-button whatsapp-icon-button"
+                        )}
+                        {row.status === "submitted" ? (
+                          <button
+                            className="btn primary"
                             disabled={busyId === String(row._id)}
-                            onClick={() => send(row)}
-                            title={row.whatsappSentAt ? "Resend locked report by WhatsApp" : "Send locked report by WhatsApp"}
-                            aria-label={row.whatsappSentAt ? "Resend report by WhatsApp" : "Send report by WhatsApp"}
+                            onClick={() => transition(row, "publish")}
                           >
-                            <WhatsAppIcon size={20} />
-                          </button>}
-                          {hasModule(user, "students") && hasStudentAction(user, "studentEmail") && (
+                            <CheckCircle2 size={15} /> All done · Publish
+                          </button>
+                        ) : (
+                          <>
                             <button
-                              className="icon-button email-report-button ready"
-                              disabled={busyId === String(row._id) || !row.student.email}
-                              onClick={() => sendEmail(row)}
-                              title={!row.student.email ? "Add parent/guardian email to student record" : row.emailSentAt ? "Resend locked report by email" : "Send locked report by email"}
-                              aria-label={row.emailSentAt ? "Resend report by email" : "Send report by email"}
+                              className="btn"
+                              disabled={busyId === String(row._id)}
+                              onClick={() => transition(row, "reopen")}
                             >
-                              <Mail size={19} />
+                              <RefreshCw size={15} /> Reopen
                             </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ));
+                            {hasModule(user, "students") && hasStudentAction(user, "studentWhatsapp") && <button
+                              className="icon-button whatsapp-icon-button"
+                              disabled={busyId === String(row._id)}
+                              onClick={() => send(row)}
+                              title={row.whatsappSentAt ? "Resend locked report by WhatsApp" : "Send locked report by WhatsApp"}
+                              aria-label={row.whatsappSentAt ? "Resend report by WhatsApp" : "Send report by WhatsApp"}
+                            >
+                              <WhatsAppIcon size={20} />
+                            </button>}
+                            {hasModule(user, "students") && hasStudentAction(user, "studentEmail") && (
+                              <button
+                                className="icon-button email-report-button ready"
+                                disabled={busyId === String(row._id) || !row.student.email}
+                                onClick={() => sendEmail(row)}
+                                title={!row.student.email ? "Add parent/guardian email to student record" : row.emailSentAt ? "Resend locked report by email" : "Send locked report by email"}
+                                aria-label={row.emailSentAt ? "Resend report by email" : "Send report by email"}
+                              >
+                                <Mail size={19} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ));
               })()}
             </tbody>
           </table>
@@ -5324,23 +5852,43 @@ function AuditLog() {
   );
 }
 function SchoolSettings({ config, setConfig, user, setUser, toast }) {
-  const [data, setData] = useState(config),
-    [current, setCurrent] = useState(""),
-    [password, setPassword] = useState(""),
-    [profileClass, setProfileClass] = useState("6"),
-    [profileText, setProfileText] = useState(
-      (config.profiles?.["6"] || config.subjects).map((s) => s.name).join("\n"),
-    );
+  const [subTab, setSubTab] = useState("school"); // "school" | "subjects" | "security"
+  const [data, setData] = useState(config);
+  const [current, setCurrent] = useState("");
+  const [password, setPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [profileClass, setProfileClass] = useState("6");
+  const [profileText, setProfileText] = useState(
+    (config.profiles?.["6"] || config.subjects).map((s) => s.name).join("\n"),
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleSelectClass = (cls) => {
+    setProfileClass(cls);
+    const subList =
+      data.profiles?.[cls] ||
+      config.profiles?.[cls] ||
+      config.subjects ||
+      [];
+    setProfileText(subList.map((s) => s.name).join("\n"));
+  };
+
   async function save(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    setIsSaving(true);
     try {
       const c = await api("/config", { method: "PUT", body: data });
       setConfig(c);
-      toast("School settings saved");
+      toast("School settings saved successfully");
     } catch (e) {
       toast(e.message, true);
+    } finally {
+      setIsSaving(false);
     }
   }
+
   async function upload(e, kind, principal = false) {
     const file = e.target.files[0];
     if (!file) return;
@@ -5352,10 +5900,12 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
         body: form,
       });
       if (principal) {
-        setData({ ...data, principalSignature: url });
-        toast("Signature uploaded. Save school settings to apply.");
-      } else if (kind === "logo") setData({ ...data, logo: url });
-      else {
+        setData((prev) => ({ ...prev, principalSignature: url }));
+        toast("Principal signature uploaded. Save school settings to apply.");
+      } else if (kind === "logo") {
+        setData((prev) => ({ ...prev, logo: url }));
+        toast("School logo uploaded. Save school settings to apply.");
+      } else {
         setUser({ ...user, signature: url });
         toast("Your signature is saved");
       }
@@ -5363,6 +5913,7 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
       toast(e.message, true);
     }
   }
+
   async function changePassword(e) {
     e.preventDefault();
     try {
@@ -5375,29 +5926,212 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
       toast(e.message, true);
     }
   }
+
+  const applyProfile = () => {
+    const names = profileText
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    if (!names.length || names.length > 12) {
+      return toast("Enter 1–12 subjects", true);
+    }
+    const subjects = names.map((n) => {
+      const found = (config.subjects || []).find(
+        (s) => s.name.toUpperCase() === n.toUpperCase(),
+      );
+      return (
+        found || {
+          id: n
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .slice(0, 40),
+          name: n.toUpperCase(),
+          icon: "BookOpen",
+        }
+      );
+    });
+    setData((prev) => ({
+      ...prev,
+      profiles: { ...(prev.profiles || {}), [profileClass]: subjects },
+    }));
+    toast(`Subjects staged for Class ${profileClass}. Click Save settings to apply.`);
+  };
+
+  const currentClassSubjects =
+    data.profiles?.[profileClass] ||
+    config.profiles?.[profileClass] ||
+    config.subjects ||
+    [];
+
+  // For Teacher view
+  if (user.role === "teacher") {
+    return (
+      <>
+        <PageTitle
+          eyebrow="ACCOUNT & SIGNATURE"
+          title="Teacher Profile & Settings"
+          subtitle="Manage your report signature and account security."
+        />
+        <div className="teacher-settings-grid">
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <PenLine size={18} />
+                  <span>Class Teacher Signature</span>
+                </h3>
+                <p>Used in the class-teacher signature space on reports you prepare.</p>
+              </div>
+            </div>
+            <div className="asset-box-card">
+              <div className="asset-preview-container signature-checkerboard">
+                {user.signature ? (
+                  <img
+                    className="asset-preview-img"
+                    src={user.signature}
+                    alt="Teacher signature"
+                  />
+                ) : (
+                  <div className="asset-empty-state">
+                    <PenLine size={24} />
+                    <span>No signature uploaded yet</span>
+                  </div>
+                )}
+              </div>
+              <p className="asset-desc">Upload a clean transparent PNG or JPG (up to 5 MB).</p>
+              <label className="asset-upload-label-btn">
+                <Upload size={14} />
+                <span>Upload Signature</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => upload(e, "signature")}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
+          </section>
+
+          <form className="card settings-card" onSubmit={changePassword}>
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <LockKeyhole size={18} />
+                  <span>Change Password</span>
+                </h3>
+                <p>Ensure your account remains safe with a strong password.</p>
+              </div>
+            </div>
+            <div className="settings-form-col">
+              <Field label="Current password">
+                <div className="password-field-wrapper">
+                  <input
+                    type={showCurrent ? "text" : "password"}
+                    required
+                    value={current}
+                    onChange={(e) => setCurrent(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="password-eye-btn"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    title={showCurrent ? "Hide password" : "Show password"}
+                  >
+                    {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </Field>
+              <Field label="New password (6–20 characters)">
+                <div className="password-field-wrapper">
+                  <input
+                    type={showNew ? "text" : "password"}
+                    minLength={PASSWORD_MIN}
+                    maxLength={PASSWORD_MAX}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="password-eye-btn"
+                    onClick={() => setShowNew(!showNew)}
+                    title={showNew ? "Hide password" : "Show password"}
+                  >
+                    {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </Field>
+              <button className="btn primary" style={{ marginTop: 12 }}>
+                <LockKeyhole size={15} /> Update & sign out
+              </button>
+            </div>
+          </form>
+        </div>
+      </>
+    );
+  }
+
+  // Admin View: 3 clean sub-tabs without the redundant "Your signature" card!
   return (
     <>
-      <PageTitle
-        eyebrow="SCHOOL IDENTITY & PREFERENCES"
-        title="Make it your school’s own."
-        subtitle="School information, academic session and signatures."
-      />
-      <div className="settings-grid">
-        {user.role === "admin" && (
-          <form className="card" onSubmit={save}>
-            <div className="card-heading">
-              <h3>School profile</h3>
+      <div className="settings-subnav">
+        <button
+          type="button"
+          className={subTab === "school" ? "active" : ""}
+          onClick={() => setSubTab("school")}
+        >
+          <School size={16} /> School Profile & Branding
+        </button>
+        <button
+          type="button"
+          className={subTab === "subjects" ? "active" : ""}
+          onClick={() => setSubTab("subjects")}
+        >
+          <BookOpen size={16} /> Class Subject Profiles
+        </button>
+        <button
+          type="button"
+          className={subTab === "security" ? "active" : ""}
+          onClick={() => setSubTab("security")}
+        >
+          <ShieldCheck size={16} /> Security & Export
+        </button>
+      </div>
+
+      {subTab === "school" && (
+        <form onSubmit={save} className="settings-content-wrapper">
+          <PageTitle
+            eyebrow="SCHOOL PROFILE & IDENTITY"
+            title="School Information & Official Branding"
+            subtitle="Configure school contact details, affiliation, official logo, and principal signature."
+          >
+            <button type="submit" className="btn primary" disabled={isSaving}>
+              <Save size={16} /> {isSaving ? "Saving..." : "Save school settings"}
+            </button>
+          </PageTitle>
+
+          {/* School Information Card */}
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <School size={18} />
+                  <span>General School Information</span>
+                </h3>
+                <p>Printed on student report cards, official transcripts, and portal headers.</p>
+              </div>
             </div>
+
             <div className="form-grid">
               {[
                 ["schoolName", "School name"],
                 ["address", "School address"],
                 ["affiliation", "CBSE affiliation number"],
-                ["phone", "Phone"],
-                ["phone2", "Alternate phone"],
-                ["email", "School email"],
-                ["website", "Website"],
                 ["session", "Academic session (YYYY-YY)"],
+                ["phone", "Primary phone"],
+                ["phone2", "Alternate phone"],
+                ["email", "Official school email"],
+                ["website", "Official website"],
               ].map(([k, label]) => (
                 <Field key={k} label={label}>
                   <input
@@ -5407,178 +6141,318 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                   />
                 </Field>
               ))}
-              <Field label="School logo">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  onChange={(e) => upload(e, "logo")}
-                />
-              </Field>
-              <Field label="Principal signature · transparent PNG recommended">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  onChange={(e) => upload(e, "signature", true)}
-                />
-              </Field>
-              {data.principalSignature && (
-                <img
-                  className="signature-preview"
-                  src={data.principalSignature}
-                  alt="Principal signature"
-                />
-              )}
             </div>
-            <div className="subject-profile-editor">
-              <h3>Class subject profiles</h3>
-              <p>
-                Set subjects for each class, including XI/XII. Existing marks
-                use subject IDs; do not rename subjects after assessments start.
-              </p>
-              <select
-                value={profileClass}
-                onChange={(e) => {
-                  setProfileClass(e.target.value);
-                  setProfileText(
-                    (data.profiles?.[e.target.value] || config.subjects)
-                      .map((s) => s.name)
-                      .join("\n"),
-                  );
-                }}
-              >
-                {classes.map((c) => (
-                  <option key={c} value={c}>
-                    Class {c}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                rows={7}
-                value={profileText}
-                onChange={(e) => setProfileText(e.target.value)}
-                aria-label="One subject per line"
-              />
-              <button
-                className="btn"
-                type="button"
-                onClick={() => {
-                  const names = profileText
-                    .split("\n")
-                    .map((x) => x.trim())
-                    .filter(Boolean);
-                  if (!names.length || names.length > 12)
-                    return toast("Enter 1–12 subjects", true);
-                  const subjects = names.map((n) => {
-                    const found = config.subjects.find(
-                      (s) => s.name.toUpperCase() === n.toUpperCase(),
-                    );
-                    return (
-                      found || {
-                        id: n
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, "_")
-                          .slice(0, 40),
-                        name: n.toUpperCase(),
-                        icon: "BookOpen",
-                      }
-                    );
-                  });
-                  setData({
-                    ...data,
-                    profiles: { ...data.profiles, [profileClass]: subjects },
-                  });
-                  toast(
-                    "Subject profile staged. Save school settings to apply.",
-                  );
-                }}
-              >
-                Apply class profile
-              </button>
-            </div>
-            <div className="card-footer">
-              <button className="btn primary">
-                <Save size={17} /> Save school settings
-              </button>
-            </div>
-          </form>
-        )}
-        <div>
-          <section className="card profile-card">
-            <div className="card-heading">
-              <h3>Your signature</h3>
-              <PenLine size={20} />
-            </div>
-            <p>
-              Used in the class-teacher signature space when you prepare
-              reports. Upload a clear PNG or JPG, up to 5 MB.
-            </p>
-            {user.signature ? (
-              <img
-                className="signature-preview"
-                src={user.signature}
-                alt="Your signature"
-              />
-            ) : (
-              <div className="signature-empty">
-                Your signature will appear here
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={(e) => upload(e, "signature")}
-            />
           </section>
-          <form className="card profile-card" onSubmit={changePassword}>
-            <div className="card-heading">
-              <h3>Change password</h3>
-              <LockKeyhole size={20} />
+
+          {/* Official Visual Assets: Logo & Principal Signature */}
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <PenLine size={18} />
+                  <span>Official School Assets & Principal Signature</span>
+                </h3>
+                <p>High-resolution logo and authorized Principal signature for automated document signing.</p>
+              </div>
             </div>
-            <Field label="Current password">
-              <input
-                type="password"
-                required
-                value={current}
-                onChange={(e) => setCurrent(e.target.value)}
-              />
-            </Field>
-            <Field label="New password · 6–20 characters">
-              <input
-                type="password"
-                minLength={PASSWORD_MIN}
-                maxLength={PASSWORD_MAX}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
-            <button className="btn">Update & sign out</button>
-          </form>
-          <section className="card profile-card">
-            <h3>Result export</h3>
-            <p>Download a consolidated result workbook for this session.</p>
-            <button
-              className="btn"
-              onClick={async () => {
-                try {
-                  if (isDemo())
-                    return toast(
-                      "Result workbook export is available with the MongoDB server.",
-                    );
-                  await download(
-                    "/export?session=" + config.session,
-                    "SRPS_Results.xlsx",
-                  );
-                } catch (e) {
-                  toast(e.message, true);
-                }
-              }}
-            >
-              <Download size={16} /> Export results
+
+            <div className="school-assets-grid">
+              {/* Asset 1: School Logo */}
+              <div className="asset-box-card">
+                <div className="asset-preview-container">
+                  <img
+                    className="asset-preview-img"
+                    src={data.logo || "/srps-logo.png"}
+                    alt="School Logo"
+                  />
+                </div>
+                <h4 className="asset-title">School Emblem / Logo</h4>
+                <p className="asset-desc">
+                  PNG, JPG or SVG. Displayed in high resolution on report cards and documents.
+                </p>
+                <label className="asset-upload-label-btn">
+                  <Upload size={14} />
+                  <span>Upload School Logo</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml"
+                    onChange={(e) => upload(e, "logo")}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </div>
+
+              {/* Asset 2: Principal Signature */}
+              <div className="asset-box-card">
+                <div className="asset-preview-container signature-checkerboard">
+                  {data.principalSignature ? (
+                    <img
+                      className="asset-preview-img"
+                      src={data.principalSignature}
+                      alt="Principal signature"
+                    />
+                  ) : (
+                    <div className="asset-empty-state">
+                      <PenLine size={24} />
+                      <span>No signature uploaded</span>
+                    </div>
+                  )}
+                </div>
+                <h4 className="asset-title">Principal Signature</h4>
+                <p className="asset-desc">
+                  Transparent PNG recommended (up to 5 MB). Printed in the Principal signature space.
+                </p>
+                <label className="asset-upload-label-btn">
+                  <PenLine size={14} />
+                  <span>Upload Principal Signature</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={(e) => upload(e, "signature", true)}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <div className="settings-action-bar">
+            <span className="settings-action-hint">
+              Click save to apply your changes across all modules and report generators.
+            </span>
+            <button type="submit" className="btn primary" disabled={isSaving}>
+              <Save size={16} /> {isSaving ? "Saving..." : "Save school settings"}
             </button>
+          </div>
+        </form>
+      )}
+
+      {subTab === "subjects" && (
+        <div className="settings-content-wrapper">
+          <PageTitle
+            eyebrow="ACADEMIC CURRICULUM"
+            title="Class Subject Profiles"
+            subtitle="Configure subjects taught in each class. Subject mappings determine marks entry and report cards."
+          >
+            <button
+              type="button"
+              className="btn primary"
+              disabled={isSaving}
+              onClick={save}
+            >
+              <Save size={16} /> {isSaving ? "Saving..." : "Save school settings"}
+            </button>
+          </PageTitle>
+
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <BookOpen size={18} />
+                  <span>Subject Profile for Class {profileClass}</span>
+                </h3>
+                <p>Select a class below to preview and modify its active subject curriculum.</p>
+              </div>
+            </div>
+
+            {/* Class Pill Selector */}
+            <div className="class-pill-selector">
+              {classes.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`class-pill-btn ${profileClass === c ? "active" : ""}`}
+                  onClick={() => handleSelectClass(c)}
+                >
+                  Class {c}
+                </button>
+              ))}
+            </div>
+
+            <div className="subjects-split-layout">
+              {/* Left Column: Visual Chips */}
+              <div className="subject-chips-box">
+                <div className="subject-chips-header">
+                  <span className="subject-box-title">Active Subjects</span>
+                  <span className="subject-count-pill">
+                    {currentClassSubjects.length} Subjects
+                  </span>
+                </div>
+                <div className="subject-chips-list">
+                  {currentClassSubjects.map((s, idx) => (
+                    <div key={s.id || idx} className="subject-item-chip">
+                      <span className="subject-chip-num">
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <BookOpen size={14} className="subject-chip-icon" />
+                      <span className="subject-chip-name">{s.name}</span>
+                    </div>
+                  ))}
+                  {!currentClassSubjects.length && (
+                    <div className="empty-subjects-note">No subjects configured yet.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Textarea Editor */}
+              <div className="subject-textarea-box">
+                <label className="subject-editor-label">
+                  <b>Edit Subjects for Class {profileClass}</b>
+                  <span>Enter 1 to 12 subjects (one subject per line).</span>
+                </label>
+                <textarea
+                  rows={8}
+                  value={profileText}
+                  onChange={(e) => setProfileText(e.target.value)}
+                  placeholder={"ENGLISH\nHINDI\nMATHEMATICS\nSCIENCE\nSOCIAL SCIENCE"}
+                  aria-label="One subject per line"
+                />
+                <div className="subject-actions-row">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={applyProfile}
+                  >
+                    <Check size={15} /> Stage for Class {profileClass}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={isSaving}
+                    onClick={async (e) => {
+                      applyProfile();
+                      await save(e);
+                    }}
+                  >
+                    <Save size={15} /> Apply & Save All
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
-      </div>
+      )}
+
+      {subTab === "security" && (
+        <div className="settings-content-wrapper">
+          <PageTitle
+            eyebrow="ACCOUNT & TOOLS"
+            title="Security & Consolidated Result Export"
+            subtitle="Manage administrator password and export school session results."
+          />
+
+          <div className="security-export-grid">
+            {/* Card 1: Change Password */}
+            <form className="card settings-card" onSubmit={changePassword}>
+              <div className="settings-card-header">
+                <div>
+                  <h3>
+                    <LockKeyhole size={18} />
+                    <span>Change Password</span>
+                  </h3>
+                  <p>Update your administrator login password.</p>
+                </div>
+              </div>
+
+              <div className="settings-form-col">
+                <Field label="Current password">
+                  <div className="password-field-wrapper">
+                    <input
+                      type={showCurrent ? "text" : "password"}
+                      required
+                      value={current}
+                      onChange={(e) => setCurrent(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="password-eye-btn"
+                      onClick={() => setShowCurrent(!showCurrent)}
+                      title={showCurrent ? "Hide password" : "Show password"}
+                    >
+                      {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label="New password (6–20 characters)">
+                  <div className="password-field-wrapper">
+                    <input
+                      type={showNew ? "text" : "password"}
+                      minLength={PASSWORD_MIN}
+                      maxLength={PASSWORD_MAX}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="password-eye-btn"
+                      onClick={() => setShowNew(!showNew)}
+                      title={showNew ? "Hide password" : "Show password"}
+                    >
+                      {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </Field>
+
+                <button className="btn primary" style={{ marginTop: 12 }}>
+                  <LockKeyhole size={15} /> Update & sign out
+                </button>
+              </div>
+            </form>
+
+            {/* Card 2: Consolidated Result Export */}
+            <section className="card settings-card">
+              <div className="settings-card-header">
+                <div>
+                  <h3>
+                    <FileSpreadsheet size={18} />
+                    <span>Consolidated Results Export</span>
+                  </h3>
+                  <p>Download comprehensive academic records for session {config.session || "2025-26"}.</p>
+                </div>
+              </div>
+
+              <div className="export-card-body">
+                <div className="export-session-tag">
+                  <span>Target Academic Session: <b>{config.session || "2025-26"}</b></span>
+                </div>
+                <p className="export-details-text">
+                  Generates an official formatted Excel workbook containing all classes, student marks,
+                  grades, attendance, and remarks in one consolidated spreadsheet.
+                </p>
+                <button
+                  type="button"
+                  className="btn primary export-btn"
+                  disabled={isExporting}
+                  onClick={async () => {
+                    try {
+                      setIsExporting(true);
+                      if (isDemo()) {
+                        return toast(
+                          "Result workbook export is available with the MongoDB server.",
+                        );
+                      }
+                      await download(
+                        "/export?session=" + (config.session || "2025-26"),
+                        "SRPS_Results.xlsx",
+                      );
+                      toast("Result workbook downloaded successfully");
+                    } catch (e) {
+                      toast(e.message, true);
+                    } finally {
+                      setIsExporting(false);
+                    }
+                  }}
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>{isExporting ? "Exporting..." : "Export Results Workbook (.xlsx)"}</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -5713,7 +6587,7 @@ function BulkReports({ students, config, user, toast }) {
           </select>
           <button className="btn primary" onClick={prepare} disabled={busy}>
             {busy ? (
-              <Loader2 className="spin" size={16} />
+              <Loader size={16} inline />
             ) : (
               <FileText size={16} />
             )}{" "}
@@ -5950,17 +6824,17 @@ function ReportDrive({ toast }) {
     }
   };
   const sessions = [...new Set(reports.map((r) => r.session))].sort().reverse();
-  const classesIn = [...new Set(reports.filter((r) => r.session === pathParts[0]).map((r) => r.className))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+  const classesIn = [...new Set(reports.filter((r) => r.session === pathParts[0]).map((r) => r.className))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const sectionsIn = [...new Set(reports.filter((r) => r.session === pathParts[0] && r.className === pathParts[1]).map((r) => r.section))].sort();
   const folders = !pathParts.length ? sessions.map((name) => ({ name, count: reports.filter((r) => r.session === name).length }))
     : pathParts.length === 1 ? classesIn.map((name) => ({ name: `Class ${name}`, value: name, count: reports.filter((r) => r.session === pathParts[0] && r.className === name).length }))
-    : pathParts.length === 2 ? sectionsIn.map((name) => ({ name, count: reports.filter((r) => r.session === pathParts[0] && r.className === pathParts[1] && r.section === name).length })) : [];
-  const sortedReports = [...reports].sort((a,b) => sortBy === "Name"
+      : pathParts.length === 2 ? sectionsIn.map((name) => ({ name, count: reports.filter((r) => r.session === pathParts[0] && r.className === pathParts[1] && r.section === name).length })) : [];
+  const sortedReports = [...reports].sort((a, b) => sortBy === "Name"
     ? String(a.studentName).localeCompare(String(b.studentName), undefined, { sensitivity: "base" })
     : new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
   const pathReports = reports.filter((r) => r.session === pathParts[0] && r.className === pathParts[1] && r.section === pathParts[2]);
   const search = query.trim().toLowerCase();
-  const visibleFiles = (search ? sortedReports.filter((r) => [r.studentName,r.admissionNo,r.session,r.className,r.section].some((v) => String(v || "").toLowerCase().includes(search)))
+  const visibleFiles = (search ? sortedReports.filter((r) => [r.studentName, r.admissionNo, r.session, r.className, r.section].some((v) => String(v || "").toLowerCase().includes(search)))
     : recentMode ? sortedReports : pathParts.length === 0 ? sortedReports.slice(0, 8) : pathReports);
   const archiveAll = async () => {
     setArchiving(true);
@@ -5998,24 +6872,24 @@ function ReportDrive({ toast }) {
     else if (pathParts.length === 1) go([pathParts[0], item.value]);
     else go([pathParts[0], pathParts[1], item.name]);
   };
-  const folderIcon = (size=22) => <Folder size={size} fill="currentColor" strokeWidth={1.8}/>;
+  const folderIcon = (size = 22) => <Folder size={size} fill="currentColor" strokeWidth={1.8} />;
   const folderRow = (item) => <button className="drive-entry" key={item.name} onClick={() => folderTarget(item)}>
     <span className="drive-entry-icon drive-folder-icon">{folderIcon(21)}</span>
     <span className="drive-entry-name"><b>{item.name}</b><small>{item.count} {item.count === 1 ? "report" : "reports"}</small></span>
-    <span className="drive-entry-date">—</span><span className="drive-entry-type">Folder</span><ChevronRight size={17}/>
+    <span className="drive-entry-date">—</span><span className="drive-entry-type">Folder</span><ChevronRight size={17} />
   </button>;
-  const fileRow = (r, grid=false) => <article className={"drive-entry drive-report-entry " + (grid ? "drive-report-card" : "")} key={r.id}>
-    <span className="drive-entry-icon drive-pdf-icon"><FileText size={22}/><i>PDF</i></span>
+  const fileRow = (r, grid = false) => <article className={"drive-entry drive-report-entry " + (grid ? "drive-report-card" : "")} key={r.id}>
+    <span className="drive-entry-icon drive-pdf-icon"><FileText size={22} /><i>PDF</i></span>
     <span className="drive-entry-name"><b>{r.studentName}</b><small>Admission {r.admissionNo || "—"} · Class {r.className} · {r.section}</small></span>
     <span className="drive-entry-date">{r.publishedAt ? new Date(r.publishedAt).toLocaleDateString() : "—"}</span>
     {grid ? <small className="drive-card-session">{r.session} · {r.archiveReady ? "PDF report" : "Legacy report"}</small> : <span className="drive-entry-type">PDF</span>}
-    {r.archiveReady ? <button className="drive-download" aria-label={`Download ${r.studentName} report`} title="Download password-protected PDF" disabled={busy} onClick={() => downloadReport(r)}><Download size={19}/></button> : <span className="drive-legacy">Legacy</span>}
+    {r.archiveReady ? <button className="drive-download" aria-label={`Download ${r.studentName} report`} title="Download password-protected PDF" disabled={busy} onClick={() => downloadReport(r)}><Download size={19} /></button> : <span className="drive-legacy">Legacy</span>}
   </article>;
   return <section className="report-drive-shell">
     <header className="drive-topbar">
-      <div className="drive-brand"><span className="drive-brand-mark"><HardDrive size={22}/></span><span>Report Drive</span></div>
-      <label className="drive-search"><Search size={21}/><input value={query} onChange={(e) => { setQuery(e.target.value); setRecentMode(false); }} placeholder="Search reports by student, admission no., class…"/></label>
-      <button className="drive-lock-button" onClick={stage === "open" ? lock : requestOtp} disabled={busy}><LockKeyhole size={17}/>{stage === "open" ? "Lock" : "Verify"}</button>
+      <div className="drive-brand"><span className="drive-brand-mark"><HardDrive size={22} /></span><span>Report Drive</span></div>
+      <label className="drive-search"><Search size={21} /><input value={query} onChange={(e) => { setQuery(e.target.value); setRecentMode(false); }} placeholder="Search reports by student, admission no., class…" /></label>
+      <button className="drive-lock-button" onClick={stage === "open" ? lock : requestOtp} disabled={busy}><LockKeyhole size={17} />{stage === "open" ? "Lock" : "Verify"}</button>
       <span className="drive-profile" title="Administrator">A</span>
     </header>
     {stage !== "open" ? (
@@ -6058,7 +6932,7 @@ function ReportDrive({ toast }) {
                 onClick={requestOtp}
                 disabled={busy}
               >
-                {busy ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+                {busy ? <Loader size={18} inline /> : <Send size={18} />}
                 {busy ? "Sending Verification Code…" : "Send Verification Code to Email"}
               </button>
             </div>
@@ -6082,7 +6956,7 @@ function ReportDrive({ toast }) {
                 className="btn-drive-unlock"
                 disabled={busy || code.length !== 6}
               >
-                {busy ? <Loader2 size={18} className="spin" /> : <LockKeyhole size={18} />}
+                {busy ? <Loader size={18} inline /> : <LockKeyhole size={18} />}
                 {busy ? "Verifying Access…" : "Unlock Report Drive"}
               </button>
               <div className="drive-otp-links">
@@ -6120,24 +6994,24 @@ function ReportDrive({ toast }) {
     ) : (
       <div className="drive-workspace">
         <aside className="drive-sidebar">
-        <div className="drive-sidebar-label">ARCHIVE</div>
-        <button className={!recentMode ? "drive-side-link active" : "drive-side-link"} onClick={() => { go([]); setQuery(""); }}><HardDrive size={18}/> My Drive</button>
-        <button className={recentMode ? "drive-side-link active" : "drive-side-link"} onClick={() => { setPathParts([]); setRecentMode(true); setQuery(""); }}><Clock3 size={18}/> Recent reports</button>
-        <div className="drive-tree-label">SESSIONS <span>{sessions.length}</span></div>
-        <div className="drive-tree">{sessions.map((session) => <button key={session} className={pathParts[0] === session && !recentMode ? "drive-tree-item selected" : "drive-tree-item"} onClick={() => { go([session]); setQuery(""); }}><span>▸</span>{folderIcon(16)}<span>{session}</span></button>)}</div>
-        <div className="drive-sidebar-bottom"><LockKeyhole size={15}/><span>Admin-only archive<br/><b>OTP verified</b></span></div>
-      </aside>
-      <main className="drive-main">
-        <div className="drive-toolbar">
-          <div className="drive-breadcrumbs"><button onClick={() => { go([]); setQuery(""); }}>My Drive</button>{!search && pathParts.map((part,i)=><React.Fragment key={`${i}-${part}`}><ChevronRight size={16}/><button onClick={() => go(pathParts.slice(0,i+1))}>{i===1?`Class ${part}`:part}</button></React.Fragment>)}{search&&<><ChevronRight size={16}/><b>Search results</b></>}{recentMode&&<><ChevronRight size={16}/><b>Recent reports</b></>}</div>
-          <div className="drive-toolbar-actions"><span className="drive-status"><LockKeyhole size={14}/> Private</span><div className="drive-view-switch"><button className={view === "list" ? "selected" : ""} onClick={() => setView("list")} aria-label="List view" title="List view"><List size={18}/></button><button className={view === "grid" ? "selected" : ""} onClick={() => setView("grid")} aria-label="Grid view" title="Grid view"><LayoutGrid size={18}/></button></div></div>
-        </div>
-        <div className="drive-title-row"><div><h1>{search ? "Search results" : recentMode ? "Recent reports" : pathParts.length === 0 ? "My Drive" : pathParts.length === 1 ? pathParts[0] : pathParts.length === 2 ? `Class ${pathParts[1]}` : pathParts[2]}</h1><p>{search ? `${visibleFiles.length} matching reports` : recentMode ? "Recently published report cards" : pathParts.length ? `${folders.length ? folders.length + " folders" : pathReports.length + " reports"}` : "Academic sessions and published report cards"}</p></div><div className="drive-title-actions"><button className="drive-archive-all" onClick={archiveAll} disabled={archiving}>{archiving ? <RefreshCw className="spin" size={16}/> : <HardDrive size={16}/>} {archiving ? `Archiving ${archiveProgress?.archived || 0}…` : "Archive all reports"}</button><button className="drive-sort" onClick={() => setSortBy(sortBy === "Name" ? "Last modified" : "Name")} title="Switch sort order"><ArrowUpDown size={16}/> {sortBy} <ChevronDown size={15}/></button></div></div>
-        {!search && !recentMode && folders.length > 0 && <><h2 className="drive-section-heading">{pathParts.length ? "Folders" : "Sessions"}</h2><div className={view === "grid" ? "drive-folder-grid" : "drive-folder-list"}>{folders.map(folderRow)}</div></>}
-        {(!folders.length || search || recentMode || pathParts.length === 3 || pathParts.length === 0) && <><h2 className="drive-section-heading">{search ? "Reports" : recentMode ? "Published reports" : pathParts.length === 3 ? "Reports" : pathParts.length === 0 ? "Recently published" : ""}</h2>{view === "grid" ? <div className="drive-report-grid">{visibleFiles.slice(0, pathParts.length === 0 && !search && !recentMode ? 8 : undefined).map((r) => fileRow(r,true))}</div> : <div className="drive-table-wrap"><div className="drive-table-head"><span>Name</span><span>Published</span><span>Type</span><span> </span></div>{visibleFiles.map((r) => fileRow(r))}</div>}{!visibleFiles.length&&<div className="drive-empty">{search ? "No reports match your search." : "No published reports in this folder yet."}</div>}</>}
-        <div className="drive-security-note"><LockKeyhole size={14}/> PDF password: admission number@DOB (YYYY-MM-DD) · Reports stay in private server storage</div>
-      </main>
-    </div>
+          <div className="drive-sidebar-label">ARCHIVE</div>
+          <button className={!recentMode ? "drive-side-link active" : "drive-side-link"} onClick={() => { go([]); setQuery(""); }}><HardDrive size={18} /> My Drive</button>
+          <button className={recentMode ? "drive-side-link active" : "drive-side-link"} onClick={() => { setPathParts([]); setRecentMode(true); setQuery(""); }}><Clock3 size={18} /> Recent reports</button>
+          <div className="drive-tree-label">SESSIONS <span>{sessions.length}</span></div>
+          <div className="drive-tree">{sessions.map((session) => <button key={session} className={pathParts[0] === session && !recentMode ? "drive-tree-item selected" : "drive-tree-item"} onClick={() => { go([session]); setQuery(""); }}><span>▸</span>{folderIcon(16)}<span>{session}</span></button>)}</div>
+          <div className="drive-sidebar-bottom"><LockKeyhole size={15} /><span>Admin-only archive<br /><b>OTP verified</b></span></div>
+        </aside>
+        <main className="drive-main">
+          <div className="drive-toolbar">
+            <div className="drive-breadcrumbs"><button onClick={() => { go([]); setQuery(""); }}>My Drive</button>{!search && pathParts.map((part, i) => <React.Fragment key={`${i}-${part}`}><ChevronRight size={16} /><button onClick={() => go(pathParts.slice(0, i + 1))}>{i === 1 ? `Class ${part}` : part}</button></React.Fragment>)}{search && <><ChevronRight size={16} /><b>Search results</b></>}{recentMode && <><ChevronRight size={16} /><b>Recent reports</b></>}</div>
+            <div className="drive-toolbar-actions"><span className="drive-status"><LockKeyhole size={14} /> Private</span><div className="drive-view-switch"><button className={view === "list" ? "selected" : ""} onClick={() => setView("list")} aria-label="List view" title="List view"><List size={18} /></button><button className={view === "grid" ? "selected" : ""} onClick={() => setView("grid")} aria-label="Grid view" title="Grid view"><LayoutGrid size={18} /></button></div></div>
+          </div>
+          <div className="drive-title-row"><div><h1>{search ? "Search results" : recentMode ? "Recent reports" : pathParts.length === 0 ? "My Drive" : pathParts.length === 1 ? pathParts[0] : pathParts.length === 2 ? `Class ${pathParts[1]}` : pathParts[2]}</h1><p>{search ? `${visibleFiles.length} matching reports` : recentMode ? "Recently published report cards" : pathParts.length ? `${folders.length ? folders.length + " folders" : pathReports.length + " reports"}` : "Academic sessions and published report cards"}</p></div><div className="drive-title-actions"><button className="drive-archive-all" onClick={archiveAll} disabled={archiving}>{archiving ? <RefreshCw className="spin" size={16} /> : <HardDrive size={16} />} {archiving ? `Archiving ${archiveProgress?.archived || 0}…` : "Archive all reports"}</button><button className="drive-sort" onClick={() => setSortBy(sortBy === "Name" ? "Last modified" : "Name")} title="Switch sort order"><ArrowUpDown size={16} /> {sortBy} <ChevronDown size={15} /></button></div></div>
+          {!search && !recentMode && folders.length > 0 && <><h2 className="drive-section-heading">{pathParts.length ? "Folders" : "Sessions"}</h2><div className={view === "grid" ? "drive-folder-grid" : "drive-folder-list"}>{folders.map(folderRow)}</div></>}
+          {(!folders.length || search || recentMode || pathParts.length === 3 || pathParts.length === 0) && <><h2 className="drive-section-heading">{search ? "Reports" : recentMode ? "Published reports" : pathParts.length === 3 ? "Reports" : pathParts.length === 0 ? "Recently published" : ""}</h2>{view === "grid" ? <div className="drive-report-grid">{visibleFiles.slice(0, pathParts.length === 0 && !search && !recentMode ? 8 : undefined).map((r) => fileRow(r, true))}</div> : <div className="drive-table-wrap"><div className="drive-table-head"><span>Name</span><span>Published</span><span>Type</span><span> </span></div>{visibleFiles.map((r) => fileRow(r))}</div>}{!visibleFiles.length && <div className="drive-empty">{search ? "No reports match your search." : "No published reports in this folder yet."}</div>}</>}
+          <div className="drive-security-note"><LockKeyhole size={14} /> PDF password: admission number@DOB (YYYY-MM-DD) · Reports stay in private server storage</div>
+        </main>
+      </div>
     )}
   </section>;
 }

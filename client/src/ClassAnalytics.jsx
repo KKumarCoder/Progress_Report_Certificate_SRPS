@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Loader from "./Loader";
 import {
   Trophy,
   Award,
@@ -312,8 +313,7 @@ export default function ClassAnalytics({
 
       {loading && !data ? (
         <div className="analytics-loading">
-          <RefreshCw size={24} className="spin text-blue" />
-          <p>Compiling Class {selectedClass} performance metrics…</p>
+          <Loader size={110} text={`Compiling Class ${selectedClass} performance metrics…`} />
         </div>
       ) : (
         <>

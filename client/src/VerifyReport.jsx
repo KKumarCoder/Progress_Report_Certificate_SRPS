@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Loader from "./Loader";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -9,7 +10,6 @@ import {
   Award,
   Printer,
   Home,
-  Loader2,
   BookOpen,
 } from "lucide-react";
 
@@ -48,8 +48,8 @@ export default function VerifyReport({ studentId, session, signature }) {
     return (
       <div className="verify-page">
         <div className="verify-card loading-box">
-          <Loader2 className="spin" size={36} color="#1b4858" />
-          <h2>Verifying official credentials…</h2>
+          <Loader size={130} />
+          <h2 style={{ marginTop: 24 }}>Verifying official credentials…</h2>
           <p>Connecting to Shree Ram Public School Examination Server</p>
         </div>
       </div>

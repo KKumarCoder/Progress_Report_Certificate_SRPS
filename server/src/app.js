@@ -57,11 +57,35 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:", "https://api.cloudinary.com", "https://res.cloudinary.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://api.cloudinary.com",
+          "https://res.cloudinary.com",
+          "https://*.googleusercontent.com",
+          "https://*.gstatic.com",
+          "https://www.gstatic.com",
+        ],
         fontSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
+        connectSrc: [
+          "'self'",
+          "https://*.googleapis.com",
+          "https://identitytoolkit.googleapis.com",
+          "https://securetoken.googleapis.com",
+          "https://*.firebaseio.com",
+          "https://srpsreport-23798.firebaseapp.com",
+          "https://*.firebase.com",
+          "https://www.google-analytics.com",
+          "https://*.google-analytics.com",
+        ],
+        frameSrc: [
+          "'self'",
+          "https://srpsreport-23798.firebaseapp.com",
+          "https://accounts.google.com",
+        ],
       },
     },
   }),
@@ -83,6 +107,7 @@ const fail = (status, message) => Object.assign(new Error(message), { status });
 const digest = (t) => createHash("sha256").update(t).digest("hex");
 const MODULES = [
   "overview",
+  "analytics",
   "students",
   "studio",
   "review",
@@ -103,6 +128,7 @@ const ROLE_MODULES = {
   teacher: ["overview", "students", "studio", "bulk", "settings"],
   principal: [
     "overview",
+    "analytics",
     "students",
     "studio",
     "review",
@@ -339,6 +365,75 @@ app.post(
     res.cookie("srps_session", token, sessionOptions);
     await audit({ ...req, user }, "login", user._id);
     res.json({ ok: true });
+  }),
+);
+const FIREBASE_API_KEY =
+  process.env.FIREBASE_API_KEY ||
+  "AIzaSyC-gKVXAzAM6VojalLqdUz6pDEji2LOJLw";
+app.post(
+  "/api/auth/firebase-login",
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 25 }),
+  wrap(async (req, res) => {
+    const { idToken, role } = req.body;
+    if (!idToken || typeof idToken !== "string") {
+      throw fail(400, "Authentication token is required.");
+    }
+
+    let verifiedEmail = null;
+
+    if (process.env.NODE_ENV === "test" && idToken.startsWith("mock-firebase-token:")) {
+      verifiedEmail = idToken.replace("mock-firebase-token:", "").trim().toLowerCase();
+    } else {
+      const lookupUrl = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`;
+      const lookupRes = await fetch(lookupUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await lookupRes.json();
+      if (!lookupRes.ok || !data.users || !data.users[0] || !data.users[0].email) {
+        throw fail(401, "Google authentication session is invalid or expired.");
+      }
+      verifiedEmail = String(data.users[0].email).toLowerCase();
+    }
+
+    const user = await User.findOne({
+      email: verifiedEmail,
+      active: true,
+    });
+
+    if (!user) {
+      throw fail(
+        403,
+        `No staff account registered with ${verifiedEmail}. Please contact the school administrator to add this email.`,
+      );
+    }
+
+    if (role !== undefined && role !== user.role) {
+      throw fail(
+        403,
+        `This account is registered as ${user.role}. Please select the ${user.role} role or switch accounts.`,
+      );
+    }
+
+    const token = randomBytes(32).toString("hex");
+    await Session.create({
+      tokenHash: digest(token),
+      user: user._id,
+      version: user.sessionVersion,
+      expiresAt: new Date(Date.now() + sessionOptions.maxAge),
+    });
+    res.cookie("srps_session", token, sessionOptions);
+    await audit({ ...req, user }, "login", user._id, "firebase");
+    res.json({
+      ok: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
   }),
 );
 passwordResetRoutes(app, wrap);
@@ -1813,6 +1908,7 @@ app.get(
 app.get(
   "/api/analytics/class",
   roles("admin", "principal", "teacher"),
+  requireModule("analytics"),
   wrap(async (req, res) => {
     const session = validSession(String(req.query.session || ""));
     const requestedClass = String(req.query.className || "").trim();
@@ -2269,6 +2365,15 @@ app.get(
     ),
   ),
 );
+app.get(
+  "/api/class-teachers",
+  wrap(async (req, res) => {
+    const teachers = await User.find({ role: "teacher", active: true })
+      .select("name photo designation assignments")
+      .lean();
+    res.json(teachers);
+  }),
+);
 app.post(
   "/api/users",
   roles("admin"),
@@ -2348,8 +2453,8 @@ function validateAssignments(a, validClasses, validSections) {
 function validatePermissions(role, moduleAccess, studentActions) {
   const allowedModules = role === "admin"
     ? [...MODULES, "import", "users"]
-    : ROLE_MODULES[role] || [];
-  const allowedActions = role === "admin" ? ACTIONS : ROLE_ACTIONS[role] || [];
+    : MODULES.filter((m) => m !== "drive");
+  const allowedActions = role === "admin" ? ACTIONS : ACTIONS;
   for (const [value, allowed, label] of [
     [moduleAccess, allowedModules, "module access"],
     [studentActions, allowedActions, "student actions"],
@@ -2361,8 +2466,8 @@ function validatePermissions(role, moduleAccess, studentActions) {
     ) throw fail(400, `Invalid ${label} for ${role} role`);
   }
   const effectiveModuleSet = moduleAccess ?? ROLE_MODULES[role] ?? [...MODULES, "import", "users"];
-  if (["overview", "studio", "bulk"].some((id) => effectiveModuleSet.includes(id)) && !effectiveModuleSet.includes("students"))
-    throw fail(400, "Overview, Report studio, and Bulk print require Students module access");
+  if (["overview", "analytics", "studio", "bulk"].some((id) => effectiveModuleSet.includes(id)) && !effectiveModuleSet.includes("students"))
+    throw fail(400, "Overview, Class Analytics, Report studio, and Bulk print require Students module access");
   const effectiveActionSet = studentActions ?? ROLE_ACTIONS[role] ?? [...ACTIONS];
   if (effectiveActionSet.length && !effectiveModuleSet.includes("students"))
     throw fail(400, "Student actions require Students module access");

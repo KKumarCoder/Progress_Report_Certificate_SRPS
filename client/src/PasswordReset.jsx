@@ -1,9 +1,9 @@
 import React, { useState } from "react";
+import Loader from "./Loader";
 import {
   ArrowLeft,
   Mail,
   LockKeyhole,
-  Loader2,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -122,7 +122,7 @@ export default function PasswordReset({ token, initialEmail, onBack }) {
           )}
           <button className="anv-submit" disabled={busy}>
             {busy ? (
-              <Loader2 size={18} className="spin" />
+              <Loader size={18} inline />
             ) : token ? (
               <LockKeyhole size={18} />
             ) : (

@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
+import Loader from "./Loader";
 import {
   Send,
   X,
   CheckCircle2,
   AlertCircle,
   Clock,
-  Loader2,
   Search,
   Power,
   Check,
@@ -187,7 +187,7 @@ export default function BulkWhatsappModal({
         <div className="modal-head">
           <div>
             <h2>Bulk WhatsApp Dispatcher</h2>
-            <span style={{ fontSize: 12, color: "#6d858e" }}>
+            <span className="bulk-modal-subtitle">
               Class {cls} - Section {sec} · Session {session}
             </span>
           </div>
@@ -317,7 +317,7 @@ export default function BulkWhatsappModal({
                 if (cur?.state === "sending") {
                   statusBadge = (
                     <span className="bulk-status-pill sending">
-                      <Loader2 size={12} className="spin" /> Sending…
+                      <Loader size={12} inline /> Sending…
                     </span>
                   );
                 } else if (cur?.state === "sent") {
@@ -408,7 +408,7 @@ export default function BulkWhatsappModal({
         {/* Modal Footer */}
         <div className="bulk-modal-footer">
           <div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>
+            <span className="bulk-selected-count">
               Selected: <b>{selectedIds.size}</b> / {validCount} valid students
             </span>
           </div>
