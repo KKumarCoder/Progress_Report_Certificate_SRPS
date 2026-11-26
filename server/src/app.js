@@ -55,11 +55,18 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(
   helmet({
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://apis.google.com",
+          "https://www.googletagmanager.com",
+          "https://*.googletagmanager.com",
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: [
           "'self'",
           "data:",
@@ -70,7 +77,7 @@ app.use(
           "https://*.gstatic.com",
           "https://www.gstatic.com",
         ],
-        fontSrc: ["'self'", "data:"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         connectSrc: [
           "'self'",
           "https://*.googleapis.com",

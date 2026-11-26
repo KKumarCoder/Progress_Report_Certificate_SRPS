@@ -4,6 +4,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut,
@@ -56,6 +58,14 @@ export { analyticsInstance as analytics };
 
 export async function signInWithGoogle() {
   return await signInWithPopup(auth, googleProvider);
+}
+
+export async function signInWithGoogleRedirect() {
+  return await signInWithRedirect(auth, googleProvider);
+}
+
+export async function checkGoogleRedirectResult() {
+  return await getRedirectResult(auth);
 }
 
 export async function signInWithFirebaseEmail(email, password) {

@@ -14,7 +14,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { api, startDemo } from "./api";
-import { signInWithGoogle, signInWithFirebaseEmail } from "./firebase";
+import {
+  signInWithGoogle,
+  signInWithGoogleRedirect,
+  checkGoogleRedirectResult,
+  signInWithFirebaseEmail,
+} from "./firebase";
 import "./login.css";
 import PasswordReset from "./PasswordReset";
 
@@ -93,6 +98,35 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const selected = roles.find((r) => r.id === role);
+
+  React.useEffect(() => {
+    let active = true;
+    checkGoogleRedirectResult()
+      .then(async (cred) => {
+        if (!active || !cred || !cred.user) return;
+        setGoogleBusy(true);
+        setError("");
+        const pendingRole = sessionStorage.getItem("srps_pending_role") || role;
+        sessionStorage.removeItem("srps_pending_role");
+        const idToken = await cred.user.getIdToken();
+        await api("/auth/firebase-login", {
+          method: "POST",
+          body: { idToken, role: pendingRole },
+        });
+        onLogin(await api("/auth/me"));
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err.message || "Failed to sign in with Google.");
+      })
+      .finally(() => {
+        if (active) setGoogleBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function changeMode(value) {
     setStudentMode(value);
     setError("");
@@ -112,7 +146,17 @@ export default function Login({ onLogin }) {
       });
       onLogin(await api("/auth/me"));
     } catch (err) {
-      if (
+      if (err.code === "auth/popup-blocked") {
+        try {
+          sessionStorage.setItem("srps_pending_role", role);
+          await signInWithGoogleRedirect();
+          return;
+        } catch {
+          setError(
+            "Google sign-in popup was blocked by browser. Please enable popups.",
+          );
+        }
+      } else if (
         err.code === "auth/popup-closed-by-user" ||
         err.code === "auth/cancelled-popup-request"
       ) {
