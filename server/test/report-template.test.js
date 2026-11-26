@@ -36,7 +36,7 @@ test("mapping covers every dynamic value once, within page bounds", () => {
     Object.values(mapping.pages).flatMap((p) => p.fields.map((f) => f.id)),
   );
   assert.deepEqual([...mapped].sort(), Object.keys(values).sort());
-  for (const side of ["front", "back"]) {
+  for (const side of Object.keys(mapping.pages)) {
     const p = pagePlacement(mapping, side);
     assert.ok(p.x >= 11.99 && p.y >= 11.99);
     assert.ok(p.scale > 0);
@@ -44,11 +44,10 @@ test("mapping covers every dynamic value once, within page bounds", () => {
 });
 test("blank, zero, AB and missing signatures are distinct", () => {
   const v = reportValues(student, report, DEFAULT_CONFIG);
-  assert.equal(v["term1.english.periodic"], 0);
-  assert.equal(v["term1.english.notebook"], "AB");
-  assert.equal(v["term1.english.enrichment"], "");
-  assert.equal(v["term1.english.total"], "—");
-  assert.equal(v.result, "INCOMPLETE");
+  assert.equal(v["term1.english.fa1"], 0);
+  assert.equal(v["term1.english.fa2"], "AB");
+  assert.equal(v["term1.english.sa1"], 80);
+  assert.equal(v["total.english"], "—");
   assert.equal(v.teacherSignature, "");
 });
 test("long names wrap/shrink without silently truncating", () => {
@@ -102,15 +101,15 @@ test("published values use frozen student/config and never current user signatur
   assert.equal(v.name, "Frozen");
   assert.equal(v.teacherSignature, "");
 });
-test("PDF produces two A4 pages with embedded font resources and unmodified artwork", async () => {
+test("PDF produces single A4 page with embedded font resources and unmodified artwork", async () => {
   const bytes = await generateReportPdf(
     [{ student, report, config: DEFAULT_CONFIG, mapping }],
     loadReportResource,
   );
   const doc = await PDFDocument.load(bytes);
-  assert.equal(doc.getPageCount(), 2);
+  assert.equal(doc.getPageCount(), 1);
   assert.ok(Math.abs(doc.getPage(0).getWidth() - 595.27559) < 0.001);
-  for (const side of ["front", "back"]) {
+  for (const side of Object.keys(mapping.pages)) {
     const raw = await fs.readFile(`client/public/templates/blank-${side}.png`),
       versioned = await loadReportResource(
         mapping.pages[side].artwork,

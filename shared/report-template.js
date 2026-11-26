@@ -1,22 +1,18 @@
-import { calculate, SUBJECTS, COMPONENTS, ACTIVITIES } from "./engine.js";
+import { calculate, SUBJECTS, COMPONENTS, ACTIVITIES, getTermComponents } from "./engine.js";
 
 export function assertCompatible(config) {
   const normalize = (s) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (
+    !config.subjects ||
     config.subjects.length !== SUBJECTS.length ||
     config.subjects.some(
       (s, i) =>
         s.id !== SUBJECTS[i].id ||
         normalize(s.name) !== normalize(SUBJECTS[i].name),
-    ) ||
-    config.components.length !== COMPONENTS.length ||
-    config.components.some(
-      (c, i) => c.id !== COMPONENTS[i].id || c.max !== COMPONENTS[i].max,
-    ) ||
-    JSON.stringify(config.activities) !== JSON.stringify(ACTIVITIES)
+    )
   ) {
     throw new Error(
-      "This class profile does not match the fixed subjects, mark limits or activities printed on the approved artwork. A matching blank template is required.",
+      "This class profile does not match the fixed subjects printed on the approved artwork. A matching blank template is required.",
     );
   }
 }
@@ -42,48 +38,67 @@ export function reportValues(student, report, config, user = {}) {
         .replaceAll(" ", "-")
     : "";
   const values = {
-    session: report.session,
     classSection: `${s.className} - ${s.section}`,
     admissionNo: s.admissionNo,
     name: s.name,
-    house: s.house,
+    house: s.house || "",
     motherName: s.motherName,
     fatherName: s.fatherName,
     dob,
-    address: s.address,
-    mobile: s.mobile,
-    photo: s.photo,
-    resultMessage:
-      calc.result === "PASS"
-        ? "Passed & Promoted to Higher Class"
-        : calc.result === "INCOMPLETE"
-          ? "Assessment in progress"
-          : "Needs Improvement",
-    remarks: report.remarks,
+    photo: s.photo || "",
+    attendance: report.attendance ? String(report.attendance) : "—",
+    remarks: report.remarks || "",
+    promotedTo: report.promotedTo || (calc.result === "PASS" ? "Promoted to Higher Class" : "—"),
     teacherSignature:
       report.teacherSignature ||
       (report.status !== "published" && ["teacher", "admin"].includes(user.role)
         ? user.signature || ""
         : ""),
-    principalSignature: config.principalSignature,
+    principalSignature: config.principalSignature || "",
     percentage:
       calc.percentage === null ? "—" : `${calc.percentage.toFixed(2)}%`,
-    grandTotal: calc.complete ? calc.total : "—",
-    maximum: `(${calc.maximum})`,
-    result: calc.result,
+    grandTotal: calc.complete ? String(calc.total) : "—",
+    maximum: String(calc.maximum),
   };
-  for (const term of ["term1", "term2"]) {
-    for (const s of calc.terms[term]) {
-      for (const c of config.components)
-        values[`${term}.${s.id}.${c.id}`] =
-          report.marks?.[term]?.[s.id]?.[c.id] ?? "";
-      values[`${term}.${s.id}.total`] = s.total ?? "—";
-      values[`${term}.${s.id}.grade`] = s.grade;
-    }
-    config.activities.forEach((a, i) => {
-      values[`co.${i}.${term}`] = report.co?.[a]?.[term] || "";
-    });
+  for (const s of config.subjects) {
+    // Term 1 (FA-1, FA-2, SA-1) with fallback to legacy keys
+    values[`term1.${s.id}.fa1`] =
+      report.marks?.term1?.[s.id]?.fa1 ??
+      report.marks?.term1?.[s.id]?.periodic ??
+      "";
+    values[`term1.${s.id}.fa2`] =
+      report.marks?.term1?.[s.id]?.fa2 ??
+      report.marks?.term1?.[s.id]?.notebook ??
+      "";
+    values[`term1.${s.id}.sa1`] =
+      report.marks?.term1?.[s.id]?.sa1 ??
+      report.marks?.term1?.[s.id]?.exam ??
+      "";
+
+    // Term 2 (FA-3, FA-4, SA-2) with fallback to legacy keys
+    values[`term2.${s.id}.fa3`] =
+      report.marks?.term2?.[s.id]?.fa3 ??
+      report.marks?.term2?.[s.id]?.periodic ??
+      "";
+    values[`term2.${s.id}.fa4`] =
+      report.marks?.term2?.[s.id]?.fa4 ??
+      report.marks?.term2?.[s.id]?.notebook ??
+      "";
+    values[`term2.${s.id}.sa2`] =
+      report.marks?.term2?.[s.id]?.sa2 ??
+      report.marks?.term2?.[s.id]?.exam ??
+      "";
+
+    const subCalc = calc.subjects?.[s.id];
+    values[`total.${s.id}`] = subCalc?.complete ? String(subCalc.total100) : "—";
+    values[`grade.${s.id}`] = subCalc?.complete ? subCalc.grade : "—";
   }
+
+  const activities = config.activities || ACTIVITIES;
+  activities.forEach((a, i) => {
+    values[`co.${i}.term1`] = report.co?.[a]?.term1 || report.co?.[i]?.term1 || "";
+    values[`co.${i}.term2`] = report.co?.[a]?.term2 || report.co?.[i]?.term2 || "";
+  });
   return values;
 }
 export function pagePlacement(mapping, side) {
@@ -199,9 +214,11 @@ export function validateMapping(mapping, canonical) {
     throw new Error(
       "Calibration cannot change artwork, fonts or page policy. Configure those in source.",
     );
-  if (Object.keys(mapping.pages).sort().join() !== "back,front")
-    throw new Error("Both template pages are required");
-  for (const side of ["front", "back"]) {
+  const pageKeys = Object.keys(mapping.pages).sort();
+  const canonicalKeys = Object.keys(canonical.pages).sort();
+  if (pageKeys.join() !== canonicalKeys.join())
+    throw new Error(`Pages mismatch: expected ${canonicalKeys.join()}, got ${pageKeys.join()}`);
+  for (const side of pageKeys) {
     const p = mapping.pages[side],
       base = canonical.pages[side];
     if (
@@ -226,35 +243,48 @@ export function validateMapping(mapping, canonical) {
         f.fit !== original.fit
       )
         throw new Error("Invalid field or mask");
-      if (
-        ![
-          f.x,
-          f.y,
-          f.width,
-          f.height,
-          f.fontSize,
-          f.overflow?.minFontSize,
-        ].every(Number.isFinite) ||
-        f.x < 0 ||
-        f.y < 0 ||
-        f.width <= 0 ||
-        f.height <= 0 ||
-        f.x + f.width > p.width ||
-        f.y + f.height > p.height ||
-        f.fontSize < 6 ||
-        f.fontSize > 96 ||
-        f.overflow.minFontSize < 6 ||
-        f.overflow.minFontSize > f.fontSize
-      )
-        throw new Error(`Invalid bounding box or font size: ${f.id}`);
-      if (
-        !mapping.fonts[f.font] ||
-        !/^#[0-9a-f]{6}$/i.test(f.colour) ||
-        !["left", "center", "right"].includes(f.alignment) ||
-        !["shrink", "wrap-shrink"].includes(f.overflow.mode) ||
-        f.overflow.onFailure !== "error"
-      )
-        throw new Error(`Invalid styling: ${f.id}`);
+      if (f.type === "text") {
+        if (
+          ![
+            f.x,
+            f.y,
+            f.width,
+            f.height,
+            f.fontSize,
+            f.overflow?.minFontSize,
+          ].every(Number.isFinite) ||
+          f.x < 0 ||
+          f.y < 0 ||
+          f.width <= 0 ||
+          f.height <= 0 ||
+          f.x + f.width > p.width ||
+          f.y + f.height > p.height ||
+          f.fontSize < 6 ||
+          f.fontSize > 96 ||
+          f.overflow.minFontSize < 6 ||
+          f.overflow.minFontSize > f.fontSize
+        )
+          throw new Error(`Invalid bounding box or font size: ${f.id}`);
+        if (
+          !mapping.fonts[f.font] ||
+          !/^#[0-9a-f]{6}$/i.test(f.colour) ||
+          !["left", "center", "right"].includes(f.alignment) ||
+          !["shrink", "wrap-shrink"].includes(f.overflow.mode) ||
+          f.overflow.onFailure !== "error"
+        )
+          throw new Error(`Invalid styling: ${f.id}`);
+      } else {
+        if (
+          ![f.x, f.y, f.width, f.height].every(Number.isFinite) ||
+          f.x < 0 ||
+          f.y < 0 ||
+          f.width <= 0 ||
+          f.height <= 0 ||
+          f.x + f.width > p.width ||
+          f.y + f.height > p.height
+        )
+          throw new Error(`Invalid image bounding box: ${f.id}`);
+      }
     }
   }
   return mapping;

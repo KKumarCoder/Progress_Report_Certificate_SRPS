@@ -78,6 +78,7 @@ import {
   DEFAULT_CONFIG,
   calculate,
   validateMarks,
+  getTermComponents,
 } from "../../shared/engine.js";
 import { api, startDemo, isDemo, download, saveBlob } from "./api";
 import ReportPage from "./Report";
@@ -2860,15 +2861,9 @@ function Studio({
                   <thead>
                     <tr>
                       <th>SUBJECT</th>
-                      {config.components.map((c) => (
+                      {getTermComponents(term, config).map((c) => (
                         <th key={c.id} title={c.label}>
-                          {c.id === "periodic"
-                            ? "PT"
-                            : c.id === "notebook"
-                              ? "NB"
-                              : c.id === "enrichment"
-                                ? "SE"
-                                : "EXAM"}
+                          {c.label}
                           <small>/{c.max}</small>
                         </th>
                       ))}
@@ -2876,13 +2871,15 @@ function Studio({
                     </tr>
                   </thead>
                   <tbody>
-                    {config.subjects.map((s, i) => (
+                    {config.subjects.map((s, i) => {
+                      const comps = getTermComponents(term, config);
+                      return (
                       <tr key={s.id}>
                         <td>
                           <b>{s.name}</b>
-                          <small>{calc.terms[term][i].grade}</small>
+                          <small>{calc.terms?.[term]?.[i]?.grade || "—"}</small>
                         </td>
-                        {config.components.map((c) => {
+                        {comps.map((c) => {
                           const v = report.marks?.[term]?.[s.id]?.[c.id] ?? "",
                             invalid =
                               v !== "AB" &&
@@ -2916,18 +2913,19 @@ function Studio({
                         })}
                         <td>
                           <b className="row-total">
-                            {calc.terms[term][i].total ?? "—"}
+                            {calc.terms?.[term]?.[i]?.total ?? "—"}
                           </b>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
               <div className="entry-legend">
-                <span>PT: Periodic test</span>
-                <span>NB: Note books</span>
-                <span>SE: Subject enrichment</span>
+                <span>FA: Formative Assessment (20)</span>
+                <span>SA: Summative Assessment (100)</span>
+                <span>Term Max: 140 · Total: 280 (Scaled to 100)</span>
               </div>
               {!locked && (
                 <button
@@ -3083,6 +3081,28 @@ function Studio({
                     />
                   </Field>
                 )}
+              <Field label="Attendance (e.g. 198 / 215 Days)">
+                <input
+                  type="text"
+                  disabled={locked}
+                  placeholder="e.g. 198 / 215 Days"
+                  value={report.attendance || ""}
+                  onChange={(e) =>
+                    update({ ...report, attendance: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Promoted To (e.g. Class VII)">
+                <input
+                  type="text"
+                  disabled={locked}
+                  placeholder="e.g. Class VII (Seven)"
+                  value={report.promotedTo || ""}
+                  onChange={(e) =>
+                    update({ ...report, promotedTo: e.target.value })
+                  }
+                />
+              </Field>
               <p className="hint">
                 Upload signatures in Settings. Student photos are managed in the
                 directory.
@@ -3153,20 +3173,9 @@ function Studio({
               <small>Changes appear as you type</small>
             </div>
             <div className="preview-controls">
-              <div className="side-toggle">
-                <button
-                  className={side === "front" ? "active" : ""}
-                  onClick={() => setSide("front")}
-                >
-                  Front
-                </button>
-                <button
-                  className={side === "back" ? "active" : ""}
-                  onClick={() => setSide("back")}
-                >
-                  Back
-                </button>
-              </div>
+              <span className="single-page-badge" style={{ fontSize: "12px", fontWeight: "600", padding: "4px 10px", borderRadius: "12px", background: "rgba(59, 130, 246, 0.1)", color: "#1d4ed8" }}>
+                Single Page A4
+              </span>
               <select
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
@@ -3183,7 +3192,7 @@ function Studio({
           <Calibration
             user={user}
             report={report}
-            side={side}
+            side="front"
             mapping={calibrationMapping}
             setMapping={setCalibrationMapping}
             enabled={calibration}
@@ -3204,7 +3213,7 @@ function Studio({
                 }}
               >
                 <ReportPage
-                  side={side}
+                  side="front"
                   mapping={calibrationMapping}
                   calibration={calibration}
                   selected={selectedField}
@@ -3218,21 +3227,14 @@ function Studio({
             </div>
           </div>
           <div className="preview-footer">
-            <FileText size={14} /> A4 portrait · 2 pages{" "}
-            <span>Approved artwork · proportional fit with margins</span>
+            <FileText size={14} /> A4 portrait · 1 page{" "}
+            <span>Approved single-page artwork · proportional fit</span>
           </div>
         </section>
       </div>
       <div id="print-area" aria-hidden="true">
         <ReportPage
           side="front"
-          student={student}
-          report={report}
-          config={config}
-          user={user}
-        />
-        <ReportPage
-          side="back"
           student={student}
           report={report}
           config={config}
@@ -6680,18 +6682,16 @@ function BulkReports({ students, config, user, toast }) {
         }}
       />
       <div id="print-area" aria-hidden="true">
-        {records.flatMap((r) =>
-          ["front", "back"].map((side) => (
-            <ReportPage
-              key={r.student._id + side}
-              side={side}
-              student={r.student}
-              report={r.report}
-              config={r.config}
-              user={user}
-            />
-          )),
-        )}
+        {records.map((r) => (
+          <ReportPage
+            key={r.student._id}
+            side="front"
+            student={r.student}
+            report={r.report}
+            config={r.config}
+            user={user}
+          />
+        ))}
       </div>
     </>
   );

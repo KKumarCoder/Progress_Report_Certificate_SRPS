@@ -8,22 +8,56 @@ export const SUBJECTS = [
   { id: "reasoning", name: "REASONING + COM. + GK", icon: "Puzzle" },
 ];
 export const ACTIVITIES = [
+  "ARTS ACTIVITY",
+  "SOCIAL SKILLS",
+  "SCIENTIFIC SKILLS",
+  "CULTURAL ACTIVITY",
+];
+export const LEGACY_ACTIVITIES = [
   "WORK EDUCATION",
   "ART EDUCATION",
   "HEALTH & PHYSICAL EDUCATION",
   "DISCIPLINE",
   "COMPUTER",
 ];
-export const COMPONENTS = [
+export const ALL_ACTIVITIES = [...ACTIVITIES, ...LEGACY_ACTIVITIES];
+export const LEGACY_COMPONENTS = [
   { id: "periodic", label: "Periodic test", max: 10 },
   { id: "notebook", label: "Note books", max: 5 },
   { id: "enrichment", label: "Subject enrichment", max: 5 },
   { id: "exam", label: "Half yearly exam", max: 80 },
 ];
+export const TERM1_COMPONENTS = [
+  { id: "fa1", label: "FA-1", max: 20 },
+  { id: "fa2", label: "FA-2", max: 20 },
+  { id: "sa1", label: "SA-1", max: 100 },
+];
+export const TERM2_COMPONENTS = [
+  { id: "fa3", label: "FA-3", max: 20 },
+  { id: "fa4", label: "FA-4", max: 20 },
+  { id: "sa2", label: "SA-2", max: 100 },
+];
+export const COMPONENTS = [
+  ...TERM1_COMPONENTS,
+  ...TERM2_COMPONENTS,
+  ...LEGACY_COMPONENTS,
+];
+export function getTermComponents(term, config = DEFAULT_CONFIG) {
+  if (config?.termComponents && config.termComponents[term]) {
+    return config.termComponents[term];
+  }
+  if (term === "term1") return TERM1_COMPONENTS;
+  if (term === "term2") return TERM2_COMPONENTS;
+  return config?.components || COMPONENTS;
+}
 export const DEFAULT_CONFIG = {
   session: "2025-26",
   subjects: SUBJECTS,
   components: COMPONENTS,
+  termComponents: {
+    term1: TERM1_COMPONENTS,
+    term2: TERM2_COMPONENTS,
+  },
   activities: ACTIVITIES,
   passMark: 33,
   schoolName: "SHREE RAM PUBLIC SCHOOL",
@@ -38,7 +72,7 @@ export const DEFAULT_CONFIG = {
 };
 export const blankMarks = () => ({ term1: {}, term2: {} });
 export function grade(p) {
-  if (p === null) return "—";
+  if (p === null || p === undefined) return "—";
   const n = Math.round(p);
   return n >= 91
     ? "A1"
@@ -58,6 +92,7 @@ export function grade(p) {
 }
 export function validateMarks(marks, config = DEFAULT_CONFIG) {
   const errors = [];
+  const compLimits = Object.fromEntries(COMPONENTS.map((c) => [c.id, c.max]));
   for (const term of ["term1", "term2"]) {
     const rows = marks?.[term] || {};
     for (const key of Object.keys(rows)) {
@@ -70,14 +105,17 @@ export function validateMarks(marks, config = DEFAULT_CONFIG) {
         errors.push("Invalid marks row");
         continue;
       }
-      for (const key of Object.keys(row))
-        if (!config.components.some((c) => c.id === key))
+      for (const compKey of Object.keys(row)) {
+        if (compLimits[compKey] === undefined) {
           errors.push("Unknown component");
-      for (const c of config.components) {
-        const v = row[c.id];
+        }
+      }
+      for (const [compKey, v] of Object.entries(row)) {
+        const max = compLimits[compKey];
+        if (max === undefined) continue;
         if (v === "" || v === null || v === undefined || v === "AB") continue;
-        if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > c.max)
-          errors.push(`${term}: ${key} ${c.label} must be 0–${c.max}`);
+        if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > max)
+          errors.push(`${term}: ${key} ${compKey} must be 0–${max}`);
       }
     }
   }
@@ -88,20 +126,47 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
   let total = 0,
     complete = true,
     passed = true;
-  const max = config.components.reduce((s, c) => s + c.max, 0);
+  const subjectsMap = {};
+
+  let isLegacy = false;
+  for (const t of ["term1", "term2"]) {
+    const rows = marks?.[t] ? Object.values(marks[t]) : [];
+    for (const r of rows) {
+      if (
+        r &&
+        (r.periodic !== undefined ||
+          r.exam !== undefined ||
+          r.notebook !== undefined ||
+          r.enrichment !== undefined)
+      ) {
+        isLegacy = true;
+        break;
+      }
+    }
+    if (isLegacy) break;
+  }
+
+  const getCompsForTerm = (term) => {
+    if (isLegacy) return LEGACY_COMPONENTS;
+    if (config?.termComponents?.[term]) return config.termComponents[term];
+    return term === "term1" ? TERM1_COMPONENTS : TERM2_COMPONENTS;
+  };
+
   for (const term of ["term1", "term2"]) {
+    const termComps = getCompsForTerm(term);
+    const termMax = termComps.reduce((s, c) => s + c.max, 0);
     terms[term] = config.subjects.map((s) => {
       const row = marks?.[term]?.[s.id] || {};
-      const done = config.components.every(
+      const done = termComps.every(
         (c) =>
           row[c.id] !== "" && row[c.id] !== null && row[c.id] !== undefined,
       );
-      const obtained = config.components.reduce(
+      const obtained = termComps.reduce(
         (sum, c) => sum + (typeof row[c.id] === "number" ? row[c.id] : 0),
         0,
       );
       if (!done) complete = false;
-      const percentage = (obtained / max) * 100;
+      const percentage = termMax > 0 ? (obtained / termMax) * 100 : 0;
       if (done && Math.round(percentage) < config.passMark) passed = false;
       total += obtained;
       return {
@@ -112,9 +177,34 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
       };
     });
   }
-  const maximum = max * config.subjects.length * 2;
+
+  const comps1 = getCompsForTerm("term1");
+  const comps2 = getCompsForTerm("term2");
+  const combinedMaxPerSubject = comps1.reduce((s, c) => s + c.max, 0) + comps2.reduce((s, c) => s + c.max, 0);
+
+  for (const s of config.subjects) {
+    const row1 = marks?.term1?.[s.id] || {};
+    const row2 = marks?.term2?.[s.id] || {};
+    const done1 = comps1.every((c) => row1[c.id] !== "" && row1[c.id] !== null && row1[c.id] !== undefined);
+    const done2 = comps2.every((c) => row2[c.id] !== "" && row2[c.id] !== null && row2[c.id] !== undefined);
+    const subDone = done1 && done2;
+    const obt1 = comps1.reduce((sum, c) => sum + (typeof row1[c.id] === "number" ? row1[c.id] : 0), 0);
+    const obt2 = comps2.reduce((sum, c) => sum + (typeof row2[c.id] === "number" ? row2[c.id] : 0), 0);
+    const subTotal = obt1 + obt2;
+    const total100 = combinedMaxPerSubject > 0 ? Math.round((subTotal / combinedMaxPerSubject) * 100) : 0;
+    if (subDone && total100 < config.passMark) passed = false;
+    subjectsMap[s.id] = {
+      complete: subDone,
+      subTotal,
+      total100,
+      grade: subDone ? grade(total100) : "—",
+    };
+  }
+
+  const maximum = combinedMaxPerSubject * config.subjects.length;
   return {
     terms,
+    subjects: subjectsMap,
     total: Math.round(total * 100) / 100,
     maximum,
     complete,

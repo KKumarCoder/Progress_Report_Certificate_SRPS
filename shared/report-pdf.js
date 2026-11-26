@@ -72,7 +72,7 @@ export async function generateReportPdf(records, loadResource) {
           }),
         });
       }
-    for (const side of ["front", "back"]) {
+    for (const side of Object.keys(mapping.pages)) {
       const spec = mapping.pages[side],
         policy = mapping.policy,
         place = pagePlacement(mapping, side);
@@ -138,11 +138,9 @@ export async function generateReportPdf(records, loadResource) {
         try {
           const qrBytes = await generateQrPngBytes(vUrl);
           const qrImg = await pdf.embedPng(qrBytes);
-          const qrSize = (side === "front" ? 76 : 82) * place.scale;
-          const qrX = px(side === "front" ? 486 : 468);
-          const qrY = py(
-            (side === "front" ? 1276 : 1362) + (side === "front" ? 76 : 82),
-          );
+          const qrSize = 68 * place.scale;
+          const qrX = px(875);
+          const qrY = py(1335 + 68);
           page.drawImage(qrImg, {
             x: qrX,
             y: qrY,

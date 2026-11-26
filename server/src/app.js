@@ -43,6 +43,7 @@ import {
   DEFAULT_SECTIONS,
   DEFAULT_HOUSES,
   DEFAULT_DESIGNATIONS,
+  ALL_ACTIVITIES,
 } from "../../shared/engine.js";
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -358,11 +359,13 @@ app.post(
       !(await bcrypt.compare(String(password || ""), user.passwordHash))
     )
       throw fail(401, "Email or password is incorrect");
-    if (role !== undefined && role !== user.role)
+    if (role !== undefined && role !== user.role) {
+      const properRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
       throw fail(
         403,
-        "This account does not match the selected role. Choose your assigned role.",
+        `This account is registered as ${properRole}. Please select the "${properRole}" tab above.`,
       );
+    }
     const token = randomBytes(32).toString("hex");
     await Session.create({
       tokenHash: digest(token),
@@ -2180,7 +2183,7 @@ app.put(
       throw fail(400, "Invalid activities");
     for (const [k, v] of Object.entries(co)) {
       if (
-        !cfg.activities.includes(k) ||
+        !(cfg.activities.includes(k) || ALL_ACTIVITIES.includes(k)) ||
         !v ||
         typeof v !== "object" ||
         Object.values(v).some((x) => !["", "A", "B", "C"].includes(x)) ||

@@ -313,7 +313,7 @@ test("Save, revision conflict, invalid range, submit and publish", async () => {
       .set(header)
       .send({ studentIds: [String(student._id)], session: "2025-26" });
     assert.equal(batch.status, 200, batch.text);
-    assert.equal((await PDFDocument.load(batch.body)).getPageCount(), 2);
+    assert.equal((await PDFDocument.load(batch.body)).getPageCount(), 1);
   } finally {
     templateMapping.pages.front.fields[0].x = frozenX;
   }

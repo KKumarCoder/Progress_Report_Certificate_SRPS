@@ -14,12 +14,14 @@ export default function Calibration({
   toast,
 }) {
   if (user.role !== "admin" || report.status === "published") return null;
-  const fields = mapping.pages[side].fields,
+  const page = mapping.pages[side] || mapping.pages.front;
+  const fields = page.fields,
     field = fields.find((f) => f.id === selected) || fields[0];
   function change(patch) {
     const next = structuredClone(mapping);
+    const targetPage = next.pages[side] || next.pages.front;
     Object.assign(
-      next.pages[side].fields.find((f) => f.id === field.id),
+      targetPage.fields.find((f) => f.id === field.id),
       patch,
     );
     next.mappingVersion = mapping.mappingVersion.endsWith("-calibrated")

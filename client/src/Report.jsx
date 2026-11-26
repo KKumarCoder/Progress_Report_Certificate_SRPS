@@ -98,8 +98,9 @@ export default function ReportPage(props) {
         <Loader size={80} text="Loading report fonts…" />
       </div>
     );
-  const page = mapping.pages[side],
-    place = pagePlacement(mapping, side);
+  const pageKey = mapping.pages[side] ? side : Object.keys(mapping.pages)[0] || "front";
+  const page = mapping.pages[pageKey],
+    place = pagePlacement(mapping, pageKey);
   let values, elements;
   try {
     values = reportValues(student, report, config, user);
@@ -208,22 +209,18 @@ export default function ReportPage(props) {
             <g data-field="qrVerification">
               <image
                 href={qrDataUrl}
-                x={side === "front" ? 486 : 468}
-                y={side === "front" ? 1276 : 1362}
-                width={side === "front" ? 76 : 82}
-                height={side === "front" ? 76 : 82}
+                x={875}
+                y={1335}
+                width={68}
+                height={68}
                 preserveAspectRatio="xMidYMid meet"
               />
               <text
-                x={(side === "front" ? 486 : 468) + 6}
-                y={
-                  (side === "front" ? 1276 : 1362) +
-                  (side === "front" ? 76 : 82) +
-                  12
-                }
+                x={875}
+                y={1412}
                 fontFamily={mapping.fonts["400"]?.family || "sans-serif"}
-                fontSize="11"
-                fill="#444"
+                fontSize="9"
+                fill="#666"
               >
                 Scan to verify
               </text>

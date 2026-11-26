@@ -199,6 +199,9 @@ export default function Login({ onLogin }) {
             body: { email, password, role },
           });
         } catch (backendErr) {
+          if (backendErr.status === 403 || backendErr.status === 401) {
+            throw backendErr;
+          }
           try {
             const fbCred = await signInWithFirebaseEmail(email, password);
             const idToken = await fbCred.user.getIdToken();
