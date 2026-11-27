@@ -17,6 +17,229 @@ import {
 } from "lucide-react";
 import { calculate, grade } from "../../shared/engine.js";
 
+// ============================================================================
+// Dynamic SVG KPI Diagram Components
+// ============================================================================
+
+function RadialGaugeChart({ value, color1, color2, label, sublabel, id }) {
+  const r = 36;
+  const stroke = 8;
+  const circ = 2 * Math.PI * r;
+  const hasValue = typeof value === "number";
+  const pct = hasValue ? Math.min(100, Math.max(0, value)) : 0;
+  const strokeDashoffset = circ - (pct / 100) * circ;
+
+  return (
+    <div className="kpi-diagram-container">
+      <div className="kpi-diagram-wrapper">
+        <svg height="92" width="92" viewBox="0 0 92 92" className="kpi-radial-svg">
+          <defs>
+            <linearGradient id={`radial-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={color1} />
+              <stop offset="100%" stopColor={color2} />
+            </linearGradient>
+          </defs>
+          {/* Background track */}
+          <circle
+            cx="46"
+            cy="46"
+            r={r}
+            fill="transparent"
+            stroke="var(--gauge-track, #e2e8f0)"
+            strokeWidth={stroke}
+            className="gauge-bg-track"
+          />
+          {/* Active progress arc */}
+          {hasValue && pct > 0 ? (
+            <circle
+              cx="46"
+              cy="46"
+              r={r}
+              fill="transparent"
+              stroke={`url(#radial-grad-${id})`}
+              strokeWidth={stroke}
+              strokeDasharray={`${circ} ${circ}`}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              transform="rotate(-90 46 46)"
+              style={{ transition: "stroke-dashoffset 0.8s ease" }}
+            />
+          ) : (
+            <circle
+              cx="46"
+              cy="46"
+              r={r}
+              fill="transparent"
+              stroke="var(--gauge-track, #cbd5e1)"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+          )}
+        </svg>
+        <div className="kpi-radial-center">
+          <span className="kpi-radial-val" style={{ color: color1 }}>
+            {hasValue ? `${value}%` : "—"}
+          </span>
+          <small className="kpi-radial-label">{hasValue ? "Score" : "Pending"}</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MomentumWaveChart({ delta }) {
+  const isEvaluated = typeof delta === "number";
+  const isUp = isEvaluated && delta > 0;
+  const isDown = isEvaluated && delta < 0;
+
+  const strokeColor = !isEvaluated
+    ? "#94a3b8"
+    : isUp
+      ? "#10b981"
+      : isDown
+        ? "#ef4444"
+        : "#6366f1";
+
+  // Dynamic SVG curve coordinates
+  const pathD = !isEvaluated
+    ? "M 8 46 Q 44 46 66 46 T 122 46"
+    : isUp
+      ? "M 8 68 Q 38 64 64 42 T 122 16"
+      : isDown
+        ? "M 8 18 Q 38 28 64 50 T 122 72"
+        : "M 8 46 Q 44 46 66 46 T 122 46";
+
+  const areaD = !isEvaluated
+    ? "M 8 46 Q 44 46 66 46 T 122 46 L 122 84 L 8 84 Z"
+    : isUp
+      ? "M 8 68 Q 38 64 64 42 T 122 16 L 122 84 L 8 84 Z"
+      : isDown
+        ? "M 8 18 Q 38 28 64 50 T 122 72 L 122 84 L 8 84 Z"
+        : "M 8 46 Q 44 46 66 46 T 122 46 L 122 84 L 8 84 Z";
+
+  return (
+    <div className="kpi-diagram-container">
+      <div className="kpi-diagram-wrapper momentum-wrapper">
+        <svg height="92" width="130" viewBox="0 0 130 92" className="kpi-wave-svg">
+          <defs>
+            <linearGradient id="momentum-gradient-fill" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+          {/* Subtle baseline grid */}
+          <line x1="8" y1="46" x2="122" y2="46" stroke="var(--gauge-track, #e2e8f0)" strokeWidth="1" strokeDasharray="3 3" />
+          {/* Area fill */}
+          <path d={areaD} fill="url(#momentum-gradient-fill)" />
+          {/* Wave line */}
+          <path
+            d={pathD}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeDasharray={!isEvaluated ? "4 4" : "none"}
+          />
+          {/* Focus indicator node */}
+          <circle
+            cx="122"
+            cy={!isEvaluated ? 46 : isUp ? 16 : isDown ? 72 : 46}
+            r="4.5"
+            fill={strokeColor}
+          />
+        </svg>
+        <div className="kpi-radial-center momentum-center">
+          <span className="kpi-radial-val" style={{ color: strokeColor }}>
+            {isEvaluated ? `${delta > 0 ? "+" : ""}${delta}%` : "Awaiting T2"}
+          </span>
+          <small className="kpi-radial-label">
+            {!isEvaluated ? "Pending" : isUp ? "Upward ↗" : isDown ? "Focus ↘" : "Steady →"}
+          </small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniDonutChart({ improved, maintained, declined, pending, total }) {
+  const r = 35;
+  const stroke = 8;
+  const circ = 2 * Math.PI * r;
+
+  const slices = [
+    { count: improved, color: "#10b981", label: "Improved" },
+    { count: maintained, color: "#6366f1", label: "Steady" },
+    { count: declined, color: "#ef4444", label: "Needs Focus" },
+    { count: pending, color: "#94a3b8", label: "Pending" },
+  ];
+
+  const safeTotal = total > 0 ? total : 1;
+  let accumulated = 0;
+
+  return (
+    <div className="kpi-diagram-container">
+      <div className="kpi-diagram-wrapper">
+        <svg height="92" width="92" viewBox="0 0 92 92" className="kpi-radial-svg">
+          <circle
+            cx="46"
+            cy="46"
+            r={r}
+            fill="transparent"
+            stroke="var(--gauge-track, #e2e8f0)"
+            strokeWidth={stroke}
+            className="gauge-bg-track"
+          />
+          {total === 0 ? (
+            <circle
+              cx="46"
+              cy="46"
+              r={r}
+              fill="transparent"
+              stroke="var(--gauge-track, #cbd5e1)"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+          ) : (
+            slices.map((s, idx) => {
+              if (s.count <= 0) return null;
+              const share = s.count / safeTotal;
+              const dashLength = share * circ;
+              const offset = -accumulated * circ;
+              accumulated += share;
+
+              return (
+                <circle
+                  key={idx}
+                  cx="46"
+                  cy="46"
+                  r={r}
+                  fill="transparent"
+                  stroke={s.color}
+                  strokeWidth={stroke}
+                  strokeDasharray={`${dashLength.toFixed(2)} ${circ.toFixed(2)}`}
+                  strokeDashoffset={offset.toFixed(2)}
+                  transform="rotate(-90 46 46)"
+                  style={{ transition: "all 0.6s ease" }}
+                />
+              );
+            })
+          )}
+        </svg>
+        <div className="kpi-radial-center">
+          <span className="kpi-radial-val" style={{ color: "#0f172a" }}>
+            {total}
+          </span>
+          <small className="kpi-radial-label">Subjects</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main GrowthChart Component
+// ============================================================================
+
 export default function GrowthChart({ report, config, student }) {
   if (!report || !config) return null;
 
@@ -52,7 +275,6 @@ export default function GrowthChart({ report, config, student }) {
       status = "t1_only";
     }
 
-    // Effective percentage for mastery pie chart (prefer T2, then T1)
     const effectivePct = t2Pct !== null ? t2Pct : t1Pct;
 
     return {
@@ -96,6 +318,7 @@ export default function GrowthChart({ report, config, student }) {
   const improvedSubjects = compared.filter((s) => s.deltaMarks > 0);
   const declinedSubjects = compared.filter((s) => s.deltaMarks < 0);
   const maintainedSubjects = compared.filter((s) => s.deltaMarks === 0);
+  const pendingSubjectsCount = subjects.length - compared.length;
 
   const topImprovement = [...improvedSubjects].sort(
     (a, b) => b.deltaMarks - a.deltaMarks,
@@ -104,30 +327,25 @@ export default function GrowthChart({ report, config, student }) {
     (a, b) => a.deltaMarks - b.deltaMarks,
   )[0];
 
-  // Strongest subject overall
   const evaluatedSubjects = subjects.filter((s) => s.effectivePct !== null);
   const highestScoring = [...evaluatedSubjects].sort(
     (a, b) => (b.effectivePct || 0) - (a.effectivePct || 0),
   )[0];
 
-  // ==========================================
   // Dynamic Pie / Donut Chart Slices
-  // ==========================================
   const masteryCategories = [
     {
       id: "distinction",
       label: "A Grade (Distinction 81–100%)",
       shortLabel: "A Grade (81–100%)",
-      color: "#10b981", // Emerald Green
-      darkColor: "#34d399",
+      color: "#10b981",
       subjects: evaluatedSubjects.filter((s) => s.effectivePct >= 81),
     },
     {
       id: "proficient",
       label: "B Grade (Proficient 61–80%)",
       shortLabel: "B Grade (61–80%)",
-      color: "#3b82f6", // Royal Blue
-      darkColor: "#60a5fa",
+      color: "#3b82f6",
       subjects: evaluatedSubjects.filter(
         (s) => s.effectivePct >= 61 && s.effectivePct < 81,
       ),
@@ -136,8 +354,7 @@ export default function GrowthChart({ report, config, student }) {
       id: "progressing",
       label: "C Grade (Progressing 41–60%)",
       shortLabel: "C Grade (41–60%)",
-      color: "#f59e0b", // Amber / Warm Gold
-      darkColor: "#fbbf24",
+      color: "#f59e0b",
       subjects: evaluatedSubjects.filter(
         (s) => s.effectivePct >= 41 && s.effectivePct < 61,
       ),
@@ -146,8 +363,7 @@ export default function GrowthChart({ report, config, student }) {
       id: "focus",
       label: "D & Below (Needs Focus ≤40%)",
       shortLabel: "D & Below (≤40%)",
-      color: "#ef4444", // Rose / Coral
-      darkColor: "#f87171",
+      color: "#ef4444",
       subjects: evaluatedSubjects.filter((s) => s.effectivePct < 41),
     },
   ];
@@ -177,7 +393,7 @@ export default function GrowthChart({ report, config, student }) {
 
   return (
     <div className="growth-chart-container">
-      {/* Header with vibrant accent & view toggle */}
+      {/* Top Header */}
       <div className="growth-header">
         <div className="growth-title-row">
           <div className="growth-badge-icon">
@@ -220,49 +436,61 @@ export default function GrowthChart({ report, config, student }) {
         </div>
       </div>
 
-      {/* 4 Modern Colorful KPI Metric Cards */}
+      {/* 4 Dynamic SVG Chart Diagram KPI Cards (Balanced 4-Column / 2x2 Grid) */}
       <div className="growth-kpi-grid">
-        {/* Card 1: Term 1 Average */}
+        {/* Card 1: Term 1 Radial Progress Diagram */}
         <div className="growth-kpi-card kpi-card-cyan">
           <div className="kpi-header-row">
             <small>TERM 1 AVERAGE</small>
             <span className="kpi-term-badge t1-badge">Term I</span>
           </div>
-          <strong className="kpi-number text-cyan">
-            {t1OverallPct !== null ? `${t1OverallPct}%` : "—"}
-          </strong>
-          <span>
-            {t1Assessed.length}/{subjects.length} subjects assessed
-          </span>
-          <div className="kpi-progress-bar">
-            <div
-              className="kpi-progress-fill bg-cyan"
-              style={{ width: `${t1OverallPct || 0}%` }}
-            />
+          <RadialGaugeChart
+            value={t1OverallPct}
+            color1="#0284c7"
+            color2="#38bdf8"
+            label="Term I"
+            id="t1"
+          />
+          <div className="kpi-footer-row">
+            <span>
+              <strong>{t1Assessed.length}</strong> of {subjects.length} subjects assessed
+            </span>
+            <div className="kpi-progress-bar">
+              <div
+                className="kpi-progress-fill bg-cyan"
+                style={{ width: `${t1OverallPct || 0}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Card 2: Term 2 Average */}
+        {/* Card 2: Term 2 Radial Progress Diagram */}
         <div className="growth-kpi-card kpi-card-purple">
           <div className="kpi-header-row">
             <small>TERM 2 AVERAGE</small>
             <span className="kpi-term-badge t2-badge">Term II</span>
           </div>
-          <strong className="kpi-number text-purple">
-            {t2OverallPct !== null ? `${t2OverallPct}%` : "—"}
-          </strong>
-          <span>
-            {t2Assessed.length}/{subjects.length} subjects assessed
-          </span>
-          <div className="kpi-progress-bar">
-            <div
-              className="kpi-progress-fill bg-purple"
-              style={{ width: `${t2OverallPct || 0}%` }}
-            />
+          <RadialGaugeChart
+            value={t2OverallPct}
+            color1="#7c3aed"
+            color2="#c084fc"
+            label="Term II"
+            id="t2"
+          />
+          <div className="kpi-footer-row">
+            <span>
+              <strong>{t2Assessed.length}</strong> of {subjects.length} subjects assessed
+            </span>
+            <div className="kpi-progress-bar">
+              <div
+                className="kpi-progress-fill bg-purple"
+                style={{ width: `${t2OverallPct || 0}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Card 3: Overall Trajectory / Momentum */}
+        {/* Card 3: Dynamic Growth Trajectory Wave Chart */}
         <div
           className={`growth-kpi-card kpi-card-momentum ${
             overallDeltaPct === null
@@ -287,55 +515,48 @@ export default function GrowthChart({ report, config, student }) {
               </span>
             )}
           </div>
-          <div className="kpi-value-row">
-            {overallDeltaPct !== null && overallDeltaPct > 0 && (
-              <TrendingUp size={26} className="text-emerald animate-pulse" />
-            )}
-            {overallDeltaPct !== null && overallDeltaPct < 0 && (
-              <TrendingDown size={26} className="text-rose" />
-            )}
-            {overallDeltaPct !== null && overallDeltaPct === 0 && (
-              <Minus size={26} className="text-slate" />
-            )}
-            <strong className="kpi-number">
+          <MomentumWaveChart delta={overallDeltaPct} />
+          <div className="kpi-footer-row">
+            <span>
               {overallDeltaPct !== null
-                ? `${overallDeltaPct > 0 ? "+" : ""}${overallDeltaPct}%`
-                : "Awaiting T2"}
-            </strong>
+                ? overallDeltaPct > 0
+                  ? "Steady upward momentum across terms"
+                  : overallDeltaPct < 0
+                    ? "Requires reinforcement in Term 2"
+                    : "Consistent academic progress maintained"
+                : "Enter Term 2 marks to compare"}
+            </span>
           </div>
-          <span>
-            {overallDeltaPct !== null
-              ? overallDeltaPct > 0
-                ? "Demonstrating steady academic growth"
-                : overallDeltaPct < 0
-                  ? "Requires targeted revision in Term 2"
-                  : "Consistent performance maintained"
-              : "Enter Term 2 marks to compare"}
-          </span>
         </div>
 
-        {/* Card 4: Subject Trends Breakdown */}
+        {/* Card 4: Subject Performance Donut Chart */}
         <div className="growth-kpi-card kpi-card-amber">
           <div className="kpi-header-row">
             <small>SUBJECT TRENDS</small>
-            <span className="kpi-term-badge t-amber">Performance</span>
+            <span className="kpi-term-badge t-amber">Distribution</span>
           </div>
-          <div className="growth-trend-chips">
-            <span className="chip-green">
-              <TrendingUp size={13} /> {improvedSubjects.length} Improved
-            </span>
-            <span className="chip-red">
-              <TrendingDown size={13} /> {declinedSubjects.length} Needs Focus
-            </span>
-            {maintainedSubjects.length > 0 && (
-              <span className="chip-neutral">
-                <Minus size={13} /> {maintainedSubjects.length} Steady
+          <MiniDonutChart
+            improved={improvedSubjects.length}
+            maintained={maintainedSubjects.length}
+            declined={declinedSubjects.length}
+            pending={pendingSubjectsCount}
+            total={subjects.length}
+          />
+          <div className="kpi-footer-row">
+            <div className="growth-trend-chips">
+              <span className="chip-green">
+                <TrendingUp size={11} /> {improvedSubjects.length} Up
               </span>
-            )}
+              <span className="chip-red">
+                <TrendingDown size={11} /> {declinedSubjects.length} Focus
+              </span>
+              {maintainedSubjects.length > 0 && (
+                <span className="chip-neutral">
+                  <Minus size={11} /> {maintainedSubjects.length} Steady
+                </span>
+              )}
+            </div>
           </div>
-          <span style={{ marginTop: "4px" }}>
-            {compared.length}/{subjects.length} subjects compared across terms
-          </span>
         </div>
       </div>
 
