@@ -23,15 +23,15 @@
     "front": {
       "width": 1054,
       "height": 1492,
-      "artwork": "/templates/v1/single-01e47bcbb3b9.png",
-      "sha256": "01e47bcbb3b95f570a7ae402feb3c78aa5a95bfbb0f7b1f07cdf7d6603726645",
+      "artwork": "/templates/v1/single-73ed25ad8349.png",
+      "sha256": "73ed25ad8349271524233bc15eac0de112c52cd5c8425b018dbf3c5bbf949abd",
       "fields": [
         {
           "id": "name",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 312,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 17,
@@ -46,9 +46,9 @@
         {
           "id": "classSection",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 350,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 17,
@@ -63,9 +63,9 @@
         {
           "id": "dob",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 388,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 16,
@@ -80,9 +80,9 @@
         {
           "id": "fatherName",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 426,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 16,
@@ -97,9 +97,9 @@
         {
           "id": "admissionNo",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 464,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 16,
@@ -114,9 +114,9 @@
         {
           "id": "house",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 502,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 16,
@@ -131,9 +131,9 @@
         {
           "id": "motherName",
           "type": "text",
-          "x": 230,
+          "x": 250,
           "y": 540,
-          "width": 530,
+          "width": 510,
           "height": 28,
           "font": "700",
           "fontSize": 16,
@@ -1347,19 +1347,19 @@
         {
           "id": "teacherSignature",
           "type": "image",
-          "x": 65,
-          "y": 1320,
+          "x": 80,
+          "y": 1338,
           "width": 210,
-          "height": 55,
+          "height": 58,
           "fit": "contain"
         },
         {
           "id": "principalSignature",
           "type": "image",
-          "x": 590,
-          "y": 1320,
-          "width": 210,
-          "height": 55,
+          "x": 605,
+          "y": 1338,
+          "width": 205,
+          "height": 58,
           "fit": "contain"
         }
       ]
