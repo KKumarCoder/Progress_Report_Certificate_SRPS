@@ -780,3 +780,28 @@ test("email password reset is private, expiring, single-use and revokes sessions
   delete process.env.SMTP_HOST;
   assert.equal((await forgot(u.email)).status, 503);
 });
+
+test("Admin can update class subject profiles even when class has assessment records", async () => {
+  // student in class 6 already has report created from earlier tests
+  const reportExists = await Report.exists({ student: student._id });
+  assert.ok(reportExists, "Assessment record must exist for this class");
+
+  const newSubjects = [
+    { id: "english", name: "ENGLISH" },
+    { id: "hindi", name: "HINDI" },
+    { id: "mathematics", name: "MATHEMATICS" },
+    { id: "evs", name: "EVS" },
+    { id: "reasoning_gk", name: "REASONING + GK" },
+  ];
+  const res = await admin
+    .put("/api/config")
+    .set(header)
+    .send({
+      profiles: {
+        "6": newSubjects,
+      },
+    });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.profiles["6"], newSubjects);
+});
+

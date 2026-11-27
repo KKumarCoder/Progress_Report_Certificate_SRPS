@@ -1213,23 +1213,6 @@ app.put(
           new Set(subjects.map((x) => x.id)).size !== subjects.length
         )
           throw fail(400, "Use 1–12 uniquely named subjects per class");
-        if (
-          JSON.stringify(old.profiles?.[cls] || old.subjects) !==
-          JSON.stringify(subjects)
-        ) {
-          const students = await Student.find({ className: cls }).select("_id");
-          if (
-            await Report.exists({
-              student: { $in: students.map((s) => s._id) },
-            })
-          )
-            throw fail(
-              409,
-              "Class " +
-                cls +
-                " already has assessment records. Preserve its subject profile.",
-            );
-        }
       }
       value.profiles = profiles;
     }
