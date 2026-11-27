@@ -2328,12 +2328,26 @@ nav button.active .nav-icon-badge.color-slate,
 }
 .co-editor .data-table th,
 .co-editor .data-table td {
-  padding: 12px 5px;
-  font-size: 9px;
+  padding: 12px 10px;
+  font-size: 11px;
 }
 .co-editor select {
-  padding: 6px;
-  font-size: 11px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  cursor: pointer;
+  text-align: center;
+  min-width: 72px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.co-editor select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
 }
 .details-editor dl {
   margin: 20px 0;
@@ -14810,6 +14824,126 @@ body[data-theme="dark"],
 .dark-theme .bar-score,
 [data-theme="dark"] .bar-score {
   color: #cbd5e1 !important;
+}
+
+/* Co-Scholastic & Editor Bottom in Dark Theme */
+.dark-theme .co-editor,
+[data-theme="dark"] .co-editor {
+  background: #111b33 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .co-editor h3,
+[data-theme="dark"] .co-editor h3 {
+  color: #f8fafc !important;
+}
+
+.dark-theme .co-editor > p,
+[data-theme="dark"] .co-editor > p {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .co-editor .data-table,
+[data-theme="dark"] .co-editor .data-table {
+  background: transparent !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .co-editor .data-table th,
+[data-theme="dark"] .co-editor .data-table th {
+  background: #090e1a !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #1e293b !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+}
+
+.dark-theme .co-editor .data-table td,
+[data-theme="dark"] .co-editor .data-table td {
+  color: #f8fafc !important;
+  border-bottom: 1px solid #1e293b !important;
+  background: transparent !important;
+}
+
+.dark-theme .co-editor .data-table tr:hover td,
+[data-theme="dark"] .co-editor .data-table tr:hover td {
+  background: rgba(30, 41, 59, 0.45) !important;
+}
+
+.dark-theme .co-editor select,
+[data-theme="dark"] .co-editor select {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #38bdf8 !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark-theme .co-editor select:focus,
+[data-theme="dark"] .co-editor select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+.dark-theme .co-editor select option,
+[data-theme="dark"] .co-editor select option {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .editor-bottom,
+[data-theme="dark"] .editor-bottom {
+  background: #0d162b !important;
+  border-top: 1px solid #1e293b !important;
+}
+
+.dark-theme .entry-summary,
+[data-theme="dark"] .entry-summary {
+  color: #f8fafc !important;
+}
+
+.dark-theme .entry-summary small,
+[data-theme="dark"] .entry-summary small {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .entry-summary strong,
+[data-theme="dark"] .entry-summary strong {
+  color: #f8fafc !important;
+}
+
+.dark-theme .entry-summary strong span,
+[data-theme="dark"] .entry-summary strong span {
+  color: #64748b !important;
+}
+
+.dark-theme .result-chip,
+[data-theme="dark"] .result-chip {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark-theme .result-chip.pass,
+[data-theme="dark"] .result-chip.pass {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+.dark-theme .editor-bottom > .btn,
+[data-theme="dark"] .editor-bottom > .btn {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+}
+
+.dark-theme .editor-bottom > .btn:hover,
+[data-theme="dark"] .editor-bottom > .btn:hover {
+  background: #1d4ed8 !important;
 }
 
 /* Users & Access in Dark Theme */

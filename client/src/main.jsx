@@ -2944,7 +2944,7 @@ function Studio({
           {tab === "co" && (
             <div className="co-editor">
               <h3>Learning beyond academics</h3>
-              <p>A · B · C grading scale</p>
+              <p>A+ · A · B+ · B · C grading scale</p>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -2976,8 +2976,8 @@ function Studio({
                             }
                           >
                             <option value="">—</option>
-                            {["A", "B", "C"].map((g) => (
-                              <option key={g}>{g}</option>
+                            {["A+", "A", "B+", "B", "C"].map((g) => (
+                              <option key={g} value={g}>{g}</option>
                             ))}
                           </select>
                         </td>
@@ -6577,7 +6577,7 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                   <Award size={18} />
                   <span>Co-Scholastic Indicator Topics</span>
                 </h3>
-                <p>Define topics for Part B (Co-Scholastic Activities, A · B · C grading scale).</p>
+                <p>Define topics for Part B (Co-Scholastic Activities, A+ · A · B+ · B · C grading scale).</p>
               </div>
             </div>
 

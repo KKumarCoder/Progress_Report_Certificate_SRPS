@@ -2185,10 +2185,10 @@ app.put(
         !(cfg.activities.includes(k) || ALL_ACTIVITIES.includes(k)) ||
         !v ||
         typeof v !== "object" ||
-        Object.values(v).some((x) => !["", "A", "B", "C"].includes(x)) ||
+        Object.values(v).some((x) => !["", "A+", "A", "B+", "B", "C", "C+", "D"].includes(x)) ||
         Object.keys(v).some((k) => !["term1", "term2"].includes(k))
       )
-        throw fail(400, "Activity grades must be A, B or C");
+        throw fail(400, "Activity grades must be A+, A, B+, B, or C");
     }
     if (!Number.isInteger(revision)) throw fail(400, "Revision is required");
     let r = await Report.findOne({ student: req.params.studentId, session });
@@ -2253,7 +2253,7 @@ app.post(
         !calculate(r.marks, cfg).complete ||
         !cfg.activities.every((a) =>
           ["term1", "term2"].every((t) =>
-            ["A", "B", "C"].includes(r.co?.[a]?.[t]),
+            ["A+", "A", "B+", "B", "C", "C+", "D"].includes(r.co?.[a]?.[t]),
           ),
         )
       )
