@@ -746,8 +746,8 @@ nav button.active .nav-icon-badge.color-slate,
 .sidebar.collapsed .nav-dot,
 .sidebar.collapsed .sidebar-note,
 .sidebar.collapsed .company-brand,
-.sidebar.collapsed .user-card > div,
-.sidebar.collapsed .user-card > svg {
+.sidebar.collapsed .user-card .user-details,
+.sidebar.collapsed .user-card .avatar {
   display: none !important;
 }
 .sidebar.collapsed .sidebar-brand-header {
@@ -818,8 +818,35 @@ nav button.active .nav-icon-badge.color-slate,
   width: 100%;
 }
 .sidebar.collapsed .user-card {
-  justify-content: center;
-  padding: 10px 0 4px;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 8px 0 !important;
+  width: 100% !important;
+  background: transparent !important;
+  border-top: 1px solid var(--line, #e2e8f0) !important;
+  margin-top: 6px !important;
+  cursor: pointer !important;
+}
+.sidebar.collapsed .user-card .logout-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: rgba(225, 29, 72, 0.1) !important;
+  color: #e11d48 !important;
+  border: 1px solid rgba(225, 29, 72, 0.22) !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 4px rgba(225, 29, 72, 0.12) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.sidebar.collapsed .user-card:hover .logout-badge {
+  background: rgba(225, 29, 72, 0.22) !important;
+  color: #be123c !important;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.32) !important;
+  transform: scale(1.1) !important;
 }
 .sidebar.collapsed .nav-sub-menu {
   position: absolute;
@@ -1011,19 +1038,26 @@ nav button.active .nav-icon-badge.color-slate,
   display: flex;
   align-items: center;
   gap: 10px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line, #e2e8f0);
   background: #ffffff;
-  padding: 14px 6px 4px;
+  padding: 12px 10px;
   text-align: left;
   color: #1e293b;
-  border-radius: 10px;
-  transition: background 0.15s ease;
+  border-radius: 12px;
+  transition: all 0.18s ease;
+  width: 100%;
+  cursor: pointer;
+  margin-top: auto;
 }
 .user-card:hover {
-  background: #f8fafc;
+  background: #f1f5f9;
+}
+.user-card .user-details {
+  flex: 1;
+  min-width: 0;
 }
 .user-card b {
-  font-size: 11.5px;
+  font-size: 12px;
   display: block;
   max-width: 130px;
   color: #0f172a;
@@ -1033,16 +1067,32 @@ nav button.active .nav-icon-badge.color-slate,
   text-overflow: ellipsis;
 }
 .user-card small {
-  font-size: 9.5px;
+  font-size: 10px;
   color: #64748b;
   display: block;
   text-transform: capitalize;
-  margin-top: 3px;
+  margin-top: 2px;
   font-weight: 600;
 }
-.user-card > svg {
+.user-card .logout-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(225, 29, 72, 0.08);
+  color: #e11d48;
+  border: 1px solid rgba(225, 29, 72, 0.18);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
   margin-left: auto;
-  color: #94a3b8;
+}
+.user-card:hover .logout-badge {
+  background: rgba(225, 29, 72, 0.18);
+  color: #be123c;
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25);
 }
 .avatar,
 .top-avatar {
@@ -3924,8 +3974,8 @@ nav button.active .nav-icon-badge.color-slate,
   .sidebar:not(.expanded) .nav-dot,
   .sidebar:not(.expanded) .sidebar-note,
   .sidebar:not(.expanded) .company-brand,
-  .sidebar:not(.expanded) .user-card > div,
-  .sidebar:not(.expanded) .user-card > svg {
+  .sidebar:not(.expanded) .user-card .user-details,
+  .sidebar:not(.expanded) .user-card .avatar {
     display: none !important;
   }
   .sidebar:not(.expanded) .sidebar-brand-header {
@@ -3995,8 +4045,34 @@ nav button.active .nav-icon-badge.color-slate,
     width: 100% !important;
   }
   .sidebar:not(.expanded) .user-card {
+    display: flex !important;
     justify-content: center !important;
-    padding: 10px 0 !important;
+    align-items: center !important;
+    padding: 8px 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+    border-top: 1px solid var(--line, #e2e8f0) !important;
+    margin-top: 6px !important;
+  }
+  .sidebar:not(.expanded) .user-card .logout-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    background: rgba(225, 29, 72, 0.1) !important;
+    color: #e11d48 !important;
+    border: 1px solid rgba(225, 29, 72, 0.22) !important;
+    margin: 0 !important;
+    box-shadow: 0 1px 4px rgba(225, 29, 72, 0.12) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .sidebar:not(.expanded) .user-card:hover .logout-badge {
+    background: rgba(225, 29, 72, 0.22) !important;
+    color: #be123c !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.32) !important;
+    transform: scale(1.1) !important;
   }
   .sidebar:not(.expanded) .nav-sub-menu {
     position: absolute !important;
@@ -14944,6 +15020,44 @@ body[data-theme="dark"],
 .dark-theme .editor-bottom > .btn:hover,
 [data-theme="dark"] .editor-bottom > .btn:hover {
   background: #1d4ed8 !important;
+}
+
+/* User Card & Logout in Dark Theme */
+.dark-theme .user-card,
+[data-theme="dark"] .user-card {
+  background: #0d162b !important;
+  border-top-color: #1e293b !important;
+}
+.dark-theme .user-card:hover,
+[data-theme="dark"] .user-card:hover {
+  background: #141f38 !important;
+}
+.dark-theme .user-card b,
+[data-theme="dark"] .user-card b {
+  color: #f8fafc !important;
+}
+.dark-theme .user-card small,
+[data-theme="dark"] .user-card small {
+  color: #94a3b8 !important;
+}
+.dark-theme .user-card .logout-badge,
+[data-theme="dark"] .user-card .logout-badge {
+  background: rgba(225, 29, 72, 0.15) !important;
+  color: #fb7185 !important;
+  border-color: rgba(225, 29, 72, 0.3) !important;
+}
+.dark-theme .user-card:hover .logout-badge,
+[data-theme="dark"] .user-card:hover .logout-badge {
+  background: rgba(225, 29, 72, 0.28) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.45) !important;
+}
+.dark-theme .sidebar.collapsed .user-card,
+[data-theme="dark"] .sidebar.collapsed .user-card,
+.dark-theme .sidebar:not(.expanded) .user-card,
+[data-theme="dark"] .sidebar:not(.expanded) .user-card {
+  background: transparent !important;
+  border-top-color: #1e293b !important;
 }
 
 /* Users & Access in Dark Theme */

@@ -774,7 +774,12 @@ function App() {
           <span className="gold-rule" />
         </div>
         <CompanyBrand />
-        <button className="user-card" onClick={logout} title={`${user.name} (${user.designation || user.role}) - Click to logout`}>
+        <button
+          className="user-card"
+          onClick={logout}
+          title={`${user.name} (${user.designation || user.role}) — Click to logout`}
+          aria-label="Logout"
+        >
           <div className="avatar">
             {user.photo ? (
               <img
@@ -786,11 +791,13 @@ function App() {
               user.name?.slice(0, 1)
             )}
           </div>
-          <div>
+          <div className="user-details">
             <b>{user.name}</b>
             <small>{user.designation || user.role} account</small>
           </div>
-          <LogOut size={17} />
+          <span className="logout-badge" title="Logout">
+            <LogOut size={17} />
+          </span>
         </button>
       </aside>
       {sidebar && typeof window !== "undefined" && window.innerWidth <= 768 && (
