@@ -15274,34 +15274,418 @@ body[data-theme="dark"],
   color: #f8fafc !important;
 }
 
-/* Report Drive & 2FA */
+/* ==========================================================================
+   Report Drive & 2FA Admin Security - Dark Theme
+   ========================================================================== */
 .dark-theme .report-drive-shell,
-.dark-theme .drive-topbar {
-  background: #0c1427;
-  border-color: #1e293b;
+[data-theme="dark"] .report-drive-shell {
+  background: #0b1324 !important;
+  border-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dark-theme .drive-topbar,
+[data-theme="dark"] .drive-topbar {
+  background: #0d1629 !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .drive-brand,
+[data-theme="dark"] .drive-brand {
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-brand-mark,
+[data-theme="dark"] .drive-brand-mark {
+  background: #172554 !important;
+  color: #38bdf8 !important;
+}
+
+.dark-theme .drive-search,
+[data-theme="dark"] .drive-search {
+  background: #080e1a !important;
+  border-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-search input,
+[data-theme="dark"] .drive-search input {
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-search input::placeholder,
+[data-theme="dark"] .drive-search input::placeholder {
+  color: #64748b !important;
+}
+
+.dark-theme .drive-search:focus-within,
+[data-theme="dark"] .drive-search:focus-within {
+  border-color: #0284c7 !important;
+  background: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
+}
+
+.dark-theme .drive-lock-button,
+[data-theme="dark"] .drive-lock-button {
+  background: #141f36 !important;
+  border-color: #243452 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .drive-lock-button:hover,
+[data-theme="dark"] .drive-lock-button:hover {
+  background: #1e2e4e !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+}
+
+.dark-theme .drive-profile,
+[data-theme="dark"] .drive-profile {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #38bdf8 !important;
+}
+
+/* 2FA Auth Stage (Fix for stark white background in dark mode) */
+.dark-theme .drive-auth-stage,
+[data-theme="dark"] .drive-auth-stage {
+  background: #070d1a !important;
 }
 
 .dark-theme .drive-lock-card,
-.dark-theme .drive-card {
-  background: #111b33;
-  border-color: #1e293b;
-  color: #cbd5e1;
+[data-theme="dark"] .drive-lock-card {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
 }
 
-.dark-theme .drive-search {
-  background: #090e1a;
-  border-color: #293854;
-  color: #f8fafc;
+.dark-theme .drive-shield-pill,
+[data-theme="dark"] .drive-shield-pill {
+  background: rgba(37, 99, 235, 0.15) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  color: #38bdf8 !important;
 }
 
-.dark-theme .drive-search input {
-  color: #f8fafc;
+.dark-theme .drive-lock-header h2,
+[data-theme="dark"] .drive-lock-header h2 {
+  color: #f8fafc !important;
 }
 
-.dark-theme .drive-otp-box {
-  background: #090e1a;
-  border-color: #293854;
-  color: #f8fafc;
+.dark-theme .drive-lock-desc,
+[data-theme="dark"] .drive-lock-desc {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-security-infobox,
+[data-theme="dark"] .drive-security-infobox {
+  background: #080e1c !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .security-info-item,
+[data-theme="dark"] .security-info-item {
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .security-info-item b,
+[data-theme="dark"] .security-info-item b {
+  color: #f8fafc !important;
+}
+
+.dark-theme .security-info-item svg,
+[data-theme="dark"] .security-info-item svg {
+  color: #38bdf8 !important;
+}
+
+.dark-theme .drive-otp-input-wrapper input,
+[data-theme="dark"] .drive-otp-input-wrapper input {
+  background: #080e1c !important;
+  border-color: #243452 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-otp-input-wrapper input:focus,
+[data-theme="dark"] .drive-otp-input-wrapper input:focus {
+  background: #0b1324 !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.3) !important;
+}
+
+.dark-theme .drive-lock-form label,
+[data-theme="dark"] .drive-lock-form label {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .btn-drive-text,
+[data-theme="dark"] .btn-drive-text {
+  color: #38bdf8 !important;
+}
+
+.dark-theme .dot-divider,
+[data-theme="dark"] .dot-divider {
+  color: #475569 !important;
+}
+
+.dark-theme .drive-error-pill,
+[data-theme="dark"] .drive-error-pill {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #f87171 !important;
+}
+
+/* Drive Workspace & Content Navigation (Unlocked) */
+.dark-theme .drive-workspace,
+[data-theme="dark"] .drive-workspace {
+  background: #070d1a !important;
+}
+
+.dark-theme .drive-sidebar,
+[data-theme="dark"] .drive-sidebar {
+  background: #0a1122 !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .drive-sidebar-label,
+.dark-theme .drive-tree-label,
+[data-theme="dark"] .drive-sidebar-label,
+[data-theme="dark"] .drive-tree-label {
+  color: #64748b !important;
+}
+
+.dark-theme .drive-tree-label span,
+[data-theme="dark"] .drive-tree-label span {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-side-link,
+[data-theme="dark"] .drive-side-link {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-side-link:hover,
+.dark-theme .drive-tree-item:hover,
+[data-theme="dark"] .drive-side-link:hover,
+[data-theme="dark"] .drive-tree-item:hover {
+  background: #141f36 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-side-link.active,
+[data-theme="dark"] .drive-side-link.active {
+  background: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .drive-tree-item,
+[data-theme="dark"] .drive-tree-item {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-tree-item.selected,
+[data-theme="dark"] .drive-tree-item.selected {
+  background: #142344 !important;
+  color: #60a5fa !important;
+}
+
+.dark-theme .drive-sidebar-bottom,
+[data-theme="dark"] .drive-sidebar-bottom {
+  border-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-sidebar-bottom b,
+[data-theme="dark"] .drive-sidebar-bottom b {
+  color: #34d399 !important;
+}
+
+.dark-theme .drive-main,
+[data-theme="dark"] .drive-main {
+  background: #0b1324 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-theme .drive-toolbar,
+[data-theme="dark"] .drive-toolbar {
+  border-color: #1e293b !important;
+}
+
+.dark-theme .drive-breadcrumbs,
+[data-theme="dark"] .drive-breadcrumbs {
+  color: #64748b !important;
+}
+
+.dark-theme .drive-breadcrumbs button,
+[data-theme="dark"] .drive-breadcrumbs button {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-breadcrumbs button:first-child,
+.dark-theme .drive-breadcrumbs b,
+[data-theme="dark"] .drive-breadcrumbs button:first-child,
+[data-theme="dark"] .drive-breadcrumbs b {
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-status,
+[data-theme="dark"] .drive-status {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-view-switch,
+[data-theme="dark"] .drive-view-switch {
+  border-color: #243452 !important;
+}
+
+.dark-theme .drive-view-switch button,
+[data-theme="dark"] .drive-view-switch button {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-view-switch button.selected,
+[data-theme="dark"] .drive-view-switch button.selected {
+  background: #1e3a8a !important;
+  color: #60a5fa !important;
+}
+
+.dark-theme .drive-title-row h1,
+[data-theme="dark"] .drive-title-row h1 {
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-title-row p,
+[data-theme="dark"] .drive-title-row p {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-sort,
+[data-theme="dark"] .drive-sort {
+  background: #141f36 !important;
+  border-color: #243452 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .drive-section-heading,
+[data-theme="dark"] .drive-section-heading {
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-folder-grid .drive-entry,
+[data-theme="dark"] .drive-folder-grid .drive-entry {
+  background: #101a30 !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .drive-folder-grid .drive-entry:hover,
+[data-theme="dark"] .drive-folder-grid .drive-entry:hover {
+  background: #172544 !important;
+  border-color: #2563eb !important;
+}
+
+.dark-theme .drive-folder-icon svg,
+[data-theme="dark"] .drive-folder-icon svg {
+  color: #60a5fa !important;
+}
+
+.dark-theme .drive-entry,
+[data-theme="dark"] .drive-entry {
+  border-color: #1a243a !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .drive-entry-name b,
+[data-theme="dark"] .drive-entry-name b {
+  color: #f8fafc !important;
+}
+
+.dark-theme .drive-entry-name small,
+[data-theme="dark"] .drive-entry-name small {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-entry-date,
+.dark-theme .drive-entry-type,
+[data-theme="dark"] .drive-entry-date,
+[data-theme="dark"] .drive-entry-type {
+  color: #64748b !important;
+}
+
+.dark-theme .drive-table-head,
+[data-theme="dark"] .drive-table-head {
+  border-color: #1e293b !important;
+  color: #64748b !important;
+}
+
+.dark-theme .drive-report-card,
+[data-theme="dark"] .drive-report-card {
+  background: #101a30 !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .drive-report-card:hover,
+[data-theme="dark"] .drive-report-card:hover {
+  background: #172544 !important;
+  border-color: #2563eb !important;
+}
+
+.dark-theme .drive-card-session,
+[data-theme="dark"] .drive-card-session {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .drive-download,
+[data-theme="dark"] .drive-download {
+  color: #34d399 !important;
+}
+
+.dark-theme .drive-download:hover,
+[data-theme="dark"] .drive-download:hover {
+  background: rgba(52, 211, 153, 0.15) !important;
+}
+
+.dark-theme .drive-legacy,
+[data-theme="dark"] .drive-legacy {
+  color: #fbbf24 !important;
+}
+
+.dark-theme .drive-empty,
+[data-theme="dark"] .drive-empty {
+  color: #64748b !important;
+}
+
+.dark-theme .drive-security-note,
+[data-theme="dark"] .drive-security-note {
+  border-color: #1e293b !important;
+  color: #64748b !important;
+}
+
+.dark-theme .drive-browser,
+[data-theme="dark"] .drive-browser {
+  background: #0b1324 !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .drive-row,
+[data-theme="dark"] .drive-row {
+  background: #0b1324 !important;
+  border-color: #1a243a !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-theme button.drive-row:hover,
+.dark-theme .drive-file:hover,
+[data-theme="dark"] button.drive-row:hover,
+[data-theme="dark"] .drive-file:hover {
+  background: #141f36 !important;
+}
+
+.dark-theme .drive-crumbs button,
+[data-theme="dark"] .drive-crumbs button {
+  color: #38bdf8 !important;
 }
 
 /* ==========================================================================
