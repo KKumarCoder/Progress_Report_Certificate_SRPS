@@ -5,6 +5,7 @@ import { ToastContainer, toast as notify } from "react-toastify";
 import QRCode from "qrcode";
 import {
   GraduationCap,
+  Award,
   LayoutDashboard,
   Users,
   BookOpen,
@@ -76,6 +77,7 @@ import {
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
+  ACTIVITIES,
   calculate,
   validateMarks,
   getTermComponents,
@@ -5864,6 +5866,9 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
   const [profileText, setProfileText] = useState(
     (config.profiles?.["6"] || config.subjects).map((s) => s.name).join("\n"),
   );
+  const [indicatorText, setIndicatorText] = useState(
+    (config.activities || ACTIVITIES).join("\n"),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -5958,6 +5963,31 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
     }));
     toast(`Subjects staged for Class ${profileClass}. Click Save settings to apply.`);
   };
+
+  const applyIndicators = () => {
+    const list = indicatorText
+      .split("\n")
+      .map((x) => x.trim().toUpperCase())
+      .filter(Boolean);
+    if (!list.length || list.length > 8) {
+      toast("Enter 1–8 co-scholastic indicators", true);
+      return null;
+    }
+    const unique = [...new Set(list)];
+    if (unique.length !== list.length) {
+      toast("Indicator names must be unique", true);
+      return null;
+    }
+    setData((prev) => ({
+      ...prev,
+      activities: unique,
+    }));
+    toast("Indicators staged. Click Save settings to apply.");
+    return unique;
+  };
+
+  const currentIndicators =
+    data.activities || config.activities || ACTIVITIES;
 
   const currentClassSubjects =
     data.profiles?.[profileClass] ||
@@ -6090,6 +6120,13 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
           onClick={() => setSubTab("subjects")}
         >
           <BookOpen size={16} /> Class Subject Profiles
+        </button>
+        <button
+          type="button"
+          className={subTab === "indicators" ? "active" : ""}
+          onClick={() => setSubTab("indicators")}
+        >
+          <Award size={16} /> Co-Scholastic Indicators
         </button>
         <button
           type="button"
@@ -6324,6 +6361,170 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                     onClick={async (e) => {
                       applyProfile();
                       await save(e);
+                    }}
+                  >
+                    <Save size={15} /> Apply & Save All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {subTab === "indicators" && (
+        <div className="settings-content-wrapper">
+          <PageTitle
+            eyebrow="CO-SCHOLASTIC CURRICULUM"
+            title="Co-Scholastic Indicators & Activity Profiles"
+            subtitle="Configure indicators assessed across terms. Changes apply instantly to Report Studio and student report cards."
+          >
+            <button
+              type="button"
+              className="btn primary"
+              disabled={isSaving}
+              onClick={save}
+            >
+              <Save size={16} /> {isSaving ? "Saving..." : "Save school settings"}
+            </button>
+          </PageTitle>
+
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <Award size={18} />
+                  <span>Co-Scholastic Indicator Topics</span>
+                </h3>
+                <p>Define topics for Part B (Co-Scholastic Activities, A · B · C grading scale).</p>
+              </div>
+            </div>
+
+            <div className="subjects-split-layout">
+              {/* Left Column: Visual Chips */}
+              <div className="subject-chips-box">
+                <div className="subject-chips-header">
+                  <span className="subject-box-title">Active Indicators</span>
+                  <span className="subject-count-pill">
+                    {currentIndicators.length} Indicators
+                  </span>
+                </div>
+                <div className="subject-chips-list">
+                  {currentIndicators.map((act, idx) => (
+                    <div key={act || idx} className="subject-item-chip">
+                      <span className="subject-chip-num">
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <Award size={14} className="subject-chip-icon" />
+                      <span className="subject-chip-name">{act}</span>
+                    </div>
+                  ))}
+                  {!currentIndicators.length && (
+                    <div className="empty-subjects-note">No indicators configured yet.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Textarea Editor & Presets */}
+              <div className="subject-textarea-box">
+                <label className="subject-editor-label">
+                  <b>Edit Indicator Topics (All at a time)</b>
+                  <span>Enter 1 to 4 indicator topics (one topic per line).</span>
+                </label>
+                <textarea
+                  rows={6}
+                  value={indicatorText}
+                  onChange={(e) => setIndicatorText(e.target.value)}
+                  placeholder={"ARTS ACTIVITY\nSOCIAL SKILLS\nSCIENTIFIC SKILLS\nCULTURAL ACTIVITY"}
+                  aria-label="One indicator per line"
+                />
+
+                {/* Quick Presets */}
+                <div
+                  className="indicator-presets-row"
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                    marginTop: "10px",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--muted, #64748b)",
+                      alignSelf: "center",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Presets:
+                  </span>
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => {
+                      const p =
+                        "ARTS ACTIVITY\nSOCIAL SKILLS\nSCIENTIFIC SKILLS\nCULTURAL ACTIVITY";
+                      setIndicatorText(p);
+                    }}
+                  >
+                    Current SRPS (4)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => {
+                      const p =
+                        "WORK EDUCATION\nART EDUCATION\nHEALTH & PHYSICAL EDUCATION\nDISCIPLINE";
+                      setIndicatorText(p);
+                    }}
+                  >
+                    CBSE Standard (4)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => {
+                      const p =
+                        "CREATIVE ARTS\nSOCIAL & EMOTIONAL SKILLS\nPHYSICAL FITNESS\nCITIZENSHIP & VALUES";
+                      setIndicatorText(p);
+                    }}
+                  >
+                    Primary / Skills (4)
+                  </button>
+                </div>
+
+                <div className="subject-actions-row">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={applyIndicators}
+                  >
+                    <Check size={15} /> Stage Indicators
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={isSaving}
+                    onClick={async (e) => {
+                      const updated = applyIndicators();
+                      if (updated) {
+                        setIsSaving(true);
+                        try {
+                          const c = await api("/config", {
+                            method: "PUT",
+                            body: { ...data, activities: updated },
+                          });
+                          setConfig(c);
+                          setData(c);
+                          toast("Co-scholastic indicators saved successfully");
+                        } catch (err) {
+                          toast(err.message, true);
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }
                     }}
                   >
                     <Save size={15} /> Apply & Save All

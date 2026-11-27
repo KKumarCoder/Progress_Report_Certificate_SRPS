@@ -23,8 +23,8 @@
     "front": {
       "width": 1054,
       "height": 1492,
-      "artwork": "/templates/v1/single-4e9dff0d939b.png",
-      "sha256": "4e9dff0d939bc5f855533a28fd80f21257c3f3db7c90891d1512cbcb5178a398",
+      "artwork": "/templates/v1/single-dbdf1fa1b127.png",
+      "sha256": "dbdf1fa1b127e8621703f5aafc3f4c3090587606b91b97406f09cedc00dc1757",
       "fields": [
         {
           "id": "name",
@@ -1107,6 +1107,23 @@
           }
         },
         {
+          "id": "co.0.name",
+          "type": "text",
+          "x": 60,
+          "y": 953,
+          "width": 215,
+          "height": 26,
+          "font": "700",
+          "fontSize": 14,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
           "id": "co.0.term1",
           "type": "text",
           "x": 281,
@@ -1137,6 +1154,23 @@
           "overflow": {
             "mode": "shrink",
             "minFontSize": 10,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.1.name",
+          "type": "text",
+          "x": 60,
+          "y": 986,
+          "width": 215,
+          "height": 26,
+          "font": "700",
+          "fontSize": 14,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -1175,6 +1209,23 @@
           }
         },
         {
+          "id": "co.2.name",
+          "type": "text",
+          "x": 60,
+          "y": 1019,
+          "width": 215,
+          "height": 26,
+          "font": "700",
+          "fontSize": 14,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
           "id": "co.2.term1",
           "type": "text",
           "x": 281,
@@ -1205,6 +1256,23 @@
           "overflow": {
             "mode": "shrink",
             "minFontSize": 10,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "co.3.name",
+          "type": "text",
+          "x": 60,
+          "y": 1051,
+          "width": 215,
+          "height": 26,
+          "font": "700",
+          "fontSize": 14,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },

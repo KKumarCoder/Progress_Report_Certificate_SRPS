@@ -94,9 +94,15 @@ export function reportValues(student, report, config, user = {}) {
 
   const activities = config.activities || ACTIVITIES;
   activities.forEach((a, i) => {
+    values[`co.${i}.name`] = a;
     values[`co.${i}.term1`] = report.co?.[a]?.term1 || report.co?.[i]?.term1 || "";
     values[`co.${i}.term2`] = report.co?.[a]?.term2 || report.co?.[i]?.term2 || "";
   });
+  for (let i = 0; i < 4; i++) {
+    if (values[`co.${i}.name`] === undefined) values[`co.${i}.name`] = "";
+    if (values[`co.${i}.term1`] === undefined) values[`co.${i}.term1`] = "";
+    if (values[`co.${i}.term2`] === undefined) values[`co.${i}.term2`] = "";
+  }
   return values;
 }
 export function pagePlacement(mapping, side) {

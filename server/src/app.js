@@ -1231,6 +1231,20 @@ app.put(
       }
       value.profiles = profiles;
     }
+    if (req.body.activities !== undefined) {
+      const acts = req.body.activities;
+      if (
+        !Array.isArray(acts) ||
+        acts.length < 1 ||
+        acts.length > 8 ||
+        acts.some(
+          (x) => typeof x !== "string" || !x.trim() || x.trim().length > 60,
+        ) ||
+        new Set(acts.map((x) => x.trim().toUpperCase())).size !== acts.length
+      )
+        throw fail(400, "Enter 1–8 uniquely named co-scholastic indicators");
+      value.activities = acts.map((x) => x.trim().toUpperCase());
+    }
     if (!/^\d{4}-\d{2}$/.test(value.session))
       throw fail(400, "Session must be YYYY-YY");
     await Setting.findOneAndUpdate(
