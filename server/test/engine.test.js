@@ -27,10 +27,10 @@ test("Empty is incomplete; zero is assessed and failed", () => {
   assert.equal(calculate(full()).result, "NEEDS IMPROVEMENT");
   assert.equal(calculate(full()).complete, true);
 });
-test("Two full terms yield 1400, 100% and pass", () => {
+test("Two full terms yield 2100, 100% and pass", () => {
   const c = calculate(full(1));
-  assert.equal(c.total, 1400);
-  assert.equal(c.maximum, 1400);
+  assert.equal(c.total, 2100);
+  assert.equal(c.maximum, 2100);
   assert.equal(c.percentage, 100);
   assert.equal(c.result, "PASS");
 });
@@ -76,14 +76,13 @@ test("Grade thresholds and decimal rounding are consistent", () => {
 test("AB counts as assessed zero; a failed subject prevents PASS", () => {
   const m = full(1);
   m.term1.english = {
-    periodic: "AB",
-    notebook: "AB",
-    enrichment: "AB",
-    exam: "AB",
+    fa1: "AB",
+    fa2: "AB",
+    sa1: "AB",
   };
   const c = calculate(m);
   assert.equal(c.complete, true);
-  assert.equal(c.total, 1300);
+  assert.equal(c.total, 1950);
   assert.equal(c.result, "NEEDS IMPROVEMENT");
 });
 test("Excessive, negative, string and unknown marks are rejected", () => {

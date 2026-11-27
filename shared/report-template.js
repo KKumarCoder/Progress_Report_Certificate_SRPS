@@ -62,38 +62,26 @@ export function reportValues(student, report, config, user = {}) {
   };
   const cleanMark = (v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v);
   for (const s of config.subjects) {
-    // Term 1 (FA-1, FA-2, SA-1) with fallback to legacy keys
+    // Term 1 (FA-1, FA-2, SA-1)
     values[`term1.${s.id}.fa1`] = cleanMark(
-      report.marks?.term1?.[s.id]?.fa1 ??
-      report.marks?.term1?.[s.id]?.periodic ??
-      ""
+      report.marks?.term1?.[s.id]?.fa1 ?? ""
     );
     values[`term1.${s.id}.fa2`] = cleanMark(
-      report.marks?.term1?.[s.id]?.fa2 ??
-      report.marks?.term1?.[s.id]?.notebook ??
-      ""
+      report.marks?.term1?.[s.id]?.fa2 ?? ""
     );
     values[`term1.${s.id}.sa1`] = cleanMark(
-      report.marks?.term1?.[s.id]?.sa1 ??
-      report.marks?.term1?.[s.id]?.exam ??
-      ""
+      report.marks?.term1?.[s.id]?.sa1 ?? ""
     );
 
-    // Term 2 (FA-3, FA-4, SA-2) with fallback to legacy keys
+    // Term 2 (FA-3, FA-4, SA-2)
     values[`term2.${s.id}.fa3`] = cleanMark(
-      report.marks?.term2?.[s.id]?.fa3 ??
-      report.marks?.term2?.[s.id]?.periodic ??
-      ""
+      report.marks?.term2?.[s.id]?.fa3 ?? ""
     );
     values[`term2.${s.id}.fa4`] = cleanMark(
-      report.marks?.term2?.[s.id]?.fa4 ??
-      report.marks?.term2?.[s.id]?.notebook ??
-      ""
+      report.marks?.term2?.[s.id]?.fa4 ?? ""
     );
     values[`term2.${s.id}.sa2`] = cleanMark(
-      report.marks?.term2?.[s.id]?.sa2 ??
-      report.marks?.term2?.[s.id]?.exam ??
-      ""
+      report.marks?.term2?.[s.id]?.sa2 ?? ""
     );
 
     const subCalc = calc.subjects?.[s.id];

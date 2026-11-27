@@ -225,19 +225,22 @@ test("Save, revision conflict, invalid range, submit and publish", async () => {
   let r = await teacher
     .put(url)
     .set(header)
-    .send({ marks: { term1: { english: { exam: 81 } } }, co: {}, revision: 0 });
+    .send({ marks: { term1: { english: { fa1: 26 } } }, co: {}, revision: 0 });
   assert.equal(r.status, 400);
-  const marks = Object.fromEntries(
-    ["term1", "term2"].map((t) => [
-      t,
-      Object.fromEntries(
-        DEFAULT_CONFIG.subjects.map((s) => [
-          s.id,
-          { periodic: 10, notebook: 5, enrichment: 5, exam: 80 },
-        ]),
-      ),
-    ]),
-  );
+  const marks = {
+    term1: Object.fromEntries(
+      DEFAULT_CONFIG.subjects.map((s) => [
+        s.id,
+        { fa1: 20, fa2: 20, sa1: 80 },
+      ]),
+    ),
+    term2: Object.fromEntries(
+      DEFAULT_CONFIG.subjects.map((s) => [
+        s.id,
+        { fa3: 20, fa4: 20, sa2: 80 },
+      ]),
+    ),
+  };
   const co = Object.fromEntries(
     DEFAULT_CONFIG.activities.map((a) => [a, { term1: "A", term2: "A" }]),
   );
@@ -319,7 +322,7 @@ test("Save, revision conflict, invalid range, submit and publish", async () => {
   }
 
   r = await admin.get(url);
-  assert.equal(r.body.calculation.total, 1400);
+  assert.equal(r.body.calculation.total, 1680);
   r = await admin
     .post(url + "/reopen")
     .set(header)
@@ -610,8 +613,8 @@ test("teacher can reload an empty saved draft then enter and save both terms", a
   assert.deepEqual(loaded.body.report.marks, { term1: {}, term2: {} });
   const marks = {
     ...loaded.body.report.marks,
-    term1: { english: { periodic: 8, notebook: 5, enrichment: 2, exam: 77 } },
-    term2: { english: { periodic: 0, notebook: "AB" } },
+    term1: { english: { fa1: 20, fa2: 20, sa1: 52 } },
+    term2: { english: { fa3: 0, fa4: "AB" } },
   };
   const saved = await teacher
     .put(url)

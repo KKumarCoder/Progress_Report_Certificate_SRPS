@@ -25,7 +25,7 @@ const report = {
   status: "draft",
   marks: {
     term1: {
-      english: { periodic: 0, notebook: "AB", enrichment: "", exam: 80 },
+      english: { fa1: 0, fa2: "AB", sa1: 80 },
     },
   },
 };

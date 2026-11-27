@@ -147,8 +147,8 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
   }
 
   const getCompsForTerm = (term) => {
-    if (isLegacy) return LEGACY_COMPONENTS;
     if (config?.termComponents?.[term]) return config.termComponents[term];
+    if (isLegacy) return LEGACY_COMPONENTS;
     return term === "term1" ? TERM1_COMPONENTS : TERM2_COMPONENTS;
   };
 
