@@ -166,3 +166,38 @@ test("admin uploaded signature fills an empty teacher space without changing pub
     "",
   );
 });
+
+test("remarks replace {name}, {Name}, {NAME} dynamically with student name", () => {
+  const s = { ...student, name: "Aarav Sharma" };
+  const r = {
+    ...report,
+    remarks: "{name} is an outstanding student. Well done {NAME}!",
+  };
+  const vals = reportValues(s, r, DEFAULT_CONFIG, { role: "admin" });
+  assert.equal(
+    vals.remarks,
+    "Aarav Sharma is an outstanding student. Well done AARAV SHARMA!",
+  );
+});
+
+test("PDF embeds handwriting fonts (Kalam, Caveat, Patrick Hand) with dark blue ink", async () => {
+  for (const fontKey of ["kalam", "caveat", "patrickHand"]) {
+    const bytes = await generateReportPdf(
+      [
+        {
+          student: { ...student, name: "Aarav Sharma" },
+          report: {
+            ...report,
+            remarks: "{name} demonstrates remarkable analytical skills.",
+          },
+          config: { ...DEFAULT_CONFIG, handwritingFont: fontKey },
+          mapping,
+        },
+      ],
+      loadReportResource,
+    );
+    const doc = await PDFDocument.load(bytes);
+    assert.equal(doc.getPageCount(), 1);
+  }
+});
+

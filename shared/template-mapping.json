@@ -17,6 +17,21 @@
       "file": "/templates/fonts/DMSans-700-5c2f9c6407f1.ttf",
       "family": "SRPSReport700",
       "sha256": "5c2f9c6407f18adea61669de46d3e8d3deef4591f049af89a0eb82dfe99fba30"
+    },
+    "kalam": {
+      "file": "/templates/fonts/Kalam-400-57cecb63d460.ttf",
+      "family": "SRPSKalam",
+      "sha256": "57cecb63d4608019371954274ae1d8c397764debd5b19d4a33c1efa4dc923c0b"
+    },
+    "caveat": {
+      "file": "/templates/fonts/Caveat-400-0bdb6b660482.ttf",
+      "family": "SRPSCaveat",
+      "sha256": "0bdb6b660482d31531b3945849fba5916b3ef8695da7024a9e6b9ee3c4157988"
+    },
+    "patrickHand": {
+      "file": "/templates/fonts/PatrickHand-400-0f173b3e6cb6.ttf",
+      "family": "SRPSPatrickHand",
+      "sha256": "0f173b3e6cb6d1af25babf7f0057c5ac4ee11f9992b0469bb817e967ef4ad0fc"
     }
   },
   "pages": {
@@ -1521,10 +1536,11 @@
           "y": 1265,
           "width": 480,
           "height": 95,
-          "font": "400",
-          "fontSize": 15,
-          "colour": "#1e3a8a",
+          "font": "kalam",
+          "fontSize": 16,
+          "colour": "#245A91",
           "alignment": "left",
+          "rotate": -0.6,
           "overflow": {
             "mode": "wrap-shrink",
             "minFontSize": 10,

@@ -107,6 +107,13 @@ export function reportValues(student, report, config, user = {}) {
       ? String(report.promotedTo).trim()
       : autoPromoted;
 
+  const studentName = String(s.name || "Student").trim();
+  const rawRemarks = String(report.remarks || "").trim();
+  const dynamicRemarks = rawRemarks
+    .replaceAll("{name}", studentName)
+    .replaceAll("{Name}", studentName)
+    .replaceAll("{NAME}", studentName.toUpperCase());
+
   const values = {
     classSection: `${s.className} - ${s.section}`,
     admissionNo: s.admissionNo,
@@ -118,7 +125,7 @@ export function reportValues(student, report, config, user = {}) {
     photo: s.photo || "",
     "attendance.present": attPresent,
     "attendance.total": attTotal,
-    remarks: report.remarks || "",
+    remarks: dynamicRemarks,
     promotedTo,
     teacherSignature:
       report.teacherSignature ||

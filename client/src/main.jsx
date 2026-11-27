@@ -3046,13 +3046,14 @@ function Studio({
                   onChange={(e) => {
                     const other = e.target.value === "other";
                     setOtherRemark(other);
+                    const chosen = other
+                      ? teacherRemarks.includes(report.remarks)
+                        ? ""
+                        : report.remarks || ""
+                      : e.target.value.replaceAll("{name}", student?.name || "Student");
                     update({
                       ...report,
-                      remarks: other
-                        ? teacherRemarks.includes(report.remarks)
-                          ? ""
-                          : report.remarks || ""
-                        : e.target.value,
+                      remarks: chosen,
                     });
                   }}
                 >
@@ -3074,7 +3075,7 @@ function Studio({
                     <textarea
                       autoFocus
                       disabled={locked}
-                      placeholder="Write your remarks here…"
+                      placeholder="Write your remarks here… (use {name} for student name)"
                       maxLength={1000}
                       value={report.remarks}
                       onChange={(e) =>
@@ -3082,6 +3083,14 @@ function Studio({
                       }
                       rows={4}
                     />
+                    <div style={{ marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                        Dynamic tag <code>{`{name}`}</code> automatically replaces with student's actual name.
+                      </span>
+                      <span style={{ fontSize: "11px", color: "#245A91", fontWeight: 600 }}>
+                        ✍️ Prints in Realistic Handwritten Blue Ink ({config?.handwritingFont || "Kalam"})
+                      </span>
+                    </div>
                   </Field>
                 )}
               {/* Attendance entry with Green Attended Days and Red Total Days */}
@@ -6311,6 +6320,103 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                   />
                 </label>
               </div>
+            </div>
+          </section>
+
+          {/* Teacher Remarks Handwriting Style */}
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <PenLine size={18} />
+                  <span>Teacher Remarks Handwriting Style</span>
+                </h3>
+                <p>
+                  Choose the realistic handwriting font for teacher remarks printed on student report cards and PDFs.
+                </p>
+              </div>
+            </div>
+
+            <div className="handwriting-styles-grid">
+              {[
+                {
+                  id: "kalam",
+                  name: "Kalam",
+                  badge: "Recommended",
+                  family: "SRPSKalam",
+                  desc: "Authentic, natural school teacher handwriting with organic curves and warmth.",
+                  sample: "Aarav is an outstanding student who consistently demonstrates academic excellence.",
+                },
+                {
+                  id: "caveat",
+                  name: "Caveat",
+                  badge: "Casual Script",
+                  family: "SRPSCaveat",
+                  desc: "Elegant and smooth connected cursive handwriting style.",
+                  sample: "Aarav is an outstanding student who consistently demonstrates academic excellence.",
+                },
+                {
+                  id: "patrickHand",
+                  name: "Patrick Hand",
+                  badge: "Neat Print",
+                  family: "SRPSPatrickHand",
+                  desc: "Clean, legible, and friendly printed handwriting style.",
+                  sample: "Aarav is an outstanding student who consistently demonstrates academic excellence.",
+                },
+              ].map((style) => {
+                const isSelected = (data.handwritingFont || "kalam") === style.id;
+                return (
+                  <div
+                    key={style.id}
+                    className={`handwriting-font-card ${isSelected ? "selected" : ""}`}
+                    onClick={() => setData({ ...data, handwritingFont: style.id })}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="handwriting-font-card-header">
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontWeight: 600, fontSize: "15px" }}>{style.name}</span>
+                          <span className={`badge ${isSelected ? "badge-primary" : "badge-secondary"}`}>
+                            {style.badge}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: "12px", color: "var(--color-text-secondary, #64748b)", margin: "4px 0 0" }}>
+                          {style.desc}
+                        </p>
+                      </div>
+                      <input
+                        type="radio"
+                        name="handwritingFont"
+                        checked={isSelected}
+                        onChange={() => setData({ ...data, handwritingFont: style.id })}
+                      />
+                    </div>
+                    <div
+                      className="handwriting-sample-box"
+                      style={{
+                        marginTop: "12px",
+                        padding: "12px",
+                        background: "#f8fafc",
+                        borderRadius: "8px",
+                        border: "1px dashed #cbd5e1",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: style.family,
+                          fontSize: "17px",
+                          color: "#245A91",
+                          lineHeight: "1.4",
+                          transform: "rotate(-0.6deg)",
+                          transformOrigin: "left center",
+                        }}
+                      >
+                        “{style.sample}”
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
 

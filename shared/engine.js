@@ -69,6 +69,7 @@ export const DEFAULT_CONFIG = {
   email: "srpskanhra@gmail.com",
   principalSignature: "",
   logo: "",
+  handwritingFont: "kalam",
 };
 export const blankMarks = () => ({ term1: {}, term2: {} });
 export function grade(p) {

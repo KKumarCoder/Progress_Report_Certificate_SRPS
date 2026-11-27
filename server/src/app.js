@@ -1189,6 +1189,7 @@ app.put(
       "email",
       "principalSignature",
       "logo",
+      "handwritingFont",
     ])
       if (typeof req.body[k] === "string") value[k] = req.body[k].slice(0, 250);
     if (req.body.profiles !== undefined) {

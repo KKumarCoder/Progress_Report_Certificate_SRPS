@@ -105,17 +105,30 @@ export default function ReportPage(props) {
   try {
     values = reportValues(student, report, config, user);
     elements = page.fields.map((f) => {
-      if (f.type === "text")
+      if (f.type === "text") {
+        const fontKey =
+          f.id === "remarks" &&
+          config?.handwritingFont &&
+          mapping.fonts[config.handwritingFont]
+            ? config.handwritingFont
+            : f.font;
+        const fontDef = mapping.fonts[fontKey] || mapping.fonts[f.font];
+        const fontMetrics = fonts[fontKey] || fonts[f.font];
         return (
           <g key={f.id} data-field={f.id}>
-            {layoutText(f, values[f.id], fonts[f.font]).map((line, i) => (
+            {layoutText(f, values[f.id], fontMetrics).map((line, i) => (
               <text
                 key={i}
                 x={line.x}
                 y={line.y}
-                fontFamily={mapping.fonts[f.font].family}
+                fontFamily={fontDef.family}
                 fontSize={line.size}
                 fill={f.colour}
+                transform={
+                  typeof f.rotate === "number"
+                    ? `rotate(${f.rotate}, ${line.x}, ${line.y})`
+                    : undefined
+                }
                 style={{ fontKerning: "none", fontVariantLigatures: "none" }}
               >
                 {line.text}
@@ -123,6 +136,7 @@ export default function ReportPage(props) {
             ))}
           </g>
         );
+      }
       return values[f.id] ? (
         <g key={f.id} data-field={f.id}>
           {f.clip && (

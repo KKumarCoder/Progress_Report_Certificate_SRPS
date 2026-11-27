@@ -1,6 +1,7 @@
 import {
   PDFDocument,
   rgb,
+  degrees,
   pushGraphicsState,
   popGraphicsState,
   moveTo,
@@ -89,7 +90,13 @@ export async function generateReportPdf(records, loadResource) {
       for (const f of spec.fields) {
         const value = values[f.id];
         if (f.type === "text") {
-          const font = fonts.get(mapping.fonts[f.font].file);
+          const fontKey =
+            f.id === "remarks" &&
+            config?.handwritingFont &&
+            mapping.fonts[config.handwritingFont]
+              ? config.handwritingFont
+              : f.font;
+          const font = fonts.get(mapping.fonts[fontKey].file);
           for (const line of layoutText(f, value, font.metrics))
             page.drawText(line.text, {
               x: px(line.x),
@@ -102,6 +109,7 @@ export async function generateReportPdf(records, loadResource) {
                   .match(/../g)
                   .map((x) => parseInt(x, 16) / 255),
               ),
+              ...(typeof f.rotate === "number" ? { rotate: degrees(f.rotate) } : {}),
             });
         } else if (value) {
           const img = await image(value),
