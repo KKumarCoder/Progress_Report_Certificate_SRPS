@@ -11,6 +11,7 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
+import LedDisplayBoard from "./LedDisplayBoard";
 
 function hasModule(user, id) {
   if (!user) return false;
@@ -43,29 +44,12 @@ export default function Dashboard({
 
   return (
     <>
-      <div className="overview-stats">
-        {[
-          [Users, "Students", students.length, "In your accessible classes"],
-          [School, "Class sections", groups.size, "Active sections"],
-          [
-            BookOpen,
-            "Academic session",
-            config.session || "2026-27",
-            "Two terms. One complete picture.",
-          ],
-        ].map(([Icon, label, value, detail]) => (
-          <div className="stat-card" key={label}>
-            <div className="stat-label">
-              {label}
-              <span>
-                <Icon size={19} />
-              </span>
-            </div>
-            <strong>{value}</strong>
-            <small>{detail}</small>
-          </div>
-        ))}
-      </div>
+      <LedDisplayBoard
+        students={students}
+        config={config}
+        user={user}
+        go={go}
+      />
 
       <section className="welcome-panel">
         <div>
