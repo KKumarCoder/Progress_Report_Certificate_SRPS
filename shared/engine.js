@@ -28,13 +28,13 @@ export const LEGACY_COMPONENTS = [
   { id: "exam", label: "Half yearly exam", max: 80 },
 ];
 export const TERM1_COMPONENTS = [
-  { id: "fa1", label: "FA-1", max: 20 },
-  { id: "fa2", label: "FA-2", max: 20 },
+  { id: "fa1", label: "FA-1", max: 25 },
+  { id: "fa2", label: "FA-2", max: 25 },
   { id: "sa1", label: "SA-1", max: 100 },
 ];
 export const TERM2_COMPONENTS = [
-  { id: "fa3", label: "FA-3", max: 20 },
-  { id: "fa4", label: "FA-4", max: 20 },
+  { id: "fa3", label: "FA-3", max: 25 },
+  { id: "fa4", label: "FA-4", max: 25 },
   { id: "sa2", label: "SA-2", max: 100 },
 ];
 export const COMPONENTS = [

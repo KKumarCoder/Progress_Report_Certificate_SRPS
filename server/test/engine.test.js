@@ -34,6 +34,29 @@ test("Two full terms yield 1400, 100% and pass", () => {
   assert.equal(c.percentage, 100);
   assert.equal(c.result, "PASS");
 });
+test("Single-page two full terms yield 2100, 100% and pass", () => {
+  const singleMarks = {
+    term1: Object.fromEntries(
+      DEFAULT_CONFIG.subjects.map((s) => [
+        s.id,
+        { fa1: 25, fa2: 25, sa1: 100 },
+      ]),
+    ),
+    term2: Object.fromEntries(
+      DEFAULT_CONFIG.subjects.map((s) => [
+        s.id,
+        { fa3: 25, fa4: 25, sa2: 100 },
+      ]),
+    ),
+  };
+  const c = calculate(singleMarks);
+  assert.equal(c.total, 2100);
+  assert.equal(c.maximum, 2100);
+  assert.equal(c.percentage, 100);
+  assert.equal(c.result, "PASS");
+  assert.equal(c.subjects.english.subTotal, 300);
+  assert.equal(c.subjects.english.grade, "A1");
+});
 test("Grade thresholds and decimal rounding are consistent", () => {
   for (const [m, g] of [
     [100, "A1"],

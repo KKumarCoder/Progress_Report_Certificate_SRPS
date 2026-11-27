@@ -90,7 +90,7 @@ export function reportValues(student, report, config, user = {}) {
       "";
 
     const subCalc = calc.subjects?.[s.id];
-    values[`total.${s.id}`] = subCalc?.complete ? String(subCalc.total100) : "—";
+    values[`total.${s.id}`] = subCalc?.complete ? String(subCalc.subTotal) : "—";
     values[`grade.${s.id}`] = subCalc?.complete ? subCalc.grade : "—";
   }
 

@@ -2923,9 +2923,9 @@ function Studio({
                 </table>
               </div>
               <div className="entry-legend">
-                <span>FA: Formative Assessment (20)</span>
+                <span>FA: Formative Assessment (25)</span>
                 <span>SA: Summative Assessment (100)</span>
-                <span>Term Max: 140 · Total: 280 (Scaled to 100)</span>
+                <span>Term Max: 150 · Subject Total: 300</span>
               </div>
               {!locked && (
                 <button
