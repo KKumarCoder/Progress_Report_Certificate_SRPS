@@ -5882,15 +5882,19 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
     setProfileText(subList.map((s) => s.name).join("\n"));
   };
 
-  async function save(e) {
+  async function save(e, overrideData = null) {
     if (e && e.preventDefault) e.preventDefault();
     setIsSaving(true);
     try {
-      const c = await api("/config", { method: "PUT", body: data });
+      const payload = overrideData || data;
+      const c = await api("/config", { method: "PUT", body: payload });
       setConfig(c);
+      setData(c);
       toast("School settings saved successfully");
+      return c;
     } catch (e) {
       toast(e.message, true);
+      return null;
     } finally {
       setIsSaving(false);
     }
@@ -5940,7 +5944,8 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
       .map((x) => x.trim())
       .filter(Boolean);
     if (!names.length || names.length > 12) {
-      return toast("Enter 1–12 subjects", true);
+      toast("Enter 1–12 subjects", true);
+      return null;
     }
     const subjects = names.map((n) => {
       const found = (config.subjects || []).find(
@@ -5957,11 +5962,16 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
         }
       );
     });
+    const updatedProfiles = {
+      ...(data.profiles || config.profiles || {}),
+      [profileClass]: subjects,
+    };
     setData((prev) => ({
       ...prev,
-      profiles: { ...(prev.profiles || {}), [profileClass]: subjects },
+      profiles: updatedProfiles,
     }));
     toast(`Subjects staged for Class ${profileClass}. Click Save settings to apply.`);
+    return updatedProfiles;
   };
 
   const applyIndicators = () => {
@@ -6277,7 +6287,14 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
               type="button"
               className="btn primary"
               disabled={isSaving}
-              onClick={save}
+              onClick={async (e) => {
+                const updated = applyProfile();
+                if (updated) {
+                  await save(e, { ...data, profiles: updated });
+                } else {
+                  await save(e);
+                }
+              }}
             >
               <Save size={16} /> {isSaving ? "Saving..." : "Save school settings"}
             </button>
@@ -6359,8 +6376,10 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                     className="btn primary"
                     disabled={isSaving}
                     onClick={async (e) => {
-                      applyProfile();
-                      await save(e);
+                      const updated = applyProfile();
+                      if (updated) {
+                        await save(e, { ...data, profiles: updated });
+                      }
                     }}
                   >
                     <Save size={15} /> Apply & Save All
@@ -6383,7 +6402,14 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
               type="button"
               className="btn primary"
               disabled={isSaving}
-              onClick={save}
+              onClick={async (e) => {
+                const updated = applyIndicators();
+                if (updated) {
+                  await save(e, { ...data, activities: updated });
+                } else {
+                  await save(e);
+                }
+              }}
             >
               <Save size={16} /> {isSaving ? "Saving..." : "Save school settings"}
             </button>

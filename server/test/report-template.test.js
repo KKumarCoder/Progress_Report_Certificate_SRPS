@@ -76,15 +76,30 @@ test("calibration rejects missing fields, invalid numbers, bounds and changed ar
     assert.throws(() => validateMapping(m, mapping));
   }
 });
-test("fixed printed profile cannot be silently mislabelled", () => {
+test("subjects validation allows 1 to 7 subjects and rejects invalid", () => {
   assertCompatible(DEFAULT_CONFIG);
+  assertCompatible({
+    ...DEFAULT_CONFIG,
+    subjects: [
+      { id: "english", name: "ENGLISH" },
+      { id: "hindi", name: "HINDI" },
+    ],
+  });
   assert.throws(
     () =>
       assertCompatible({
         ...DEFAULT_CONFIG,
-        subjects: [{ id: "physics", name: "PHYSICS" }],
+        subjects: [],
       }),
-    /does not match/,
+    /1 to 7 subjects/,
+  );
+  assert.throws(
+    () =>
+      assertCompatible({
+        ...DEFAULT_CONFIG,
+        subjects: Array(8).fill({ id: "sub", name: "SUB" }),
+      }),
+    /1 to 7 subjects/,
   );
 });
 test("published values use frozen student/config and never current user signature", () => {

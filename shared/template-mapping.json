@@ -23,8 +23,8 @@
     "front": {
       "width": 1054,
       "height": 1492,
-      "artwork": "/templates/v1/single-dbdf1fa1b127.png",
-      "sha256": "dbdf1fa1b127e8621703f5aafc3f4c3090587606b91b97406f09cedc00dc1757",
+      "artwork": "/templates/v1/single-7b83fef2237f.png",
+      "sha256": "7b83fef2237f704bcdf114854e3630f17db460542b6412dcc9fe7802d7e682f1",
       "fields": [
         {
           "id": "name",
@@ -153,6 +153,125 @@
           "width": 177,
           "height": 218,
           "fit": "cover"
+        },
+        {
+          "id": "subject.0.name",
+          "type": "text",
+          "x": 55,
+          "y": 698,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "subject.1.name",
+          "type": "text",
+          "x": 55,
+          "y": 728,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "subject.2.name",
+          "type": "text",
+          "x": 55,
+          "y": 757,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "subject.3.name",
+          "type": "text",
+          "x": 55,
+          "y": 785,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "subject.4.name",
+          "type": "text",
+          "x": 55,
+          "y": 814,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "subject.5.name",
+          "type": "text",
+          "x": 55,
+          "y": 842,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "subject.6.name",
+          "type": "text",
+          "x": 55,
+          "y": 871,
+          "width": 120,
+          "height": 28,
+          "font": "700",
+          "fontSize": 12,
+          "colour": "#0f172a",
+          "alignment": "left",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 8,
+            "onFailure": "error"
+          }
         },
         {
           "id": "term1.english.fa1",

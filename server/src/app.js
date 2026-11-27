@@ -255,10 +255,11 @@ const getActiveSections = async () => {
     .map((s) => String(s.name || s.id));
 };
 function forClass(cfg, student) {
+  const cls = student?.className ? String(student.className) : null;
   return {
     ...cfg,
-    subjects: cfg.profiles?.[student.className]?.length
-      ? cfg.profiles[student.className]
+    subjects: cls && cfg.profiles?.[cls]?.length
+      ? cfg.profiles[cls]
       : cfg.subjects,
   };
 }

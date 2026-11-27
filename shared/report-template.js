@@ -1,18 +1,14 @@
 import { calculate, SUBJECTS, COMPONENTS, ACTIVITIES, getTermComponents } from "./engine.js";
 
 export function assertCompatible(config) {
-  const normalize = (s) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (
-    !config.subjects ||
-    config.subjects.length !== SUBJECTS.length ||
-    config.subjects.some(
-      (s, i) =>
-        s.id !== SUBJECTS[i].id ||
-        normalize(s.name) !== normalize(SUBJECTS[i].name),
-    )
+    !config?.subjects ||
+    !Array.isArray(config.subjects) ||
+    config.subjects.length === 0 ||
+    config.subjects.length > 7
   ) {
     throw new Error(
-      "This class profile does not match the fixed subjects printed on the approved artwork. A matching blank template is required.",
+      "This template supports 1 to 7 subjects. Please configure between 1 and 7 subjects for this class.",
     );
   }
 }
@@ -61,35 +57,61 @@ export function reportValues(student, report, config, user = {}) {
     maximum: String(calc.maximum),
   };
   const cleanMark = (v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v);
-  for (const s of config.subjects) {
-    // Term 1 (FA-1, FA-2, SA-1)
-    values[`term1.${s.id}.fa1`] = cleanMark(
-      report.marks?.term1?.[s.id]?.fa1 ?? ""
-    );
-    values[`term1.${s.id}.fa2`] = cleanMark(
-      report.marks?.term1?.[s.id]?.fa2 ?? ""
-    );
-    values[`term1.${s.id}.sa1`] = cleanMark(
-      report.marks?.term1?.[s.id]?.sa1 ?? ""
-    );
+  const SUBJECT_ROW_KEYS = [
+    "english",
+    "hindi",
+    "sanskrit",
+    "mathematics",
+    "science",
+    "social",
+    "reasoning",
+  ];
 
-    // Term 2 (FA-3, FA-4, SA-2)
-    values[`term2.${s.id}.fa3`] = cleanMark(
-      report.marks?.term2?.[s.id]?.fa3 ?? ""
-    );
-    values[`term2.${s.id}.fa4`] = cleanMark(
-      report.marks?.term2?.[s.id]?.fa4 ?? ""
-    );
-    values[`term2.${s.id}.sa2`] = cleanMark(
-      report.marks?.term2?.[s.id]?.sa2 ?? ""
-    );
+  for (let i = 0; i < 7; i++) {
+    const rowKey = SUBJECT_ROW_KEYS[i];
+    const s = config.subjects[i];
+    if (s) {
+      values[`subject.${i}.name`] = s.name;
 
-    const subCalc = calc.subjects?.[s.id];
-    values[`total.${s.id}`] =
-      subCalc?.complete && subCalc.subTotal !== undefined && subCalc.subTotal !== null
-        ? String(Math.round(subCalc.subTotal * 100) / 100)
-        : "—";
-    values[`grade.${s.id}`] = subCalc?.complete ? subCalc.grade : "—";
+      // Term 1 (FA-1, FA-2, SA-1)
+      values[`term1.${rowKey}.fa1`] = cleanMark(
+        report.marks?.term1?.[s.id]?.fa1 ?? ""
+      );
+      values[`term1.${rowKey}.fa2`] = cleanMark(
+        report.marks?.term1?.[s.id]?.fa2 ?? ""
+      );
+      values[`term1.${rowKey}.sa1`] = cleanMark(
+        report.marks?.term1?.[s.id]?.sa1 ?? ""
+      );
+
+      // Term 2 (FA-3, FA-4, SA-2)
+      values[`term2.${rowKey}.fa3`] = cleanMark(
+        report.marks?.term2?.[s.id]?.fa3 ?? ""
+      );
+      values[`term2.${rowKey}.fa4`] = cleanMark(
+        report.marks?.term2?.[s.id]?.fa4 ?? ""
+      );
+      values[`term2.${rowKey}.sa2`] = cleanMark(
+        report.marks?.term2?.[s.id]?.sa2 ?? ""
+      );
+
+      const subCalc = calc.subjects?.[s.id];
+      values[`total.${rowKey}`] =
+        subCalc?.complete && subCalc.subTotal !== undefined && subCalc.subTotal !== null
+          ? String(Math.round(subCalc.subTotal * 100) / 100)
+          : "—";
+      values[`grade.${rowKey}`] = subCalc?.complete ? subCalc.grade : "—";
+    } else {
+      values[`subject.${i}.name`] = "";
+      values[`term1.${rowKey}.fa1`] = "";
+      values[`term1.${rowKey}.fa2`] = "";
+      values[`term1.${rowKey}.sa1`] = "";
+      values[`term2.${rowKey}.fa3`] = "";
+      values[`term2.${rowKey}.fa4`] = "";
+      values[`term2.${rowKey}.sa2`] = "";
+      values[`total.${rowKey}`] = "";
+      values[`grade.${rowKey}`] = "";
+    }
   }
 
   const activities = config.activities || ACTIVITIES;
