@@ -94,6 +94,7 @@ import ClassAnalytics from "./ClassAnalytics";
 import Dashboard from "./Dashboard";
 import templateMapping from "../../shared/template-mapping.json";
 import { exportReportPdf, printReports } from "./report-export";
+import { getNextClass } from "../../shared/report-template.js";
 import Loader from "./Loader";
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/600.css";
@@ -3083,27 +3084,75 @@ function Studio({
                     />
                   </Field>
                 )}
-              <Field label="Attendance (e.g. 198 / 215 Days)">
+              {/* Attendance entry with Green Attended Days and Red Total Days */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "12px", marginBottom: "8px" }}>
+                <Field label="Attended Days (Green)">
+                  <input
+                    type="text"
+                    disabled={locked}
+                    placeholder="e.g. 185"
+                    value={(() => {
+                      const str = String(report.attendance || "").trim();
+                      if (str.includes("/")) return str.split("/")[0].replace(/[^0-9]/g, "").trim() || str.split("/")[0].trim();
+                      return str;
+                    })()}
+                    onChange={(e) => {
+                      const present = e.target.value.trim();
+                      const currentTotal = (() => {
+                        const str = String(report.attendance || "").trim();
+                        if (str.includes("/")) return str.split("/")[1].replace(/[^0-9]/g, "").trim() || str.split("/")[1].trim();
+                        return "";
+                      })();
+                      update({
+                        ...report,
+                        attendance: currentTotal ? `${present} / ${currentTotal}` : present,
+                      });
+                    }}
+                    style={{ fontWeight: "700", color: "#16a34a" }}
+                  />
+                </Field>
+                <Field label="Total Working Days (Red)">
+                  <input
+                    type="text"
+                    disabled={locked}
+                    placeholder="e.g. 200"
+                    value={(() => {
+                      const str = String(report.attendance || "").trim();
+                      if (str.includes("/")) return str.split("/")[1].replace(/[^0-9]/g, "").trim() || str.split("/")[1].trim();
+                      return "";
+                    })()}
+                    onChange={(e) => {
+                      const total = e.target.value.trim();
+                      const currentPresent = (() => {
+                        const str = String(report.attendance || "").trim();
+                        if (str.includes("/")) return str.split("/")[0].replace(/[^0-9]/g, "").trim() || str.split("/")[0].trim();
+                        return str;
+                      })();
+                      update({
+                        ...report,
+                        attendance: total ? `${currentPresent || "0"} / ${total}` : currentPresent,
+                      });
+                    }}
+                    style={{ fontWeight: "700", color: "#dc2626" }}
+                  />
+                </Field>
+              </div>
+
+              {/* Promoted To with Automatic default and manual override */}
+              <Field label={`Promoted To (Auto: ${getNextClass(student.className)} · or manual custom)`}>
                 <input
                   type="text"
                   disabled={locked}
-                  placeholder="e.g. 198 / 215 Days"
-                  value={report.attendance || ""}
-                  onChange={(e) =>
-                    update({ ...report, attendance: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="Promoted To (e.g. Class VII)">
-                <input
-                  type="text"
-                  disabled={locked}
-                  placeholder="e.g. Class VII (Seven)"
+                  placeholder={`Auto: ${getNextClass(student.className)}`}
                   value={report.promotedTo || ""}
                   onChange={(e) =>
                     update({ ...report, promotedTo: e.target.value })
                   }
+                  style={{ fontWeight: "700", color: "#002060" }}
                 />
+                <span className="field-hint" style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", display: "block" }}>
+                  Auto: <b>{getNextClass(student.className)}</b> (leave empty to use automatic next class, or type custom value).
+                </span>
               </Field>
               <p className="hint">
                 Upload signatures in Settings. Student photos are managed in the

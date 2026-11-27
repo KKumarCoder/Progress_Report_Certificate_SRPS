@@ -1,4 +1,4 @@
-import { calculate, SUBJECTS, COMPONENTS, ACTIVITIES, getTermComponents } from "./engine.js";
+import { calculate, SUBJECTS, COMPONENTS, ACTIVITIES, getTermComponents, DEFAULT_CONFIG } from "./engine.js";
 
 export function assertCompatible(config) {
   if (
@@ -12,11 +12,67 @@ export function assertCompatible(config) {
     );
   }
 }
+export function getNextClass(className) {
+  if (!className) return "";
+  const raw = String(className).trim();
+
+  const ROMAN = {
+    "1": "II",
+    "2": "III",
+    "3": "IV",
+    "4": "V",
+    "5": "VI",
+    "6": "VII",
+    "7": "VIII",
+    "8": "IX",
+    "9": "X",
+    "10": "XI",
+    "11": "XII",
+    "12": "Graduated",
+  };
+
+  const ROMAN_NUMERALS = {
+    "I": "II",
+    "II": "III",
+    "III": "IV",
+    "IV": "V",
+    "V": "VI",
+    "VI": "VII",
+    "VII": "VIII",
+    "VIII": "IX",
+    "IX": "X",
+    "X": "XI",
+    "XI": "XII",
+  };
+
+  if (/balvatika[-_\s]*1/i.test(raw)) return "Balvatika-2";
+  if (/balvatika[-_\s]*2/i.test(raw)) return "Balvatika-3";
+  if (/balvatika[-_\s]*3/i.test(raw)) return "I";
+  if (/nursery/i.test(raw)) return "LKG";
+  if (/lkg/i.test(raw)) return "UKG";
+  if (/ukg/i.test(raw)) return "I";
+
+  const numMatch = raw.match(/\b(\d{1,2})\b/);
+  if (numMatch && ROMAN[numMatch[1]]) {
+    return ROMAN[numMatch[1]];
+  }
+
+  const upper = raw.toUpperCase();
+  for (const [r, nextR] of Object.entries(ROMAN_NUMERALS)) {
+    const regex = new RegExp(`\\b${r}\\b`, "i");
+    if (regex.test(upper)) {
+      return nextR;
+    }
+  }
+
+  return "Higher Class";
+}
+
 export function reportValues(student, report, config, user = {}) {
   config =
     report.status === "published" && report.configSnapshot
       ? report.configSnapshot
-      : config;
+      : config || DEFAULT_CONFIG;
   assertCompatible(config);
   const s =
     report.status === "published" && report.studentSnapshot
@@ -33,6 +89,24 @@ export function reportValues(student, report, config, user = {}) {
         })
         .replaceAll(" ", "-")
     : "";
+
+  // Parse attendance into present (attended) days and total working days
+  const attStr = String(report.attendance || "").trim();
+  let attPresent = "", attTotal = "";
+  if (attStr.includes("/")) {
+    const parts = attStr.split("/");
+    attPresent = parts[0].replace(/[^0-9]/g, "").trim() || parts[0].trim();
+    attTotal = parts[1].replace(/[^0-9]/g, "").trim() || parts[1].trim();
+  } else if (attStr) {
+    attPresent = attStr;
+  }
+
+  const autoPromoted = getNextClass(s.className);
+  const promotedTo =
+    report.promotedTo && String(report.promotedTo).trim()
+      ? String(report.promotedTo).trim()
+      : autoPromoted;
+
   const values = {
     classSection: `${s.className} - ${s.section}`,
     admissionNo: s.admissionNo,
@@ -42,9 +116,10 @@ export function reportValues(student, report, config, user = {}) {
     fatherName: s.fatherName,
     dob,
     photo: s.photo || "",
-    attendance: report.attendance ? String(report.attendance) : "—",
+    "attendance.present": attPresent,
+    "attendance.total": attTotal,
     remarks: report.remarks || "",
-    promotedTo: report.promotedTo || (calc.result === "PASS" ? "Promoted to Higher Class" : "—"),
+    promotedTo,
     teacherSignature:
       report.teacherSignature ||
       (report.status !== "published" && ["teacher", "admin"].includes(user.role)

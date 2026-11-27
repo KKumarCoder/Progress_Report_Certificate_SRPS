@@ -1481,15 +1481,32 @@
           }
         },
         {
-          "id": "attendance",
+          "id": "attendance.present",
           "type": "text",
-          "x": 220,
-          "y": 1184,
-          "width": 140,
+          "x": 226,
+          "y": 1180,
+          "width": 58,
           "height": 24,
           "font": "700",
-          "fontSize": 16,
-          "colour": "#0f172a",
+          "fontSize": 17,
+          "colour": "#15803d",
+          "alignment": "center",
+          "overflow": {
+            "mode": "shrink",
+            "minFontSize": 10,
+            "onFailure": "error"
+          }
+        },
+        {
+          "id": "attendance.total",
+          "type": "text",
+          "x": 296,
+          "y": 1180,
+          "width": 58,
+          "height": 24,
+          "font": "700",
+          "fontSize": 17,
+          "colour": "#dc2626",
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
@@ -1518,16 +1535,16 @@
           "id": "promotedTo",
           "type": "text",
           "x": 748,
-          "y": 1282,
+          "y": 1270,
           "width": 154,
-          "height": 26,
+          "height": 28,
           "font": "700",
-          "fontSize": 15,
-          "colour": "#0c2340",
+          "fontSize": 22,
+          "colour": "#002060",
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 12,
             "onFailure": "error"
           }
         },
