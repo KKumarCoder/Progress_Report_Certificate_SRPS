@@ -269,7 +269,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -286,7 +286,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -405,7 +405,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -422,7 +422,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -541,7 +541,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -558,7 +558,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -677,7 +677,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -694,7 +694,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -813,7 +813,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -830,7 +830,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -949,7 +949,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -966,7 +966,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -1085,7 +1085,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },
@@ -1102,7 +1102,7 @@
           "alignment": "center",
           "overflow": {
             "mode": "shrink",
-            "minFontSize": 10,
+            "minFontSize": 8,
             "onFailure": "error"
           }
         },

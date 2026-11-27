@@ -190,7 +190,7 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
     const subDone = done1 && done2;
     const obt1 = comps1.reduce((sum, c) => sum + (typeof row1[c.id] === "number" ? row1[c.id] : 0), 0);
     const obt2 = comps2.reduce((sum, c) => sum + (typeof row2[c.id] === "number" ? row2[c.id] : 0), 0);
-    const subTotal = obt1 + obt2;
+    const subTotal = Math.round((obt1 + obt2) * 100) / 100;
     const total100 = combinedMaxPerSubject > 0 ? Math.round((subTotal / combinedMaxPerSubject) * 100) : 0;
     if (subDone && total100 < config.passMark) passed = false;
     subjectsMap[s.id] = {
