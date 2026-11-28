@@ -14,6 +14,56 @@ import {
   GraduationCap,
 } from "lucide-react";
 
+export function GraduationBooksIllustration({ size = 88 }) {
+  return (
+    <svg
+      className="anv-hero-3d-svg"
+      width={size}
+      height={size}
+      viewBox="0 0 120 120"
+      fill="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="anvBookOrange" x1="18" y1="74" x2="102" y2="104" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FB923C" />
+          <stop offset="100%" stopColor="#EA580C" />
+        </linearGradient>
+        <linearGradient id="anvBookBlue" x1="22" y1="54" x2="98" y2="82" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#38BDF8" />
+          <stop offset="100%" stopColor="#0284C7" />
+        </linearGradient>
+        <linearGradient id="anvCapTop" x1="24" y1="22" x2="96" y2="54" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#1E3A8A" />
+          <stop offset="100%" stopColor="#0F172A" />
+        </linearGradient>
+      </defs>
+      {/* Soft shadow */}
+      <ellipse cx="60" cy="106" rx="42" ry="7" fill="rgba(8, 25, 65, 0.28)" />
+      {/* Bottom orange book */}
+      <rect x="20" y="78" width="80" height="22" rx="6" fill="url(#anvBookOrange)" />
+      <rect x="26" y="82" width="68" height="14" rx="3" fill="#FFF7ED" />
+      <rect x="20" y="78" width="12" height="22" rx="4" fill="#C2410C" />
+      {/* Top blue book */}
+      <rect x="24" y="56" width="72" height="20" rx="6" fill="url(#anvBookBlue)" />
+      <rect x="30" y="60" width="60" height="12" rx="3" fill="#F0F9FF" />
+      <rect x="24" y="56" width="11" height="20" rx="4" fill="#0369A1" />
+      {/* Graduation cap base */}
+      <path d="M40 42H80V53C80 57 71 60 60 60C49 60 40 57 40 53V42Z" fill="#1E293B" />
+      {/* Graduation cap mortarboard */}
+      <path d="M60 18L102 35L60 52L18 35L60 18Z" fill="url(#anvCapTop)" stroke="#60A5FA" strokeWidth="1.5" />
+      <circle cx="60" cy="35" r="3.5" fill="#FBBF24" />
+      {/* Golden tassel */}
+      <path d="M60 35C74 37 86 41 88 53" stroke="#FBBF24" strokeWidth="2.6" strokeLinecap="round" />
+      <circle cx="88" cy="56" r="3.5" fill="#F59E0B" />
+      {/* Sparkles */}
+      <circle cx="20" cy="24" r="2.5" fill="#FFFFFF" fillOpacity="0.85" />
+      <circle cx="98" cy="22" r="2" fill="#BAE6FD" fillOpacity="0.9" />
+      <circle cx="104" cy="68" r="2.5" fill="#FDE68A" fillOpacity="0.9" />
+    </svg>
+  );
+}
+
 export function HeroBanner({
   title,
   subtitle,
@@ -30,9 +80,7 @@ export function HeroBanner({
         {actions && <div className="anv-hero-actions">{actions}</div>}
       </div>
       <div className="anv-hero-visual" aria-hidden="true">
-        <div className="anv-hero-badge">
-          <GraduationCap size={38} strokeWidth={1.75} />
-        </div>
+        <GraduationBooksIllustration size={92} />
       </div>
     </section>
   );

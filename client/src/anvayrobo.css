@@ -221,15 +221,30 @@ body {
 }
 
 /* ---------- Hero Banner & KPI Stat Cards ---------- */
+@keyframes anv-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(1.5deg); }
+}
+
+.anv-hero-3d-svg {
+  animation: anv-float 4.2s ease-in-out infinite;
+  filter: drop-shadow(0 10px 18px rgba(7, 29, 73, 0.26));
+  flex-shrink: 0;
+}
+
+.anv-welcome-mobile-art {
+  display: none;
+}
+
 .anv-hero {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 28px;
+  padding: 22px 26px;
   border-radius: 20px;
-  background: linear-gradient(125deg, #0866e8 0%, #2088f2 55%, #38a5f5 100%);
+  background: linear-gradient(125deg, #075ce5 0%, #1d82f4 55%, #38d2f5 100%);
   color: #ffffff;
   box-shadow: var(--anv-shadow-blue);
   margin-bottom: 18px;
@@ -959,12 +974,23 @@ body {
     display: none !important;
   }
   .welcome-panel {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
     padding: 18px !important;
-    border-radius: 18px !important;
-    background: linear-gradient(125deg, #0866e8 0%, #2088f2 55%, #38a5f5 100%) !important;
+    border-radius: 20px !important;
+    background: linear-gradient(125deg, #075ce5 0%, #1d82f4 58%, #38d2f5 100%) !important;
     border: 0 !important;
     box-shadow: var(--anv-shadow-blue) !important;
     color: #ffffff !important;
+    overflow: hidden !important;
+  }
+  .anv-welcome-mobile-art {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
   .welcome-panel .pill.gold {
     background: rgba(255, 255, 255, 0.2) !important;
@@ -972,7 +998,8 @@ body {
     border: 0 !important;
   }
   .welcome-panel h2 {
-    font-size: 21px !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
     color: #ffffff !important;
     margin: 8px 0 12px !important;
   }
@@ -984,7 +1011,10 @@ body {
   .welcome-panel .btn.primary {
     background: #ffffff !important;
     color: #0866e8 !important;
-    width: 100%;
+    width: auto !important;
+    padding: 9px 14px !important;
+    font-size: 13px !important;
     justify-content: center;
+    box-shadow: 0 6px 16px rgba(7, 29, 73, 0.2) !important;
   }
 }

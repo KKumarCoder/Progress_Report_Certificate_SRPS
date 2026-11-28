@@ -11,6 +11,7 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
+import { GraduationBooksIllustration } from "./components/ui";
 
 function hasModule(user, id) {
   if (!user) return false;
@@ -84,6 +85,9 @@ export default function Dashboard({
               Open report studio <ArrowRight size={16} />
             </button>
           )}
+        </div>
+        <div className="anv-welcome-mobile-art" aria-hidden="true">
+          <GraduationBooksIllustration size={96} />
         </div>
         <div className="mini-report">
           <div className="mini-crest">
