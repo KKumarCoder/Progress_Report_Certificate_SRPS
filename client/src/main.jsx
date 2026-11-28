@@ -3008,7 +3008,6 @@ function Studio({
     <>
       <div className="studio-heading">
         <div>
-          <div className="eyebrow">LIVE REPORT WORKSPACE</div>
           <h1>
             Report studio{" "}
             <span className={"status-badge " + report.status}>
