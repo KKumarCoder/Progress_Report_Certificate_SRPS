@@ -760,20 +760,111 @@ body {
   color-scheme: light;
 }
 
-/* ---------- Dashboard Overview Polish (Desktop, Tablet & Mobile) ---------- */
-.overview-stats .stat-card {
-  background: var(--anv-surface) !important;
-  border: 1px solid var(--anv-border) !important;
-  border-radius: 16px !important;
-  box-shadow: var(--anv-shadow-sm) !important;
+/* ---------- Dashboard Overview KPI Cards (Matches Reference) ---------- */
+.anv-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  margin-bottom: 18px;
 }
-.overview-stats .stat-card strong {
+
+.anv-kpi-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--anv-surface);
+  border: 1px solid var(--anv-border);
+  border-left-width: 4px;
+  box-shadow: var(--anv-shadow-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  color: var(--anv-text);
+}
+
+.anv-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--anv-shadow-md);
+}
+
+.anv-kpi-card.tone-blue { border-left-color: #0866e8; }
+.anv-kpi-card.tone-green { border-left-color: #16a36a; }
+.anv-kpi-card.tone-amber {
+  border-left-color: #f59e0b;
+  background: linear-gradient(95deg, var(--anv-surface) 35%, rgba(245, 158, 11, 0.1) 100%);
+}
+
+.anv-kpi-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anv-kpi-icon.tone-blue { background: rgba(8, 102, 232, 0.12); color: #0866e8; }
+.anv-kpi-icon.tone-green { background: rgba(22, 163, 106, 0.12); color: #16a36a; }
+.anv-kpi-icon.tone-amber { background: rgba(245, 158, 11, 0.15); color: #ea580c; }
+
+.dark-theme .anv-kpi-icon.tone-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.dark-theme .anv-kpi-icon.tone-green { background: rgba(52, 211, 153, 0.18); color: #34d399; }
+.dark-theme .anv-kpi-icon.tone-amber { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+
+.anv-kpi-body {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.anv-kpi-body strong {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--anv-text);
   white-space: nowrap;
-  color: var(--anv-text) !important;
 }
-.overview-stats .stat-card small,
-.overview-stats .stat-label {
-  color: var(--anv-text-muted) !important;
+
+.anv-kpi-body span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--anv-text-muted);
+}
+
+.anv-kpi-progress {
+  margin-top: 6px;
+  width: 120px;
+  max-width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.26);
+  overflow: hidden;
+}
+
+.anv-kpi-progress > span {
+  display: block;
+  width: 55%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.anv-kpi-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(8, 102, 232, 0.08);
+  color: var(--anv-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .dark-theme .welcome-panel {
   background: linear-gradient(135deg, #111f38 0%, #172a4b 100%) !important;
@@ -951,27 +1042,36 @@ body {
   }
 
   /* Mobile Dashboard Overview App-Feel Polish */
-  .overview-stats {
-    display: grid !important;
+  .anv-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10px !important;
   }
-  .overview-stats .stat-card {
-    padding: 13px 14px !important;
-    min-width: 0;
+  .anv-kpi-card {
+    padding: 12px !important;
+    gap: 10px !important;
+    border-radius: 16px !important;
   }
-  .overview-stats .stat-card:last-child {
-    grid-column: 1 / -1;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+  .anv-kpi-icon {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
   }
-  .overview-stats .stat-card strong {
+  .anv-kpi-body strong {
     font-size: 20px !important;
   }
-  .overview-stats .stat-card small {
-    display: none !important;
+  .anv-kpi-body span {
+    font-size: 12px !important;
+  }
+  .anv-kpi-wide {
+    grid-column: 1 / -1;
+    padding: 14px 16px !important;
+  }
+  .anv-kpi-wide .anv-kpi-body strong {
+    font-size: 23px !important;
+  }
+  .anv-kpi-arrow {
+    width: 24px;
+    height: 24px;
   }
   .welcome-panel {
     display: flex !important;
