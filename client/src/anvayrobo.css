@@ -955,13 +955,24 @@ body {
     padding: 3px 10px 3px 4px !important;
   }
 
-  /* Force mobile slide-over sidebar drawer to always show full left-aligned labels */
+  /* Force mobile slide-over sidebar drawer to always show full left-aligned labels & scroll smoothly */
   .sidebar.shown,
   .sidebar.collapsed.shown {
     width: 268px !important;
     max-width: 82vw !important;
-    padding: 14px 12px !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    padding: 14px 12px 32px !important;
     align-items: stretch !important;
+  }
+  .sidebar.shown nav,
+  .sidebar.collapsed.shown nav {
+    overflow: visible !important;
+    flex: 0 0 auto !important;
   }
   .sidebar.collapsed.shown .sidebar-chevron-toggle {
     display: none !important;
@@ -971,17 +982,21 @@ body {
     gap: 10px !important;
   }
   .sidebar.collapsed.shown .primary-company-name,
-  .sidebar.collapsed.shown .school-label,
-  .sidebar.collapsed.shown .workspace-label,
   .sidebar.collapsed.shown .nav-label-text,
   .sidebar.collapsed.shown .user-details,
   .sidebar.collapsed.shown .dropdown-chevron {
     display: flex !important;
     opacity: 1 !important;
   }
-  .sidebar.collapsed.shown .school-label,
+  .sidebar.collapsed.shown .school-label {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    opacity: 1 !important;
+  }
   .sidebar.collapsed.shown .workspace-label {
     display: block !important;
+    opacity: 1 !important;
   }
   .sidebar.collapsed.shown nav button,
   .sidebar.collapsed.shown .nav-parent-btn {
