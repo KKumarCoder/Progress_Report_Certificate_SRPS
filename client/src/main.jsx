@@ -6003,7 +6003,7 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
     }
   }
 
-  const applyProfile = () => {
+  const applyProfile = ({ silent = false } = {}) => {
     const names = profileText
       .split("\n")
       .map((x) => x.trim())
@@ -6016,17 +6016,24 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
       const found = (config.subjects || []).find(
         (s) => s.name.toUpperCase() === n.toUpperCase(),
       );
+      const cleanId =
+        n
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "")
+          .slice(0, 40) || "subject";
       return (
         found || {
-          id: n
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "_")
-            .slice(0, 40),
+          id: cleanId,
           name: n.toUpperCase(),
           icon: "BookOpen",
         }
       );
     });
+    if (new Set(subjects.map((s) => s.id)).size !== subjects.length) {
+      toast("Each subject in a class must have a unique name", true);
+      return null;
+    }
     const updatedProfiles = {
       ...(data.profiles || config.profiles || {}),
       [profileClass]: subjects,
@@ -6035,7 +6042,9 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
       ...prev,
       profiles: updatedProfiles,
     }));
-    toast(`Subjects staged for Class ${profileClass}. Click Save settings to apply.`);
+    if (!silent) {
+      toast(`Subjects staged for Class ${profileClass}. Saving...`);
+    }
     return updatedProfiles;
   };
 
@@ -6450,11 +6459,9 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
               className="btn primary"
               disabled={isSaving}
               onClick={async (e) => {
-                const updated = applyProfile();
+                const updated = applyProfile({ silent: true });
                 if (updated) {
                   await save(e, { ...data, profiles: updated });
-                } else {
-                  await save(e);
                 }
               }}
             >
@@ -6529,22 +6536,29 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                   <button
                     type="button"
                     className="btn"
-                    onClick={applyProfile}
+                    disabled={isSaving}
+                    onClick={async (e) => {
+                      const updated = applyProfile({ silent: true });
+                      if (updated) {
+                        const saved = await save(e, { ...data, profiles: updated });
+                        if (saved) toast(`Subjects saved for Class ${profileClass}`);
+                      }
+                    }}
                   >
-                    <Check size={15} /> Stage for Class {profileClass}
+                    <Check size={15} /> {isSaving ? "Saving..." : `Save Class ${profileClass}`}
                   </button>
                   <button
                     type="button"
                     className="btn primary"
                     disabled={isSaving}
                     onClick={async (e) => {
-                      const updated = applyProfile();
+                      const updated = applyProfile({ silent: true });
                       if (updated) {
                         await save(e, { ...data, profiles: updated });
                       }
                     }}
                   >
-                    <Save size={15} /> Apply & Save All
+                    <Save size={15} /> {isSaving ? "Saving..." : "Apply & Save All"}
                   </button>
                 </div>
               </div>
