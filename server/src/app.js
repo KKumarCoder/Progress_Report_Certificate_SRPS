@@ -1198,9 +1198,10 @@ app.put(
       if (!profiles || typeof profiles !== "object" || Array.isArray(profiles))
         throw fail(400, "Invalid class profiles");
       const activeClasses = await getActiveClasses();
+      const normalizedProfiles = {};
       for (const [cls, subjects] of Object.entries(profiles)) {
+        if (!activeClasses.includes(cls)) continue;
         if (
-          !activeClasses.includes(cls) ||
           !Array.isArray(subjects) ||
           subjects.length < 1 ||
           subjects.length > 12 ||
@@ -1214,8 +1215,9 @@ app.put(
           new Set(subjects.map((x) => x.id)).size !== subjects.length
         )
           throw fail(400, "Use 1–12 uniquely named subjects per class");
+        normalizedProfiles[cls] = subjects;
       }
-      value.profiles = profiles;
+      value.profiles = normalizedProfiles;
     }
     if (req.body.activities !== undefined) {
       const acts = req.body.activities;
