@@ -3610,8 +3610,9 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
         method: "PUT",
         body: nextMasters,
       });
-      if (res?.masters) {
-        onUpdateMasters(res.masters);
+      const updated = res?.masters || res;
+      if (updated && (Array.isArray(updated.classes) || Array.isArray(updated.sections))) {
+        onUpdateMasters(updated);
       }
       toast("Academic masters updated successfully");
     } catch (err) {
@@ -3634,6 +3635,8 @@ function AcademicMasters({ masters, onUpdateMasters, toast }) {
       ...currentClasses,
       { id: name, name, active: true, order },
     ].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    const idx = updated.findIndex((c) => c.id === name);
+    if (idx >= 0) setClassPage(Math.floor(idx / classPageSize) + 1);
     persistMasters({ ...getBundle(), classes: updated });
     setNewClassName("");
     setNewClassOrder("");
