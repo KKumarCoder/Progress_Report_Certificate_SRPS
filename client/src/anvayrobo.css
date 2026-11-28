@@ -241,14 +241,39 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 22px 26px;
-  border-radius: 20px;
+  gap: 14px;
+  padding: 16px 22px;
+  border-radius: 18px;
   background: linear-gradient(125deg, #075ce5 0%, #1d82f4 55%, #38d2f5 100%);
   color: #ffffff;
   box-shadow: var(--anv-shadow-blue);
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   overflow: hidden;
+}
+
+.anv-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.anv-filter-bar .search-box {
+  flex: 1 1 240px;
+}
+
+.anv-filter-bar .search-box input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.anv-filter-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .anv-hero::after {
@@ -1021,16 +1046,58 @@ body {
     padding-bottom: 78px !important;
   }
   .anv-hero {
-    padding: 18px;
-    border-radius: 16px;
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    margin-bottom: 12px !important;
   }
   .anv-hero h1 {
-    font-size: 20px;
+    font-size: 18px !important;
   }
-  .anv-hero-badge {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+  .anv-hero p {
+    font-size: 12px !important;
+    margin-top: 2px !important;
+  }
+  .anv-hero-actions {
+    margin-top: 8px !important;
+    gap: 8px !important;
+  }
+  .anv-compact-action {
+    padding: 7px 10px !important;
+    min-width: 36px;
+    height: 34px;
+    border-radius: 10px !important;
+  }
+  .anv-compact-action .anv-action-label {
+    display: none;
+  }
+  .anv-hero .anv-hero-3d-svg {
+    width: 68px !important;
+    height: 68px !important;
+  }
+  .anv-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .anv-filter-bar .search-box {
+    flex: none !important;
+    width: 100% !important;
+  }
+  .anv-filter-controls-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  .anv-filter-controls-row select {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 7px 6px !important;
+    font-size: 11.5px !important;
+    border-radius: 10px !important;
+  }
+  .anv-filter-controls-row .view-mode-toggle {
+    flex-shrink: 0;
   }
   .anv-stats-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));

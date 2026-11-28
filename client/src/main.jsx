@@ -1850,24 +1850,31 @@ function Students({
       {!compact && (
         <>
           <HeroBanner
-            eyebrow="STUDENT DIRECTORY"
             title="Student Directory"
-            subtitle="Every student. One place. Ready for marks entry and report cards."
+            subtitle="Every student. One place."
             actions={
               <>
                 {["admin", "principal"].includes(user.role) && (
                   <button
                     type="button"
-                    className="btn"
+                    className="btn anv-compact-action"
                     onClick={() => setShowPromotionModal(true)}
-                    title="Batch promote students to next academic cohort"
+                    title="Promote Class"
+                    aria-label="Promote Class"
                   >
-                    <ArrowUpDown size={16} /> Promote Class
+                    <ArrowUpDown size={16} />
+                    <span className="anv-action-label">Promote</span>
                   </button>
                 )}
                 {hasStudentAction(user, "studentCreate") && (
-                  <button className="btn primary" onClick={() => setEditing({})}>
-                    <Plus size={17} /> Add student
+                  <button
+                    className="btn primary anv-compact-action"
+                    onClick={() => setEditing({})}
+                    title="Add Student"
+                    aria-label="Add Student"
+                  >
+                    <Plus size={17} />
+                    <span className="anv-action-label">Add</span>
                   </button>
                 )}
               </>
@@ -1903,66 +1910,68 @@ function Students({
       )}
       <div className={!compact ? "anv-directory-layout" : ""}>
       <section className="card directory">
-        <div className="filter-bar">
+        <div className="filter-bar anv-filter-bar">
           <label className="search-box">
-            <Search size={18} />
+            <Search size={17} />
             <input
               placeholder="Search name, admission no. or house…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </label>
-          <select
-            aria-label="Filter class"
-            value={cls}
-            onChange={(e) => setCls(e.target.value)}
-          >
-            <option value="">All classes</option>
-            {classes.map((c) => (
-              <option key={c} value={c}>
-                Class {c}
-              </option>
-            ))}
-          </select>
-          {!compact && canManageStudents && hasStudentAction(user, "studentStatus") && (
+          <div className="anv-filter-controls-row">
             <select
-              aria-label="Filter student status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              aria-label="Filter class"
+              value={cls}
+              onChange={(e) => setCls(e.target.value)}
             >
-              <option value="active">Active students</option>
-              <option value="disabled">Disabled students</option>
+              <option value="">Class</option>
+              {classes.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
-          )}
-          <select
-            aria-label="Filter section"
-            value={sec}
-            onChange={(e) => setSec(e.target.value)}
-          >
-            <option value="">All sections</option>
-            {sections.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-          <div className="view-mode-toggle" title="Switch layout view">
-            <button
-              type="button"
-              className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
-              onClick={() => setViewMode("list")}
-              title="List View"
-              aria-label="List View"
+            {!compact && canManageStudents && hasStudentAction(user, "studentStatus") && (
+              <select
+                aria-label="Filter student status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            )}
+            <select
+              aria-label="Filter section"
+              value={sec}
+              onChange={(e) => setSec(e.target.value)}
             >
-              <List size={17} />
-            </button>
-            <button
-              type="button"
-              className={`view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
-              onClick={() => setViewMode("grid")}
-              title="3D Flip Book Grid View"
-              aria-label="3D Flip Book Grid View"
-            >
-              <LayoutGrid size={17} />
-            </button>
+              <option value="">Section</option>
+              {sections.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            <div className="view-mode-toggle" title="Switch layout view">
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
+                onClick={() => setViewMode("list")}
+                title="List View"
+                aria-label="List View"
+              >
+                <List size={16} />
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
+                onClick={() => setViewMode("grid")}
+                title="3D Flip Book Grid View"
+                aria-label="3D Flip Book Grid View"
+              >
+                <LayoutGrid size={16} />
+              </button>
+            </div>
           </div>
         </div>
         {viewMode === "list" ? (
