@@ -55,6 +55,7 @@ import {
   ChevronsRight,
   LayoutGrid,
   List,
+  Clock,
   Clock3,
   ArrowUpDown,
   Mail,
