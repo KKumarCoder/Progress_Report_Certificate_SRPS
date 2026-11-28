@@ -808,12 +808,18 @@ body {
     flex-shrink: 0;
   }
   .topbar-user-text {
-    display: none !important;
+    display: flex !important;
+  }
+  .topbar-avatar-circle {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
   }
   .topbar-user-capsule {
+    display: inline-flex !important;
+    align-items: center !important;
     min-width: auto !important;
     width: auto !important;
-    padding: 2px !important;
+    padding: 3px 10px 3px 4px !important;
   }
 
   /* Force mobile slide-over sidebar drawer to always show full left-aligned labels */
