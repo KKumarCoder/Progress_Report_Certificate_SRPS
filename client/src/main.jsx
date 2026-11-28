@@ -887,7 +887,6 @@ function App() {
             </span>
           </div>
           <div className="topbar-right">
-            <ThemeSwitcher themeMode={themeMode} onChange={setThemeMode} />
             <div className="anv-notif-wrap">
               <button
                 type="button"
