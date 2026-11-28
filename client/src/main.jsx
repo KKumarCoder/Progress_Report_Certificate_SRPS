@@ -2900,6 +2900,23 @@ function Studio({
     [calibration, setCalibration] = useState(false),
     [calibrationMapping, setCalibrationMapping] = useState(templateMapping),
     [selectedField, setSelectedField] = useState("session");
+  const [studentPickerOpen, setStudentPickerOpen] = useState(false);
+  const [studentPickerQuery, setStudentPickerQuery] = useState("");
+  const studentPickerRef = useRef(null);
+  useEffect(() => {
+    if (!studentPickerOpen) return;
+    const handleOutside = (e) => {
+      if (studentPickerRef.current && !studentPickerRef.current.contains(e.target)) {
+        setStudentPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [studentPickerOpen]);
   const load = async () => {
     setLoaded(false);
     try {
@@ -3100,26 +3117,100 @@ function Studio({
               {report.status}
             </span>
           </h1>
-          <p>
-            <select
-              className="student-switch"
+          <div className="anv-student-picker" ref={studentPickerRef}>
+            <button
+              type="button"
+              className={`anv-student-picker-trigger ${studentPickerOpen ? "open" : ""}`}
               aria-label="Choose student"
-              value={student._id}
-              onChange={(e) => {
-                if (dirty && !confirm("Discard unsaved changes?")) return;
-                changeStudent(students.find((s) => s._id === e.target.value));
-              }}
+              aria-expanded={studentPickerOpen}
+              onClick={() => setStudentPickerOpen((v) => !v)}
             >
-              {students.map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name} · {s.admissionNo}
-                </option>
-              ))}
-            </select>
-            <span>
-              Class {student.className} · {student.section}
-            </span>
-          </p>
+              <span className="anv-sp-avatar">
+                {student.photo ? (
+                  <img src={student.photo} alt={student.name} />
+                ) : (
+                  student.name?.slice(0, 1) || "S"
+                )}
+              </span>
+              <span className="anv-sp-info">
+                <b>
+                  {student.name} · {student.admissionNo}
+                </b>
+                <small>
+                  Class {student.className} · {student.section}
+                </small>
+              </span>
+              <ChevronDown size={16} className="anv-sp-chevron" />
+            </button>
+
+            {studentPickerOpen && (
+              <div className="anv-student-picker-menu">
+                <div className="anv-sp-search-wrap">
+                  <Search size={14} />
+                  <input
+                    type="text"
+                    value={studentPickerQuery}
+                    onChange={(e) => setStudentPickerQuery(e.target.value)}
+                    placeholder="Search name, adm no, class..."
+                    autoFocus
+                  />
+                  {studentPickerQuery && (
+                    <button
+                      type="button"
+                      className="anv-sp-clear"
+                      onClick={() => setStudentPickerQuery("")}
+                      aria-label="Clear search"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+                <div className="anv-sp-list">
+                  {students
+                    .filter((s) => {
+                      const q = studentPickerQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return (
+                        String(s.name || "").toLowerCase().includes(q) ||
+                        String(s.admissionNo || "").toLowerCase().includes(q) ||
+                        String(s.className || "").toLowerCase().includes(q) ||
+                        String(s.section || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((s) => {
+                      const isSelected = s._id === student._id;
+                      return (
+                        <button
+                          key={s._id}
+                          type="button"
+                          className={`anv-sp-item ${isSelected ? "active" : ""}`}
+                          onClick={() => {
+                            setStudentPickerOpen(false);
+                            setStudentPickerQuery("");
+                            if (s._id === student._id) return;
+                            if (dirty && !confirm("Discard unsaved changes?")) return;
+                            changeStudent(s);
+                          }}
+                        >
+                          <span className="anv-sp-item-avatar">
+                            {s.photo ? (
+                              <img src={s.photo} alt={s.name} />
+                            ) : (
+                              s.name?.slice(0, 1) || "S"
+                            )}
+                          </span>
+                          <span className="anv-sp-item-meta">
+                            <b>{s.name} · {s.admissionNo}</b>
+                            <small>Class {s.className} · {s.section}</small>
+                          </span>
+                          {isSelected && <Check size={15} className="anv-sp-check" />}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="studio-actions">
           <select
@@ -3135,23 +3226,31 @@ function Studio({
             ))}
           </select>
           <button
-            className="btn"
+            className="btn anv-studio-icon-btn"
             onClick={() => printReports().catch((e) => toast(e.message, true))}
+            title="Print report"
+            aria-label="Print report"
           >
-            <Printer size={16} /> Print
+            <Printer size={17} />
           </button>
-          <button className="btn" onClick={pdf} disabled={pdfBusy}>
-            {pdfBusy ? (
-              <Loader size={16} inline />
-            ) : (
-              <Download size={16} />
-            )}{" "}
-            PDF
+          <button
+            className="btn anv-studio-icon-btn"
+            onClick={pdf}
+            disabled={pdfBusy}
+            title="Download PDF"
+            aria-label="Download PDF"
+          >
+            {pdfBusy ? <Loader size={17} inline /> : <Download size={17} />}
           </button>
           {!locked && (
-            <button className="btn primary" disabled={busy} onClick={save}>
-              <Save size={16} />
-              {busy ? "Saving…" : "Save draft"}
+            <button
+              className="btn primary anv-studio-icon-btn"
+              disabled={busy}
+              onClick={save}
+              title={busy ? "Saving…" : "Save draft"}
+              aria-label={busy ? "Saving…" : "Save draft"}
+            >
+              <Save size={17} />
             </button>
           )}
         </div>
