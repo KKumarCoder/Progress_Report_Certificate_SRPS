@@ -6086,25 +6086,68 @@ function ReportReview({ session, open, toast, user }) {
       setBusyId("");
     }
   }
+  const submittedCount = rows.filter((r) => r.status === "submitted").length;
+  const publishedCount = rows.filter((r) => r.status === "published").length;
+
   return (
-    <>
-      <PageTitle
-        eyebrow="ADMINISTRATION · ACADEMIC SESSION"
-        title="Report Review"
-        subtitle="Review teacher submissions, publish completed reports, reopen when corrections are needed, and send locked reports to parents."
-      >
-        <button className="btn" onClick={load}>
-          <RefreshCw size={16} /> Refresh
-        </button>
-      </PageTitle>
-      <div className="review-password-note">
-        <LockKeyhole size={18} /> Published PDFs require a password to open. The
-        password is the student’s admission number, followed by @, then date of birth (YYYY-MM-DD).
+    <div className="anv-review-page">
+      <div className="anv-review-hero">
+        <div className="anv-review-hero-top">
+          <div>
+            <span className="anv-review-eyebrow">ADMINISTRATION · ACADEMIC SESSION</span>
+            <h2>Report Review</h2>
+            <p>
+              Review teacher submissions, publish completed reports, reopen for corrections, and send locked PDFs.
+            </p>
+          </div>
+          <button type="button" className="anv-review-refresh-btn" onClick={load} title="Refresh review queue" aria-label="Refresh">
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        </div>
+        <div className="anv-review-stats-row">
+          <div className="anv-review-stat stat-gold">
+            <ClipboardCheck size={15} />
+            <span><b>{rows.length}</b> Total</span>
+          </div>
+          <div className="anv-review-stat stat-orange">
+            <Clock size={15} />
+            <span><b>{submittedCount}</b> Submitted</span>
+          </div>
+          <div className="anv-review-stat stat-green">
+            <CheckCircle2 size={15} />
+            <span><b>{publishedCount}</b> Published</span>
+          </div>
+        </div>
       </div>
+
+      <div className="anv-review-security-note">
+        <div className="anv-review-lock-badge">
+          <LockKeyhole size={18} />
+        </div>
+        <div className="anv-review-security-text">
+          <b>Locked PDF Password Format</b>
+          <p>
+            Published PDFs require <code className="anv-review-code">AdmNo@YYYY-MM-DD</code> (student’s admission number, <b>@</b>, then date of birth).
+          </p>
+        </div>
+      </div>
+
       {!rows.length ? (
-        <Empty text="No submitted or published reports for this session" />
+        <div className="anv-review-empty">
+          <div className="anv-review-empty-icon">
+            <ClipboardCheck size={28} />
+          </div>
+          <h3>No submitted or published reports for this session</h3>
+          <p>Submitted teacher reports and published student PDFs will appear here for quick approval and delivery.</p>
+          <div className="anv-review-empty-pills">
+            <span className="pill-yellow">1. Teacher Submits</span>
+            <span className="pill-orange">2. Admin Reviews</span>
+            <span className="pill-green">3. Publish &amp; Send</span>
+          </div>
+        </div>
       ) : (
-        <div className="review-table-wrap">
+        <div className="review-table-wrap anv-review-table-card">
           <table className="review-table">
             <thead>
               <tr>
@@ -6223,7 +6266,7 @@ function ReportReview({ session, open, toast, user }) {
           />
         </div>
       )}
-    </>
+    </div>
   );
 }
 

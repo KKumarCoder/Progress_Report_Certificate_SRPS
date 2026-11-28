@@ -1494,3 +1494,240 @@ body {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   Report Review — Colorful Golden / Orange / Yellow / Green UI
+   ========================================================================== */
+.anv-review-page {
+  display: grid;
+  gap: 14px;
+}
+
+.anv-review-hero {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 55%, #fbbf24 100%);
+  border-radius: 20px;
+  padding: 18px 18px 16px;
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(245, 158, 11, 0.28);
+  display: grid;
+  gap: 14px;
+}
+
+.anv-review-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.anv-review-eyebrow {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.anv-review-hero h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.15;
+}
+
+.anv-review-hero p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.anv-review-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 13px;
+  border-radius: 12px;
+  border: 0;
+  background: #ffffff;
+  color: #d97706;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(120, 53, 15, 0.2);
+}
+
+.anv-review-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.anv-review-stat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+}
+
+.anv-review-stat.stat-green {
+  background: rgba(16, 185, 129, 0.34);
+  border: 1px solid rgba(167, 243, 208, 0.4);
+}
+
+.anv-review-stat.stat-orange {
+  background: rgba(234, 88, 12, 0.32);
+  border: 1px solid rgba(254, 215, 170, 0.35);
+}
+
+.anv-review-stat.stat-gold {
+  background: rgba(250, 204, 21, 0.28);
+  border: 1px solid rgba(254, 240, 138, 0.4);
+}
+
+.anv-review-security-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.14), rgba(249, 115, 22, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  box-shadow: var(--anv-shadow-sm);
+}
+
+.anv-review-lock-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.3);
+}
+
+.anv-review-security-text b {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: #b45309;
+  margin-bottom: 2px;
+}
+
+.anv-review-security-text p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--anv-text);
+}
+
+.anv-review-code {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.16);
+  color: #047857;
+  font-weight: 800;
+  font-size: 11.5px;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+}
+
+:root[data-theme="dark"] .anv-review-security-text b {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .anv-review-code {
+  color: #34d399;
+}
+
+.anv-review-empty {
+  background: var(--anv-surface);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 20px;
+  padding: 28px 18px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  box-shadow: var(--anv-shadow-sm);
+}
+
+.anv-review-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fbbf24, #f97316);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.28);
+}
+
+.anv-review-empty h3 {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--anv-text);
+}
+
+.anv-review-empty p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--anv-text-muted);
+  max-width: 340px;
+}
+
+.anv-review-empty-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.anv-review-empty-pills span {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.anv-review-empty-pills .pill-yellow {
+  background: rgba(250, 204, 21, 0.18);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.anv-review-empty-pills .pill-orange {
+  background: rgba(249, 115, 22, 0.16);
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.anv-review-empty-pills .pill-green {
+  background: rgba(16, 185, 129, 0.16);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+:root[data-theme="dark"] .anv-review-empty-pills .pill-yellow { color: #fde047; }
+:root[data-theme="dark"] .anv-review-empty-pills .pill-orange { color: #fb923c; }
+:root[data-theme="dark"] .anv-review-empty-pills .pill-green { color: #34d399; }
