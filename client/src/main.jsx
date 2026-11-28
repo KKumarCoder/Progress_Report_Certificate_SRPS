@@ -2636,7 +2636,19 @@ function Studio({
     setDirty(true);
   };
   async function save() {
-    const errors = validateMarks(report.marks, config);
+    const normalizedMarks = {};
+    for (const t of ["term1", "term2"]) {
+      normalizedMarks[t] = {};
+      for (const [subId, row] of Object.entries(report.marks?.[t] || {})) {
+        const cleanRow = {};
+        for (const [k, v] of Object.entries(row || {})) {
+          cleanRow[k] = v === "A" ? "AB" : v;
+        }
+        normalizedMarks[t][subId] = cleanRow;
+      }
+    }
+    const cleanReport = { ...report, marks: normalizedMarks };
+    const errors = validateMarks(cleanReport.marks, config);
     if (errors.length) {
       toast(errors[0], true);
       return null;
@@ -2645,7 +2657,7 @@ function Studio({
     try {
       const r = await api(`/reports/${student._id}/${session}`, {
         method: "PUT",
-        body: report,
+        body: cleanReport,
       });
       setReport(r);
       setDirty(false);
@@ -7578,18 +7590,28 @@ function MarkInput({ label, max, disabled, value, onChange }) {
       }}
       onChange={(e) => {
         const raw = e.target.value.toUpperCase();
+        if (text === "AB" && raw === "A") {
+          setText("");
+          onChange("");
+          return;
+        }
+        if (raw === "A") {
+          setText("AB");
+          onChange("AB");
+          return;
+        }
         if (
-          !["", "A", "AB"].includes(raw) &&
+          !["", "AB"].includes(raw) &&
           !/^\d{0,3}(\.\d{0,2})?$/.test(raw)
         )
           return;
         if (
-          !["", "A", "AB"].includes(raw) &&
+          !["", "AB"].includes(raw) &&
           (!Number.isFinite(Number(raw)) || Number(raw) > max)
         )
           return;
         setText(raw);
-        onChange(["", "A", "AB"].includes(raw) ? raw : Number(raw));
+        onChange(["", "AB"].includes(raw) ? raw : Number(raw));
       }}
     />
   );
