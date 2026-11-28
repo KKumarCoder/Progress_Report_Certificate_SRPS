@@ -2025,23 +2025,30 @@ function Students({
                     </div>
                     <div className="anv-msc-title">
                       <b>{s.name}</b>
-                      <small>Class {s.className} · {s.section} · Adm {s.admissionNo}</small>
+                      <div className="anv-msc-meta-pills">
+                        <span className="anv-msc-pill class-pill">
+                          Class {s.className} · {s.section}
+                        </span>
+                        <span className="anv-msc-pill adm-pill">
+                          #{s.admissionNo}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <button type="button" className="anv-icon-btn" onClick={() => open(s)} title="Open report">
+                  <button type="button" className="anv-icon-btn anv-msc-go-btn" onClick={() => open(s)} title="Open report">
                     <ArrowRight size={16} />
                   </button>
                 </div>
                 <div className="anv-msc-actions">
-                  <button type="button" className="btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => open(s)}>
-                    <BookOpen size={14} /> Report
+                  <button type="button" className="anv-msc-action-btn report-btn" onClick={() => open(s)}>
+                    <BookOpen size={14} /> <span>Report</span>
                   </button>
-                  <button type="button" className="btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => setIdCardStudent(s)}>
-                    <QrCode size={14} /> ID Card
+                  <button type="button" className="anv-msc-action-btn id-btn" onClick={() => setIdCardStudent(s)}>
+                    <QrCode size={14} /> <span>ID Card</span>
                   </button>
                   {hasStudentAction(user, "studentEdit") && (
-                    <button type="button" className="btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => setEditing(s)}>
-                      <PenLine size={14} /> Edit
+                    <button type="button" className="anv-msc-action-btn edit-btn" onClick={() => setEditing(s)}>
+                      <PenLine size={14} /> <span>Edit</span>
                     </button>
                   )}
                 </div>
