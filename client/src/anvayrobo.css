@@ -768,6 +768,9 @@ body {
     display: inline-flex !important;
     flex-shrink: 0;
   }
+  .anv-mobile-brand-mini span {
+    display: none !important;
+  }
   .anv-theme-switcher {
     display: none;
   }
@@ -808,7 +811,9 @@ body {
     display: none !important;
   }
   .topbar-user-capsule {
-    padding: 3px !important;
+    min-width: auto !important;
+    width: auto !important;
+    padding: 2px !important;
   }
 
   /* Force mobile slide-over sidebar drawer to always show full left-aligned labels */
