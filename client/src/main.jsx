@@ -74,6 +74,8 @@ import {
   Bell,
   MessageSquare,
   Bot,
+  Menu,
+  Calendar,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -105,7 +107,16 @@ import "@fontsource/playfair-display/700.css";
 import "@fontsource/playfair-display/600-italic.css";
 import "@fontsource/great-vibes/400.css";
 import "./style.css";
+import "./anvayrobo.css";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  HeroBanner,
+  StatCard,
+  StatusBadge,
+  ThemeSwitcher,
+  MobileBottomNav,
+  MobileMoreDrawer,
+} from "./components/ui";
 export const DEFAULT_CLASSES = [
   "Balvatika-1",
   "Balvatika-2",
@@ -412,13 +423,21 @@ function WhatsAppIcon({ size = 20 }) {
   );
 }
 function App() {
-  const [theme, setTheme] = useState(() => {
+  const [themeMode, setThemeMode] = useState(() => {
     try {
-      return localStorage.getItem("srps_theme") || "light";
+      return localStorage.getItem("srps_theme_mode") || localStorage.getItem("srps_theme") || "light";
     } catch {
       return "light";
     }
   });
+  const [systemDark, setSystemDark] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false,
+  );
+  const theme = themeMode === "system" ? (systemDark ? "dark" : "light") : themeMode;
+  const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [viewingProfile, setViewingProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [user, setUser] = useState(null),
@@ -451,11 +470,22 @@ function App() {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e) => setSystemDark(e.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+
+  useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    if (theme === "dark") document.documentElement.classList.add("dark-theme");
+    else document.documentElement.classList.remove("dark-theme");
     try {
+      localStorage.setItem("srps_theme_mode", themeMode);
       localStorage.setItem("srps_theme", theme);
     } catch { }
-  }, [theme]);
+  }, [theme, themeMode]);
 
   useEffect(() => {
     if (user && !canOpenPage(user, page)) {
@@ -488,7 +518,10 @@ function App() {
   }, [collapsed]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setThemeMode((prev) => {
+      const cur = prev === "system" ? theme : prev;
+      return cur === "dark" ? "light" : "dark";
+    });
   };
   const navigate = (id) => {
     if (reportDirty && !confirm("Discard unsaved report changes?")) return;
@@ -832,16 +865,81 @@ function App() {
       )}
       <main className="workspace">
         <header className="topbar">
-          <div>
+          <div className="topbar-left-group">
+            <button
+              type="button"
+              className="anv-mobile-menu-btn"
+              onClick={() => setSidebar((s) => !s)}
+              aria-label="Open menu"
+            >
+              <Menu size={19} />
+            </button>
+            <div className="anv-mobile-brand-mini" onClick={() => navigate("dashboard")}>
+              <img src="/anvayrobo-logo.jpeg" alt="ANVAYROBO" />
+              <span>ANVAYROBO</span>
+            </div>
             <span>Workspace</span>
             <ChevronRight size={14} />
             <b>{page === "masters" ? "Academic Masters" : nav.find((x) => x[0] === page)?.[1]}</b>
             <span className="session-chip">
-              <span className="live-dot" />
+              <Calendar size={13} />
               <span>Session {config.session}</span>
             </span>
           </div>
           <div className="topbar-right">
+            <ThemeSwitcher themeMode={themeMode} onChange={setThemeMode} />
+            <div className="anv-notif-wrap">
+              <button
+                type="button"
+                className="anv-icon-btn"
+                onClick={() => setNotifOpen((o) => !o)}
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <Bell size={17} />
+                <span className="anv-notif-dot">{students.length ? Math.min(99, students.length) : 1}</span>
+              </button>
+              {notifOpen && (
+                <div className="anv-notif-popover" role="region" aria-label="Notifications">
+                  <div className="anv-notif-head">
+                    <span>Workspace Updates</span>
+                    <button type="button" className="text-button" onClick={() => setNotifOpen(false)}>
+                      Close
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="anv-notif-item"
+                    onClick={() => {
+                      setNotifOpen(false);
+                      navigate("students");
+                    }}
+                  >
+                    <Users size={16} />
+                    <div>
+                      <strong>{students.length} Active Students</strong>
+                      <div>Session {config.session} directory synced</div>
+                    </div>
+                  </button>
+                  {canOpenPage(user, "review") && (
+                    <button
+                      type="button"
+                      className="anv-notif-item"
+                      onClick={() => {
+                        setNotifOpen(false);
+                        navigate("review");
+                      }}
+                    >
+                      <ClipboardCheck size={16} />
+                      <div>
+                        <strong>Report Review Queue</strong>
+                        <div>Inspect submitted &amp; published report cards</div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div
               className={`topbar-user-capsule ${theme === "dark" ? "is-dark" : "is-light"}`}
             >
@@ -947,6 +1045,7 @@ function App() {
             <Students
               students={students}
               open={open}
+              go={navigate}
               reload={load}
               toast={toast}
               user={user}
@@ -1023,6 +1122,25 @@ function App() {
           )}
         </div>
       </main>
+      <MobileBottomNav
+        page={page}
+        onNavigate={navigate}
+        onOpenMore={() => setMoreDrawerOpen(true)}
+        canOpenPage={canOpenPage}
+        user={user}
+      />
+      <MobileMoreDrawer
+        open={moreDrawerOpen}
+        onClose={() => setMoreDrawerOpen(false)}
+        navItems={nav}
+        currentPage={page}
+        onNavigate={navigate}
+        themeMode={themeMode}
+        onThemeChange={setThemeMode}
+        user={user}
+        onLogout={logout}
+        onOpenProfile={() => setViewingProfile(true)}
+      />
     </div>
   );
 }
@@ -1512,6 +1630,7 @@ function StudentFlipBook({
 function Students({
   students,
   open,
+  go,
   reload,
   toast,
   user,
@@ -1729,30 +1848,60 @@ function Students({
   return (
     <>
       {!compact && (
-        <PageTitle
-          eyebrow="STUDENT DIRECTORY"
-          title="Every student. One place."
-          subtitle="Your student records, ready for assessment."
-        >
-          <div style={{ display: "flex", gap: "8px" }}>
-            {["admin", "principal"].includes(user.role) && (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowPromotionModal(true)}
-                title="Batch promote students to next academic cohort"
-              >
-                <ArrowUpDown size={16} /> Promote Class
-              </button>
-            )}
-            {hasStudentAction(user, "studentCreate") && (
-              <button className="btn primary" onClick={() => setEditing({})}>
-                <Plus size={17} /> Add student
-              </button>
-            )}
+        <>
+          <HeroBanner
+            eyebrow="STUDENT DIRECTORY"
+            title="Student Directory"
+            subtitle="Every student. One place. Ready for marks entry and report cards."
+            actions={
+              <>
+                {["admin", "principal"].includes(user.role) && (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setShowPromotionModal(true)}
+                    title="Batch promote students to next academic cohort"
+                  >
+                    <ArrowUpDown size={16} /> Promote Class
+                  </button>
+                )}
+                {hasStudentAction(user, "studentCreate") && (
+                  <button className="btn primary" onClick={() => setEditing({})}>
+                    <Plus size={17} /> Add student
+                  </button>
+                )}
+              </>
+            }
+          />
+          <div className="anv-stats-row">
+            <StatCard
+              icon={Users}
+              label="Total Students"
+              value={students.length}
+              tone="blue"
+            />
+            <StatCard
+              icon={CheckCircle2}
+              label="Active Students"
+              value={students.filter((s) => s.active !== false).length}
+              tone="green"
+            />
+            <StatCard
+              icon={Search}
+              label="Matching Filter"
+              value={filtered.length}
+              tone="amber"
+            />
+            <StatCard
+              icon={Calendar}
+              label="This Session"
+              value={session}
+              tone="purple"
+            />
           </div>
-        </PageTitle>
+        </>
       )}
+      <div className={!compact ? "anv-directory-layout" : ""}>
       <section className="card directory">
         <div className="filter-bar">
           <label className="search-box">
@@ -1817,6 +1966,40 @@ function Students({
           </div>
         </div>
         {viewMode === "list" ? (
+          <>
+          <div className="anv-mobile-student-cards">
+            {pagedStudents.map((s) => (
+              <div key={s._id} className="anv-mobile-student-card">
+                <div className="anv-msc-top">
+                  <div className="anv-msc-identity" onClick={() => open(s)} style={{ cursor: "pointer" }}>
+                    <div className="anv-msc-avatar">
+                      {s.photo ? <img src={s.photo} alt={s.name} /> : s.name?.slice(0, 1) || "S"}
+                    </div>
+                    <div className="anv-msc-title">
+                      <b>{s.name}</b>
+                      <small>Class {s.className} · {s.section} · Adm {s.admissionNo}</small>
+                    </div>
+                  </div>
+                  <button type="button" className="anv-icon-btn" onClick={() => open(s)} title="Open report">
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+                <div className="anv-msc-actions">
+                  <button type="button" className="btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => open(s)}>
+                    <BookOpen size={14} /> Report
+                  </button>
+                  <button type="button" className="btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => setIdCardStudent(s)}>
+                    <QrCode size={14} /> ID Card
+                  </button>
+                  {hasStudentAction(user, "studentEdit") && (
+                    <button type="button" className="btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => setEditing(s)}>
+                      <PenLine size={14} /> Edit
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
@@ -1964,6 +2147,7 @@ function Students({
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <div className="students-book-grid">
             {pagedStudents.map((s) => {
@@ -2016,10 +2200,47 @@ function Students({
           pageSize={pageSize}
           onPageChange={setCurrentPage}
           onPageSizeChange={setPageSize}
-          pageSizeOptions={[10, 25, 50, 100]}
+          pageSizeOptions={[4, 10, 25, 50, 100]}
           itemLabel="students"
         />
       </section>
+      {!compact && (
+        <aside className="anv-quick-rail">
+          <div className="anv-quick-card">
+            <h3>Quick Actions</h3>
+            {hasStudentAction(user, "studentCreate") && (
+              <button type="button" className="anv-quick-btn primary" onClick={() => setEditing({})}>
+                <Plus size={16} /> Add Student
+              </button>
+            )}
+            {go && (
+              <>
+                <button type="button" className="anv-quick-btn" onClick={() => go("bulk")}>
+                  <Printer size={16} /> Print Reports
+                </button>
+                {canOpenPage(user, "analytics") && (
+                  <button type="button" className="anv-quick-btn" onClick={() => go("analytics")}>
+                    <BarChart3 size={16} /> View Analytics
+                  </button>
+                )}
+                <button type="button" className="anv-quick-btn" onClick={() => go("settings")}>
+                  <Settings size={16} /> Settings
+                </button>
+              </>
+            )}
+          </div>
+          <div className="anv-promo-card">
+            <b>Smarter School with ANVAYROBO</b>
+            <p>AI · Robotics · STEM · Automation powered academic report studio for {session}.</p>
+            {go && (
+              <button type="button" className="btn primary" style={{ justifyContent: "center" }} onClick={() => go("studio")}>
+                Open Report Studio <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
+        </aside>
+      )}
+      </div>
       {editing && (
         <StudentModal
           student={editing}
