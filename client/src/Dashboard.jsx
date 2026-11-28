@@ -10,7 +10,9 @@ import {
   LockKeyhole,
   ChevronRight,
   FileText,
+  Calendar,
 } from "lucide-react";
+import { GraduationBooksIllustration } from "./components/ui";
 
 function hasModule(user, id) {
   if (!user) return false;
@@ -43,28 +45,60 @@ export default function Dashboard({
 
   return (
     <>
-      <div className="overview-stats">
-        {[
-          [Users, "Students", students.length, "In your accessible classes"],
-          [School, "Class sections", groups.size, "Active sections"],
-          [
-            BookOpen,
-            "Academic session",
-            config.session || "2026-27",
-            "Two terms. One complete picture.",
-          ],
-        ].map(([Icon, label, value, detail]) => (
-          <div className="stat-card" key={label}>
-            <div className="stat-label">
-              {label}
-              <span>
-                <Icon size={19} />
-              </span>
-            </div>
-            <strong>{value}</strong>
-            <small>{detail}</small>
+      <div className="overview-stats anv-kpi-grid">
+        <button
+          type="button"
+          className="anv-kpi-card tone-blue"
+          onClick={() => go(user.role === "admin" ? "masters" : "students")}
+        >
+          <div className="anv-kpi-icon tone-blue">
+            <Users size={24} />
           </div>
-        ))}
+          <div className="anv-kpi-body">
+            <strong>{groups.size}</strong>
+            <span>Sections</span>
+          </div>
+          <span className="anv-kpi-arrow" aria-hidden="true">
+            <ChevronRight size={15} />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="anv-kpi-card tone-green"
+          onClick={() => go("students")}
+        >
+          <div className="anv-kpi-icon tone-green">
+            <GraduationCap size={24} />
+          </div>
+          <div className="anv-kpi-body">
+            <strong>{students.length}</strong>
+            <span>Students</span>
+          </div>
+          <span className="anv-kpi-arrow" aria-hidden="true">
+            <ChevronRight size={15} />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="anv-kpi-card anv-kpi-wide tone-amber"
+          onClick={() => go("settings")}
+        >
+          <div className="anv-kpi-icon tone-amber">
+            <Calendar size={24} />
+          </div>
+          <div className="anv-kpi-body">
+            <span>Academic Session</span>
+            <strong>{config.session || "2026-27"}</strong>
+            <div className="anv-kpi-progress" aria-hidden="true">
+              <span />
+            </div>
+          </div>
+          <span className="anv-kpi-arrow" aria-hidden="true">
+            <ChevronRight size={15} />
+          </span>
+        </button>
       </div>
 
       <section className="welcome-panel">
@@ -84,6 +118,9 @@ export default function Dashboard({
               Open report studio <ArrowRight size={16} />
             </button>
           )}
+        </div>
+        <div className="anv-welcome-mobile-art" aria-hidden="true">
+          <GraduationBooksIllustration size={96} />
         </div>
         <div className="mini-report">
           <div className="mini-crest">

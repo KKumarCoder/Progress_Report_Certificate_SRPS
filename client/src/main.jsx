@@ -55,6 +55,7 @@ import {
   ChevronsRight,
   LayoutGrid,
   List,
+  Clock,
   Clock3,
   ArrowUpDown,
   Mail,
@@ -74,6 +75,8 @@ import {
   Bell,
   MessageSquare,
   Bot,
+  Menu,
+  Calendar,
 } from "lucide-react";
 import {
   DEFAULT_CONFIG,
@@ -105,7 +108,16 @@ import "@fontsource/playfair-display/700.css";
 import "@fontsource/playfair-display/600-italic.css";
 import "@fontsource/great-vibes/400.css";
 import "./style.css";
+import "./anvayrobo.css";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  HeroBanner,
+  StatCard,
+  StatusBadge,
+  ThemeSwitcher,
+  MobileBottomNav,
+  MobileMoreDrawer,
+} from "./components/ui";
 export const DEFAULT_CLASSES = [
   "Balvatika-1",
   "Balvatika-2",
@@ -264,7 +276,7 @@ function Pagination({
   const endIdx = Math.min(safeCurrent * pageSize, totalItems);
 
   const handleStepSize = (delta) => {
-    const next = Math.max(4, pageSize + delta);
+    const next = Math.max(10, pageSize + delta);
     if (next !== pageSize) {
       onPageSizeChange(next);
       onPageChange(1);
@@ -274,10 +286,10 @@ function Pagination({
   return (
     <div className="pagination-bar">
       <div className="pagination-info">
-        <span className="pagination-info-badge">
+        <span className="pagination-info-badge" title={`Showing ${startIdx}–${endIdx} of ${totalItems} ${itemLabel}`}>
           <Layers size={14} className="pagination-info-icon" />
           <span>
-            Showing <b>{startIdx}–{endIdx}</b> of <b>{totalItems}</b> {itemLabel}
+            <b>{startIdx}–{endIdx}</b> / <b>{totalItems}</b>
           </span>
         </span>
       </div>
@@ -290,16 +302,15 @@ function Pagination({
           <button
             type="button"
             className="step-btn minus-btn"
-            disabled={pageSize <= 4}
+            disabled={pageSize <= 10}
             onClick={() => handleStepSize(-5)}
-            title="Decrease by 5 entries (Minimum: 4)"
+            title="Decrease by 5 entries (Minimum: 10)"
             aria-label="Decrease entries per page"
           >
             <Minus size={13} strokeWidth={2.5} />
           </button>
-          <span className="page-size-display-badge">
+          <span className="page-size-display-badge" title={`${pageSize} per page`}>
             <b>{pageSize}</b>
-            <small>/ page</small>
           </span>
           <button
             type="button"
@@ -412,13 +423,21 @@ function WhatsAppIcon({ size = 20 }) {
   );
 }
 function App() {
-  const [theme, setTheme] = useState(() => {
+  const [themeMode, setThemeMode] = useState(() => {
     try {
-      return localStorage.getItem("srps_theme") || "light";
+      return localStorage.getItem("srps_theme_mode") || localStorage.getItem("srps_theme") || "light";
     } catch {
       return "light";
     }
   });
+  const [systemDark, setSystemDark] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false,
+  );
+  const theme = themeMode === "system" ? (systemDark ? "dark" : "light") : themeMode;
+  const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [viewingProfile, setViewingProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [user, setUser] = useState(null),
@@ -451,11 +470,22 @@ function App() {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e) => setSystemDark(e.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+
+  useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    if (theme === "dark") document.documentElement.classList.add("dark-theme");
+    else document.documentElement.classList.remove("dark-theme");
     try {
+      localStorage.setItem("srps_theme_mode", themeMode);
       localStorage.setItem("srps_theme", theme);
     } catch { }
-  }, [theme]);
+  }, [theme, themeMode]);
 
   useEffect(() => {
     if (user && !canOpenPage(user, page)) {
@@ -488,7 +518,10 @@ function App() {
   }, [collapsed]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setThemeMode((prev) => {
+      const cur = prev === "system" ? theme : prev;
+      return cur === "dark" ? "light" : "dark";
+    });
   };
   const navigate = (id) => {
     if (reportDirty && !confirm("Discard unsaved report changes?")) return;
@@ -566,7 +599,7 @@ function App() {
         .then((c) => {
           if (!cancelled && c) setConfig(c);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     syncConfig();
     window.addEventListener("focus", syncConfig);
@@ -832,16 +865,80 @@ function App() {
       )}
       <main className="workspace">
         <header className="topbar">
-          <div>
+          <div className="topbar-left-group">
+            <button
+              type="button"
+              className="anv-mobile-menu-btn"
+              onClick={() => setSidebar((s) => !s)}
+              aria-label="Open menu"
+            >
+              <Menu size={19} />
+            </button>
+            <div className="anv-mobile-brand-mini" onClick={() => navigate("dashboard")}>
+              <img src="/anvayrobo-logo.jpeg" alt="ANVAYROBO" />
+              <span>ANVAYROBO</span>
+            </div>
             <span>Workspace</span>
             <ChevronRight size={14} />
             <b>{page === "masters" ? "Academic Masters" : nav.find((x) => x[0] === page)?.[1]}</b>
             <span className="session-chip">
-              <span className="live-dot" />
+              <Calendar size={13} />
               <span>Session {config.session}</span>
             </span>
           </div>
           <div className="topbar-right">
+            <div className="anv-notif-wrap">
+              <button
+                type="button"
+                className="anv-icon-btn"
+                onClick={() => setNotifOpen((o) => !o)}
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <Bell size={17} />
+                <span className="anv-notif-dot">{students.length ? Math.min(99, students.length) : 1}</span>
+              </button>
+              {notifOpen && (
+                <div className="anv-notif-popover" role="region" aria-label="Notifications">
+                  <div className="anv-notif-head">
+                    <span>Workspace Updates</span>
+                    <button type="button" className="text-button" onClick={() => setNotifOpen(false)}>
+                      Close
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="anv-notif-item"
+                    onClick={() => {
+                      setNotifOpen(false);
+                      navigate("students");
+                    }}
+                  >
+                    <Users size={16} />
+                    <div>
+                      <strong>{students.length} Active Students</strong>
+                      <div>Session {config.session} directory synced</div>
+                    </div>
+                  </button>
+                  {canOpenPage(user, "review") && (
+                    <button
+                      type="button"
+                      className="anv-notif-item"
+                      onClick={() => {
+                        setNotifOpen(false);
+                        navigate("review");
+                      }}
+                    >
+                      <ClipboardCheck size={16} />
+                      <div>
+                        <strong>Report Review Queue</strong>
+                        <div>Inspect submitted &amp; published report cards</div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div
               className={`topbar-user-capsule ${theme === "dark" ? "is-dark" : "is-light"}`}
             >
@@ -947,6 +1044,7 @@ function App() {
             <Students
               students={students}
               open={open}
+              go={navigate}
               reload={load}
               toast={toast}
               user={user}
@@ -1023,6 +1121,25 @@ function App() {
           )}
         </div>
       </main>
+      <MobileBottomNav
+        page={page}
+        onNavigate={navigate}
+        onOpenMore={() => setMoreDrawerOpen(true)}
+        canOpenPage={canOpenPage}
+        user={user}
+      />
+      <MobileMoreDrawer
+        open={moreDrawerOpen}
+        onClose={() => setMoreDrawerOpen(false)}
+        navItems={nav}
+        currentPage={page}
+        onNavigate={navigate}
+        themeMode={themeMode}
+        onThemeChange={setThemeMode}
+        user={user}
+        onLogout={logout}
+        onOpenProfile={() => setViewingProfile(true)}
+      />
     </div>
   );
 }
@@ -1079,6 +1196,7 @@ function StudentFlipBook({
   emailBusy = false,
 }) {
   const [page, setPage] = useState(1);
+  const [isOpen, setIsOpen] = useState(false);
   const badge = getHouseBadge(student.house);
   const HouseIcon = badge?.Icon || Home;
   const isPublished = reportStatus?.published;
@@ -1092,18 +1210,32 @@ function StudentFlipBook({
   const whatsappReady = Boolean(student.active && isPublished);
   const emailReady = Boolean(student.active && isPublished && student.email);
 
+  const handleWrapperClick = () => {
+    const isTouchOrMobile =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(hover: none), (max-width: 1024px)").matches;
+    if (isTouchOrMobile && !isOpen) {
+      setIsOpen(true);
+      return;
+    }
+    onOpen();
+  };
+
   return (
     <div
-      className="student-book-wrapper"
-      onClick={onOpen}
-      onMouseLeave={() => setPage(1)}
+      className={`student-book-wrapper ${isOpen ? "is-open" : ""}`}
+      onClick={handleWrapperClick}
+      onMouseLeave={() => {
+        setPage(1);
+        setIsOpen(false);
+      }}
       title={`Click to open ${student.name} in Report Studio`}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onOpen();
+          handleWrapperClick();
         }
       }}
     >
@@ -1140,6 +1272,21 @@ function StudentFlipBook({
               <span>Teacher</span>
             </button>
             <span className="book-page-counter">{page}/3</span>
+            {isOpen && (
+              <button
+                type="button"
+                className="book-nav-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  setPage(1);
+                }}
+                title="Close preview"
+                aria-label="Close preview"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
 
           {page === 1 && (
@@ -1454,8 +1601,17 @@ function StudentFlipBook({
           )}
         </div>
 
-        {/* Front Cover (3D flap that rotates -82deg on hover) */}
-        <div className="student-book-cover">
+        {/* Front Cover (3D flap that rotates -82deg on hover or tap) */}
+        <div
+          className="student-book-cover"
+          onClick={(e) => {
+            if (isOpen) {
+              e.stopPropagation();
+              setIsOpen(false);
+              setPage(1);
+            }
+          }}
+        >
           <div className="cover-spine-crease" />
 
           <div className="cover-top-badge">
@@ -1499,7 +1655,8 @@ function StudentFlipBook({
               <span>{badge?.label || student.house || "School"}</span>
             </span>
             <span className="cover-flip-hint">
-              <span>Hover to preview</span>
+              <span className="hint-desktop">Hover to preview</span>
+              <span className="hint-mobile">Tap to preview</span>
               <span className="flip-arrow">➔</span>
             </span>
           </div>
@@ -1512,6 +1669,7 @@ function StudentFlipBook({
 function Students({
   students,
   open,
+  go,
   reload,
   toast,
   user,
@@ -1542,7 +1700,7 @@ function Students({
     [emailBusyId, setEmailBusyId] = useState(""),
     [classTeachers, setClassTeachers] = useState([]),
     [currentPage, setCurrentPage] = useState(1),
-    [pageSize, setPageSize] = useState(4),
+    [pageSize, setPageSize] = useState(10),
     [viewMode, setViewMode] = useState(() => {
       try {
         return localStorage.getItem("srps_students_view_mode") || "list";
@@ -1605,7 +1763,7 @@ function Students({
       .then((data) => {
         if (!cancelled && Array.isArray(data)) setClassTeachers(data);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -1729,94 +1887,174 @@ function Students({
   return (
     <>
       {!compact && (
-        <PageTitle
-          eyebrow="STUDENT DIRECTORY"
-          title="Every student. One place."
-          subtitle="Your student records, ready for assessment."
-        >
-          <div style={{ display: "flex", gap: "8px" }}>
-            {["admin", "principal"].includes(user.role) && (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowPromotionModal(true)}
-                title="Batch promote students to next academic cohort"
-              >
-                <ArrowUpDown size={16} /> Promote Class
-              </button>
-            )}
-            {hasStudentAction(user, "studentCreate") && (
-              <button className="btn primary" onClick={() => setEditing({})}>
-                <Plus size={17} /> Add student
-              </button>
-            )}
+        <>
+          <HeroBanner
+            title="Student Directory"
+            subtitle="Every student. One place."
+            actions={
+              <>
+                {["admin", "principal"].includes(user.role) && (
+                  <button
+                    type="button"
+                    className="btn anv-compact-action"
+                    onClick={() => setShowPromotionModal(true)}
+                    title="Promote Class"
+                    aria-label="Promote Class"
+                  >
+                    <ArrowUpDown size={16} />
+                    <span className="anv-action-label">Promote</span>
+                  </button>
+                )}
+                {hasStudentAction(user, "studentCreate") && (
+                  <button
+                    className="btn primary anv-compact-action"
+                    onClick={() => setEditing({})}
+                    title="Add Student"
+                    aria-label="Add Student"
+                  >
+                    <Plus size={17} />
+                    <span className="anv-action-label">Add</span>
+                  </button>
+                )}
+              </>
+            }
+          />
+          <div className="anv-stats-row">
+            <StatCard
+              icon={Users}
+              label="Total Students"
+              value={students.length}
+              tone="blue"
+            />
+            <StatCard
+              icon={CheckCircle2}
+              label="Active Students"
+              value={students.filter((s) => s.active !== false).length}
+              tone="green"
+            />
+            <StatCard
+              icon={Search}
+              label="Matching Filter"
+              value={filtered.length}
+              tone="amber"
+            />
+            <StatCard
+              icon={Calendar}
+              label="This Session"
+              value={session}
+              tone="purple"
+            />
           </div>
-        </PageTitle>
+        </>
       )}
+      <div className={!compact ? "anv-directory-layout" : ""}>
       <section className="card directory">
-        <div className="filter-bar">
+        <div className="filter-bar anv-filter-bar">
           <label className="search-box">
-            <Search size={18} />
+            <Search size={17} />
             <input
               placeholder="Search name, admission no. or house…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </label>
-          <select
-            aria-label="Filter class"
-            value={cls}
-            onChange={(e) => setCls(e.target.value)}
-          >
-            <option value="">All classes</option>
-            {classes.map((c) => (
-              <option key={c} value={c}>
-                Class {c}
-              </option>
-            ))}
-          </select>
-          {!compact && canManageStudents && hasStudentAction(user, "studentStatus") && (
+          <div className="anv-filter-controls-row">
             <select
-              aria-label="Filter student status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              aria-label="Filter class"
+              value={cls}
+              onChange={(e) => setCls(e.target.value)}
             >
-              <option value="active">Active students</option>
-              <option value="disabled">Disabled students</option>
+              <option value="">Class</option>
+              {classes.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
-          )}
-          <select
-            aria-label="Filter section"
-            value={sec}
-            onChange={(e) => setSec(e.target.value)}
-          >
-            <option value="">All sections</option>
-            {sections.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-          <div className="view-mode-toggle" title="Switch layout view">
-            <button
-              type="button"
-              className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
-              onClick={() => setViewMode("list")}
-              title="List View"
-              aria-label="List View"
+            {!compact && canManageStudents && hasStudentAction(user, "studentStatus") && (
+              <select
+                aria-label="Filter student status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            )}
+            <select
+              aria-label="Filter section"
+              value={sec}
+              onChange={(e) => setSec(e.target.value)}
             >
-              <List size={17} />
-            </button>
-            <button
-              type="button"
-              className={`view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
-              onClick={() => setViewMode("grid")}
-              title="3D Flip Book Grid View"
-              aria-label="3D Flip Book Grid View"
-            >
-              <LayoutGrid size={17} />
-            </button>
+              <option value="">Section</option>
+              {sections.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            <div className="view-mode-toggle" title="Switch layout view">
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
+                onClick={() => setViewMode("list")}
+                title="List View"
+                aria-label="List View"
+              >
+                <List size={16} />
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
+                onClick={() => setViewMode("grid")}
+                title="3D Flip Book Grid View"
+                aria-label="3D Flip Book Grid View"
+              >
+                <LayoutGrid size={16} />
+              </button>
+            </div>
           </div>
         </div>
         {viewMode === "list" ? (
+          <>
+          <div className="anv-mobile-student-cards">
+            {pagedStudents.map((s) => (
+              <div key={s._id} className="anv-mobile-student-card">
+                <div className="anv-msc-top">
+                  <div className="anv-msc-identity" onClick={() => open(s)} style={{ cursor: "pointer" }}>
+                    <div className="anv-msc-avatar">
+                      {s.photo ? <img src={s.photo} alt={s.name} /> : s.name?.slice(0, 1) || "S"}
+                    </div>
+                    <div className="anv-msc-title">
+                      <b>{s.name}</b>
+                      <div className="anv-msc-meta-pills">
+                        <span className="anv-msc-pill class-pill">
+                          Class {s.className} · {s.section}
+                        </span>
+                        <span className="anv-msc-pill adm-pill">
+                          #{s.admissionNo}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" className="anv-icon-btn anv-msc-go-btn" onClick={() => open(s)} title="Open report">
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+                <div className="anv-msc-actions">
+                  <button type="button" className="anv-msc-action-btn report-btn" onClick={() => open(s)}>
+                    <BookOpen size={14} /> <span>Report</span>
+                  </button>
+                  <button type="button" className="anv-msc-action-btn id-btn" onClick={() => setIdCardStudent(s)}>
+                    <QrCode size={14} /> <span>ID Card</span>
+                  </button>
+                  {hasStudentAction(user, "studentEdit") && (
+                    <button type="button" className="anv-msc-action-btn edit-btn" onClick={() => setEditing(s)}>
+                      <PenLine size={14} /> <span>Edit</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
@@ -1964,6 +2202,7 @@ function Students({
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <div className="students-book-grid">
             {pagedStudents.map((s) => {
@@ -1976,11 +2215,11 @@ function Students({
                   ),
                 ) ||
                 (user.role === "teacher" &&
-                (user.assignments || []).some(
-                  (a) =>
-                    String(a.className || "").trim().toLowerCase() === String(s.className || "").trim().toLowerCase() &&
-                    String(a.section || "").trim().toLowerCase() === String(s.section || "").trim().toLowerCase(),
-                )
+                  (user.assignments || []).some(
+                    (a) =>
+                      String(a.className || "").trim().toLowerCase() === String(s.className || "").trim().toLowerCase() &&
+                      String(a.section || "").trim().toLowerCase() === String(s.section || "").trim().toLowerCase(),
+                  )
                   ? user
                   : user.role === "teacher"
                     ? user
@@ -2020,6 +2259,7 @@ function Students({
           itemLabel="students"
         />
       </section>
+      </div>
       {editing && (
         <StudentModal
           student={editing}
@@ -2593,6 +2833,23 @@ function Studio({
     [calibration, setCalibration] = useState(false),
     [calibrationMapping, setCalibrationMapping] = useState(templateMapping),
     [selectedField, setSelectedField] = useState("session");
+  const [studentPickerOpen, setStudentPickerOpen] = useState(false);
+  const [studentPickerQuery, setStudentPickerQuery] = useState("");
+  const studentPickerRef = useRef(null);
+  useEffect(() => {
+    if (!studentPickerOpen) return;
+    const handleOutside = (e) => {
+      if (studentPickerRef.current && !studentPickerRef.current.contains(e.target)) {
+        setStudentPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [studentPickerOpen]);
   const load = async () => {
     setLoaded(false);
     try {
@@ -2787,33 +3044,106 @@ function Studio({
     <>
       <div className="studio-heading">
         <div>
-          <div className="eyebrow">LIVE REPORT WORKSPACE</div>
           <h1>
             Report studio{" "}
             <span className={"status-badge " + report.status}>
               {report.status}
             </span>
           </h1>
-          <p>
-            <select
-              className="student-switch"
+          <div className="anv-student-picker" ref={studentPickerRef}>
+            <button
+              type="button"
+              className={`anv-student-picker-trigger ${studentPickerOpen ? "open" : ""}`}
               aria-label="Choose student"
-              value={student._id}
-              onChange={(e) => {
-                if (dirty && !confirm("Discard unsaved changes?")) return;
-                changeStudent(students.find((s) => s._id === e.target.value));
-              }}
+              aria-expanded={studentPickerOpen}
+              onClick={() => setStudentPickerOpen((v) => !v)}
             >
-              {students.map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name} · {s.admissionNo}
-                </option>
-              ))}
-            </select>
-            <span>
-              Class {student.className} · {student.section}
-            </span>
-          </p>
+              <span className="anv-sp-avatar">
+                {student.photo ? (
+                  <img src={student.photo} alt={student.name} />
+                ) : (
+                  student.name?.slice(0, 1) || "S"
+                )}
+              </span>
+              <span className="anv-sp-info">
+                <b>
+                  {student.name} · {student.admissionNo}
+                </b>
+                <small>
+                  Class {student.className} · {student.section}
+                </small>
+              </span>
+              <ChevronDown size={16} className="anv-sp-chevron" />
+            </button>
+
+            {studentPickerOpen && (
+              <div className="anv-student-picker-menu">
+                <div className="anv-sp-search-wrap">
+                  <Search size={14} />
+                  <input
+                    type="text"
+                    value={studentPickerQuery}
+                    onChange={(e) => setStudentPickerQuery(e.target.value)}
+                    placeholder="Search name, adm no, class..."
+                    autoFocus
+                  />
+                  {studentPickerQuery && (
+                    <button
+                      type="button"
+                      className="anv-sp-clear"
+                      onClick={() => setStudentPickerQuery("")}
+                      aria-label="Clear search"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+                <div className="anv-sp-list">
+                  {students
+                    .filter((s) => {
+                      const q = studentPickerQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return (
+                        String(s.name || "").toLowerCase().includes(q) ||
+                        String(s.admissionNo || "").toLowerCase().includes(q) ||
+                        String(s.className || "").toLowerCase().includes(q) ||
+                        String(s.section || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((s) => {
+                      const isSelected = s._id === student._id;
+                      return (
+                        <button
+                          key={s._id}
+                          type="button"
+                          className={`anv-sp-item ${isSelected ? "active" : ""}`}
+                          onClick={() => {
+                            setStudentPickerOpen(false);
+                            setStudentPickerQuery("");
+                            if (s._id === student._id) return;
+                            if (dirty && !confirm("Discard unsaved changes?")) return;
+                            changeStudent(s);
+                          }}
+                        >
+                          <span className="anv-sp-item-avatar">
+                            {s.photo ? (
+                              <img src={s.photo} alt={s.name} />
+                            ) : (
+                              s.name?.slice(0, 1) || "S"
+                            )}
+                          </span>
+                          <span className="anv-sp-item-meta">
+                            <b>{s.name} · {s.admissionNo}</b>
+                            <small>Class {s.className} · {s.section}</small>
+                          </span>
+                          {isSelected && <Check size={15} className="anv-sp-check" />}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="studio-actions">
           <select
@@ -2829,23 +3159,31 @@ function Studio({
             ))}
           </select>
           <button
-            className="btn"
+            className="btn anv-studio-icon-btn"
             onClick={() => printReports().catch((e) => toast(e.message, true))}
+            title="Print report"
+            aria-label="Print report"
           >
-            <Printer size={16} /> Print
+            <Printer size={17} />
           </button>
-          <button className="btn" onClick={pdf} disabled={pdfBusy}>
-            {pdfBusy ? (
-              <Loader size={16} inline />
-            ) : (
-              <Download size={16} />
-            )}{" "}
-            PDF
+          <button
+            className="btn anv-studio-icon-btn"
+            onClick={pdf}
+            disabled={pdfBusy}
+            title="Download PDF"
+            aria-label="Download PDF"
+          >
+            {pdfBusy ? <Loader size={17} inline /> : <Download size={17} />}
           </button>
           {!locked && (
-            <button className="btn primary" disabled={busy} onClick={save}>
-              <Save size={16} />
-              {busy ? "Saving…" : "Save draft"}
+            <button
+              className="btn primary anv-studio-icon-btn"
+              disabled={busy}
+              onClick={save}
+              title={busy ? "Saving…" : "Save draft"}
+              aria-label={busy ? "Saving…" : "Save draft"}
+            >
+              <Save size={17} />
             </button>
           )}
         </div>
@@ -2901,11 +3239,6 @@ function Studio({
                   Term II
                 </button>
               </div>
-              <div className="entry-helper">
-                Enter marks below. Totals and grades calculate instantly.
-                <br />
-                <b>AB</b> = absent · blank = not assessed
-              </div>
               <div className="marks-entry">
                 <table>
                   <thead>
@@ -2924,51 +3257,51 @@ function Studio({
                     {config.subjects.map((s, i) => {
                       const comps = getTermComponents(term, config);
                       return (
-                      <tr key={s.id}>
-                        <td>
-                          <b>{s.name}</b>
-                          <small>{calc.terms?.[term]?.[i]?.grade || "—"}</small>
-                        </td>
-                        {comps.map((c) => {
-                          const v = report.marks?.[term]?.[s.id]?.[c.id] ?? "",
-                            invalid =
-                              v !== "AB" &&
-                              v !== "" &&
-                              (Number(v) < 0 || Number(v) > c.max);
-                          return (
-                            <td key={c.id}>
-                              <MarkInput
-                                label={`${term} ${s.name} ${c.label}`}
-                                max={c.max}
-                                disabled={locked}
-                                value={v}
-                                onChange={(value) =>
-                                  update({
-                                    ...report,
-                                    marks: {
-                                      ...report.marks,
-                                      [term]: {
-                                        ...report.marks?.[term],
-                                        [s.id]: {
-                                          ...report.marks?.[term]?.[s.id],
-                                          [c.id]: value,
+                        <tr key={s.id}>
+                          <td>
+                            <b>{s.name}</b>
+                            <small>{calc.terms?.[term]?.[i]?.grade || "—"}</small>
+                          </td>
+                          {comps.map((c) => {
+                            const v = report.marks?.[term]?.[s.id]?.[c.id] ?? "",
+                              invalid =
+                                v !== "AB" &&
+                                v !== "" &&
+                                (Number(v) < 0 || Number(v) > c.max);
+                            return (
+                              <td key={c.id}>
+                                <MarkInput
+                                  label={`${term} ${s.name} ${c.label}`}
+                                  max={c.max}
+                                  disabled={locked}
+                                  value={v}
+                                  onChange={(value) =>
+                                    update({
+                                      ...report,
+                                      marks: {
+                                        ...report.marks,
+                                        [term]: {
+                                          ...report.marks?.[term],
+                                          [s.id]: {
+                                            ...report.marks?.[term]?.[s.id],
+                                            [c.id]: value,
+                                          },
                                         },
                                       },
-                                    },
-                                  })
-                                }
-                              />
-                            </td>
-                          );
-                        })}
-                        <td>
-                          <b className="row-total">
-                            {calc.terms?.[term]?.[i]?.total ?? "—"}
-                          </b>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                                    })
+                                  }
+                                />
+                              </td>
+                            );
+                          })}
+                          <td>
+                            <b className="row-total">
+                              {calc.terms?.[term]?.[i]?.total ?? "—"}
+                            </b>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -5059,50 +5392,50 @@ function UserAccess({ toast, user: currentUser }) {
               <div className="permission-grid">
                 {MODULE_LABELS.map(([moduleId, label]) => {
                   return (
-                        <label className="permission-check" key={moduleId}>
-                          <input
-                            type="checkbox"
-                            checked={moduleAccess.includes(moduleId)}
-                            onChange={(e) => {
-                              const enabled = e.target.checked;
-                              setModuleAccess((current) => {
-                                if (enabled) {
-                                  const requiresStudents = [
+                    <label className="permission-check" key={moduleId}>
+                      <input
+                        type="checkbox"
+                        checked={moduleAccess.includes(moduleId)}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setModuleAccess((current) => {
+                            if (enabled) {
+                              const requiresStudents = [
+                                "overview",
+                                "analytics",
+                                "studio",
+                                "review",
+                                "bulk",
+                              ].includes(moduleId);
+                              if (requiresStudents && !current.includes("students")) {
+                                return [...new Set([...current, "students", moduleId])];
+                              }
+                              return [...new Set([...current, moduleId])];
+                            }
+                            if (moduleId === "students") {
+                              return current.filter(
+                                (id) =>
+                                  ![
+                                    "students",
                                     "overview",
                                     "analytics",
                                     "studio",
                                     "review",
                                     "bulk",
-                                  ].includes(moduleId);
-                                  if (requiresStudents && !current.includes("students")) {
-                                    return [...new Set([...current, "students", moduleId])];
-                                  }
-                                  return [...new Set([...current, moduleId])];
-                                }
-                                if (moduleId === "students") {
-                                  return current.filter(
-                                    (id) =>
-                                      ![
-                                        "students",
-                                        "overview",
-                                        "analytics",
-                                        "studio",
-                                        "review",
-                                        "bulk",
-                                      ].includes(id),
-                                  );
-                                }
-                                return current.filter((id) => id !== moduleId);
-                              });
-                              if (moduleId === "students" && !enabled)
-                                setStudentActions([]);
-                            }}
-                          />
-                          <span>{label}</span>
-                        </label>
-                      );
-                    })
-                  }
+                                  ].includes(id),
+                              );
+                            }
+                            return current.filter((id) => id !== moduleId);
+                          });
+                          if (moduleId === "students" && !enabled)
+                            setStudentActions([]);
+                        }}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  );
+                })
+                }
               </div>
 
               <h3>Student actions</h3>
@@ -5697,7 +6030,7 @@ function ReportReview({ session, open, toast, user }) {
   const [rows, setRows] = useState([]);
   const [busyId, setBusyId] = useState("");
   const [reviewPage, setReviewPage] = useState(1);
-  const [reviewPageSize, setReviewPageSize] = useState(4);
+  const [reviewPageSize, setReviewPageSize] = useState(10);
   async function load() {
     try {
       setRows(await api(`/review?session=${encodeURIComponent(session)}`));
@@ -5781,25 +6114,68 @@ function ReportReview({ session, open, toast, user }) {
       setBusyId("");
     }
   }
+  const submittedCount = rows.filter((r) => r.status === "submitted").length;
+  const publishedCount = rows.filter((r) => r.status === "published").length;
+
   return (
-    <>
-      <PageTitle
-        eyebrow="ADMINISTRATION · ACADEMIC SESSION"
-        title="Report Review"
-        subtitle="Review teacher submissions, publish completed reports, reopen when corrections are needed, and send locked reports to parents."
-      >
-        <button className="btn" onClick={load}>
-          <RefreshCw size={16} /> Refresh
-        </button>
-      </PageTitle>
-      <div className="review-password-note">
-        <LockKeyhole size={18} /> Published PDFs require a password to open. The
-        password is the student’s admission number, followed by @, then date of birth (YYYY-MM-DD).
+    <div className="anv-review-page">
+      <div className="anv-review-hero">
+        <div className="anv-review-hero-top">
+          <div>
+            <span className="anv-review-eyebrow">ADMINISTRATION · ACADEMIC SESSION</span>
+            <h2>Report Review</h2>
+            <p>
+              Review teacher submissions, publish completed reports, reopen for corrections, and send locked PDFs.
+            </p>
+          </div>
+          <button type="button" className="anv-review-refresh-btn" onClick={load} title="Refresh review queue" aria-label="Refresh">
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        </div>
+        <div className="anv-review-stats-row">
+          <div className="anv-review-stat stat-gold">
+            <ClipboardCheck size={15} />
+            <span><b>{rows.length}</b> Total</span>
+          </div>
+          <div className="anv-review-stat stat-orange">
+            <Clock size={15} />
+            <span><b>{submittedCount}</b> Submitted</span>
+          </div>
+          <div className="anv-review-stat stat-green">
+            <CheckCircle2 size={15} />
+            <span><b>{publishedCount}</b> Published</span>
+          </div>
+        </div>
       </div>
+
+      <div className="anv-review-security-note">
+        <div className="anv-review-lock-badge">
+          <LockKeyhole size={18} />
+        </div>
+        <div className="anv-review-security-text">
+          <b>Locked PDF Password Format</b>
+          <p>
+            Published PDFs require <code className="anv-review-code">AdmNo@YYYY-MM-DD</code> (student’s admission number, <b>@</b>, then date of birth).
+          </p>
+        </div>
+      </div>
+
       {!rows.length ? (
-        <Empty text="No submitted or published reports for this session" />
+        <div className="anv-review-empty">
+          <div className="anv-review-empty-icon">
+            <ClipboardCheck size={28} />
+          </div>
+          <h3>No submitted or published reports for this session</h3>
+          <p>Submitted teacher reports and published student PDFs will appear here for quick approval and delivery.</p>
+          <div className="anv-review-empty-pills">
+            <span className="pill-yellow">1. Teacher Submits</span>
+            <span className="pill-orange">2. Admin Reviews</span>
+            <span className="pill-green">3. Publish &amp; Send</span>
+          </div>
+        </div>
       ) : (
-        <div className="review-table-wrap">
+        <div className="review-table-wrap anv-review-table-card">
           <table className="review-table">
             <thead>
               <tr>
@@ -5918,7 +6294,7 @@ function ReportReview({ session, open, toast, user }) {
           />
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -7362,7 +7738,7 @@ function BulkReports({ students, config, user, toast }) {
     [busy, setBusy] = useState(false),
     [bulkWhatsappOpen, setBulkWhatsappOpen] = useState(false),
     [bulkPage, setBulkPage] = useState(1),
-    [bulkPageSize, setBulkPageSize] = useState(4);
+    [bulkPageSize, setBulkPageSize] = useState(10);
   async function prepare() {
     setBusy(true);
     try {
