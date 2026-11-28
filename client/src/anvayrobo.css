@@ -978,8 +978,10 @@ body {
     align-items: center !important;
     justify-content: space-between !important;
     gap: 12px !important;
-    padding: 18px !important;
-    border-radius: 20px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 14px 16px !important;
+    border-radius: 18px !important;
     background: linear-gradient(125deg, #075ce5 0%, #1d82f4 58%, #38d2f5 100%) !important;
     border: 0 !important;
     box-shadow: var(--anv-shadow-blue) !important;
@@ -992,16 +994,20 @@ body {
     justify-content: center;
     flex-shrink: 0;
   }
+  .anv-welcome-mobile-art .anv-hero-3d-svg {
+    width: 78px;
+    height: 78px;
+  }
   .welcome-panel .pill.gold {
     background: rgba(255, 255, 255, 0.2) !important;
     color: #ffffff !important;
     border: 0 !important;
   }
   .welcome-panel h2 {
-    font-size: 20px !important;
+    font-size: 18.5px !important;
     line-height: 1.2 !important;
     color: #ffffff !important;
-    margin: 8px 0 12px !important;
+    margin: 6px 0 10px !important;
   }
   .welcome-panel p,
   .welcome-panel .mini-report,
