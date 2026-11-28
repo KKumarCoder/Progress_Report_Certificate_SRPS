@@ -6005,7 +6005,13 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
     if (e && e.preventDefault) e.preventDefault();
     setIsSaving(true);
     try {
-      const payload = overrideData || data;
+      const payload = { ...(overrideData || data) };
+      if (!overrideData || overrideData.termComponentRules === undefined) {
+        delete payload.termComponentRules;
+      }
+      if (!overrideData || overrideData.termComponents === undefined) {
+        delete payload.termComponents;
+      }
       const c = await api("/config", { method: "PUT", body: payload });
       setConfig(c);
       setData(c);
