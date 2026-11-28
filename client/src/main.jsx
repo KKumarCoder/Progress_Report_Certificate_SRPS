@@ -276,7 +276,7 @@ function Pagination({
   const endIdx = Math.min(safeCurrent * pageSize, totalItems);
 
   const handleStepSize = (delta) => {
-    const next = Math.max(4, pageSize + delta);
+    const next = Math.max(10, pageSize + delta);
     if (next !== pageSize) {
       onPageSizeChange(next);
       onPageChange(1);
@@ -302,9 +302,9 @@ function Pagination({
           <button
             type="button"
             className="step-btn minus-btn"
-            disabled={pageSize <= 4}
+            disabled={pageSize <= 10}
             onClick={() => handleStepSize(-5)}
-            title="Decrease by 5 entries (Minimum: 4)"
+            title="Decrease by 5 entries (Minimum: 10)"
             aria-label="Decrease entries per page"
           >
             <Minus size={13} strokeWidth={2.5} />
@@ -1700,7 +1700,7 @@ function Students({
     [emailBusyId, setEmailBusyId] = useState(""),
     [classTeachers, setClassTeachers] = useState([]),
     [currentPage, setCurrentPage] = useState(1),
-    [pageSize, setPageSize] = useState(4),
+    [pageSize, setPageSize] = useState(10),
     [viewMode, setViewMode] = useState(() => {
       try {
         return localStorage.getItem("srps_students_view_mode") || "list";
@@ -2255,7 +2255,7 @@ function Students({
           pageSize={pageSize}
           onPageChange={setCurrentPage}
           onPageSizeChange={setPageSize}
-          pageSizeOptions={[4, 10, 25, 50, 100]}
+          pageSizeOptions={[10, 25, 50, 100]}
           itemLabel="students"
         />
       </section>
@@ -6101,7 +6101,7 @@ function ReportReview({ session, open, toast, user }) {
   const [rows, setRows] = useState([]);
   const [busyId, setBusyId] = useState("");
   const [reviewPage, setReviewPage] = useState(1);
-  const [reviewPageSize, setReviewPageSize] = useState(4);
+  const [reviewPageSize, setReviewPageSize] = useState(10);
   async function load() {
     try {
       setRows(await api(`/review?session=${encodeURIComponent(session)}`));
@@ -7809,7 +7809,7 @@ function BulkReports({ students, config, user, toast }) {
     [busy, setBusy] = useState(false),
     [bulkWhatsappOpen, setBulkWhatsappOpen] = useState(false),
     [bulkPage, setBulkPage] = useState(1),
-    [bulkPageSize, setBulkPageSize] = useState(4);
+    [bulkPageSize, setBulkPageSize] = useState(10);
   async function prepare() {
     setBusy(true);
     try {
