@@ -745,6 +745,33 @@ body {
   color-scheme: light;
 }
 
+/* ---------- Dashboard Overview Polish (Desktop, Tablet & Mobile) ---------- */
+.overview-stats .stat-card {
+  background: var(--anv-surface) !important;
+  border: 1px solid var(--anv-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--anv-shadow-sm) !important;
+}
+.overview-stats .stat-card strong {
+  white-space: nowrap;
+  color: var(--anv-text) !important;
+}
+.overview-stats .stat-card small,
+.overview-stats .stat-label {
+  color: var(--anv-text-muted) !important;
+}
+.dark-theme .welcome-panel {
+  background: linear-gradient(135deg, #111f38 0%, #172a4b 100%) !important;
+  border-color: var(--anv-border) !important;
+  color: var(--anv-text) !important;
+}
+.dark-theme .welcome-panel h2 {
+  color: #ffffff !important;
+}
+.dark-theme .welcome-panel p {
+  color: var(--anv-text-muted) !important;
+}
+
 /* ---------- Tablet Breakpoint (768px - 1199px) ---------- */
 @media (max-width: 1199px) {
   .anv-directory-layout {
@@ -906,5 +933,58 @@ body {
   }
   .anv-mobile-bottom-nav {
     display: grid;
+  }
+
+  /* Mobile Dashboard Overview App-Feel Polish */
+  .overview-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .overview-stats .stat-card {
+    padding: 13px 14px !important;
+    min-width: 0;
+  }
+  .overview-stats .stat-card:last-child {
+    grid-column: 1 / -1;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  .overview-stats .stat-card strong {
+    font-size: 20px !important;
+  }
+  .overview-stats .stat-card small {
+    display: none !important;
+  }
+  .welcome-panel {
+    padding: 18px !important;
+    border-radius: 18px !important;
+    background: linear-gradient(125deg, #0866e8 0%, #2088f2 55%, #38a5f5 100%) !important;
+    border: 0 !important;
+    box-shadow: var(--anv-shadow-blue) !important;
+    color: #ffffff !important;
+  }
+  .welcome-panel .pill.gold {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    border: 0 !important;
+  }
+  .welcome-panel h2 {
+    font-size: 21px !important;
+    color: #ffffff !important;
+    margin: 8px 0 12px !important;
+  }
+  .welcome-panel p,
+  .welcome-panel .mini-report,
+  .welcome-panel .welcome-circle {
+    display: none !important;
+  }
+  .welcome-panel .btn.primary {
+    background: #ffffff !important;
+    color: #0866e8 !important;
+    width: 100%;
+    justify-content: center;
   }
 }
