@@ -7,6 +7,7 @@ import {
   pagePlacement,
   layoutText,
   clipPath,
+  scholasticHeaderOverlays,
 } from "../../shared/report-template.js";
 import LegacyReport from "./LegacyReport";
 export { Shield } from "./LegacyReport";
@@ -195,6 +196,42 @@ export default function ReportPage(props) {
             height={page.height}
             preserveAspectRatio="xMidYMid meet"
           />
+          {pageKey === "front" &&
+            scholasticHeaderOverlays(config).map((cell) => {
+              const cx = cell.x + cell.width / 2;
+              const cy = cell.y + cell.height / 2;
+              return (
+                <g key={cell.id} data-header={cell.id}>
+                  <rect
+                    x={cell.x}
+                    y={cell.y}
+                    width={cell.width}
+                    height={cell.height}
+                    fill="#073d5a"
+                  />
+                  <text
+                    x={cx}
+                    y={cy - 3}
+                    textAnchor="middle"
+                    fontFamily={mapping.fonts["700"]?.family || "sans-serif"}
+                    fontSize={cell.fontSize}
+                    fill="#ffffff"
+                  >
+                    {cell.line1}
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + cell.fontSize - 1}
+                    textAnchor="middle"
+                    fontFamily={mapping.fonts["700"]?.family || "sans-serif"}
+                    fontSize={cell.fontSize}
+                    fill="#ffffff"
+                  >
+                    {cell.line2}
+                  </text>
+                </g>
+              );
+            })}
           {elements}
           {calibration &&
             user?.role === "admin" &&

@@ -1,5 +1,40 @@
 import { calculate, SUBJECTS, COMPONENTS, ACTIVITIES, getTermComponents, DEFAULT_CONFIG } from "./engine.js";
 
+export function scholasticHeaderOverlays(config = DEFAULT_CONFIG) {
+  const t1 = getTermComponents("term1", config);
+  const t2 = getTermComponents("term2", config);
+  const t1Sum = t1.reduce((s, c) => s + Number(c.max || 0), 0);
+  const t2Sum = t2.reduce((s, c) => s + Number(c.max || 0), 0);
+  const cols = [
+    { id: "fa1", x: 182, y: 656, width: 103, height: 36, comp: t1[0] },
+    { id: "fa2", x: 289, y: 656, width: 104, height: 36, comp: t1[1] },
+    { id: "sa1", x: 398, y: 656, width: 104, height: 36, comp: t1[2] },
+    { id: "fa3", x: 507, y: 656, width: 104, height: 36, comp: t2[0] },
+    { id: "fa4", x: 615, y: 656, width: 101, height: 36, comp: t2[1] },
+    { id: "sa2", x: 721, y: 656, width: 102, height: 36, comp: t2[2] },
+  ];
+  const cells = cols.map(({ id, x, y, width, height, comp }) => ({
+    id,
+    x,
+    y,
+    width,
+    height,
+    line1: comp?.label || id.toUpperCase(),
+    line2: `(MM - ${comp?.max ?? ""})`,
+    fontSize: 13.5,
+  }));
+  cells.push({
+    id: "total",
+    x: 829,
+    y: 629,
+    width: 82,
+    height: 62,
+    line1: "TOTAL",
+    line2: `(${t1Sum + t2Sum})`,
+    fontSize: 14.5,
+  });
+  return cells;
+}
 export function assertCompatible(config) {
   if (
     !config?.subjects ||

@@ -17,6 +17,7 @@ import {
   pagePlacement,
   layoutText,
   fitImage,
+  scholasticHeaderOverlays,
 } from "./report-template.js";
 
 async function generateQrPngBytes(text) {
@@ -87,6 +88,39 @@ export async function generateReportPdf(records, loadResource) {
         width: spec.width * place.scale,
         height: spec.height * place.scale,
       });
+      if (side === "front") {
+        const hdrFont = fonts.get(mapping.fonts["700"].file);
+        const bgCol = rgb(7 / 255, 61 / 255, 90 / 255);
+        const txtCol = rgb(1, 1, 1);
+        for (const cell of scholasticHeaderOverlays(config)) {
+          page.drawRectangle({
+            x: px(cell.x),
+            y: py(cell.y + cell.height),
+            width: cell.width * place.scale,
+            height: cell.height * place.scale,
+            color: bgCol,
+          });
+          const fSize = cell.fontSize * place.scale;
+          const cy = cell.y + cell.height / 2;
+          const w1 = hdrFont.pdf.widthOfTextAtSize(cell.line1, fSize);
+          const w2 = hdrFont.pdf.widthOfTextAtSize(cell.line2, fSize);
+          const cx = px(cell.x + cell.width / 2);
+          page.drawText(cell.line1, {
+            x: cx - w1 / 2,
+            y: py(cy - 3),
+            size: fSize,
+            font: hdrFont.pdf,
+            color: txtCol,
+          });
+          page.drawText(cell.line2, {
+            x: cx - w2 / 2,
+            y: py(cy + cell.fontSize - 1),
+            size: fSize,
+            font: hdrFont.pdf,
+            color: txtCol,
+          });
+        }
+      }
       for (const f of spec.fields) {
         const value = values[f.id];
         if (f.type === "text") {
