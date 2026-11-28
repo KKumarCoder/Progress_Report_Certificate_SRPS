@@ -44,6 +44,7 @@ import {
   DEFAULT_HOUSES,
   DEFAULT_DESIGNATIONS,
   ALL_ACTIVITIES,
+  LEGACY_COMPONENTS,
 } from "../../shared/engine.js";
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -1229,6 +1230,42 @@ app.put(
       )
         throw fail(400, "Enter 1–8 uniquely named co-scholastic indicators");
       value.activities = acts.map((x) => x.trim().toUpperCase());
+    }
+    if (req.body.termComponents !== undefined) {
+      const tc = req.body.termComponents;
+      const expected = {
+        term1: ["fa1", "fa2", "sa1"],
+        term2: ["fa3", "fa4", "sa2"],
+      };
+      if (!tc || typeof tc !== "object" || Array.isArray(tc)) {
+        throw fail(400, "Invalid termComponents");
+      }
+      const normalized = {};
+      for (const [termKey, ids] of Object.entries(expected)) {
+        const list = tc[termKey];
+        if (!Array.isArray(list) || list.length !== ids.length) {
+          throw fail(400, `Invalid ${termKey} components`);
+        }
+        normalized[termKey] = ids.map((id) => {
+          const item = list.find((c) => c && c.id === id);
+          if (!item) throw fail(400, `Missing component ${id}`);
+          const label = typeof item.label === "string" ? item.label.trim() : "";
+          const max = Number(item.max);
+          if (!label || label.length > 20) {
+            throw fail(400, `Label for ${id} must be 1–20 characters`);
+          }
+          if (!Number.isFinite(max) || max < 1 || max > 500) {
+            throw fail(400, `Max marks for ${label} must be 1–500`);
+          }
+          return { id, label, max: Math.round(max * 100) / 100 };
+        });
+      }
+      value.termComponents = normalized;
+      value.components = [
+        ...normalized.term1,
+        ...normalized.term2,
+        ...LEGACY_COMPONENTS,
+      ];
     }
     if (!/^\d{4}-\d{2}$/.test(value.session))
       throw fail(400, "Session must be YYYY-YY");

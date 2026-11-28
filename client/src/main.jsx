@@ -557,6 +557,28 @@ function App() {
     if (user) load().catch((e) => toast(e.message, true));
   }, [user]);
   useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const syncConfig = () => {
+      if (document.visibilityState === "hidden") return;
+      api("/config")
+        .then((c) => {
+          if (!cancelled && c) setConfig(c);
+        })
+        .catch(() => {});
+    };
+    syncConfig();
+    window.addEventListener("focus", syncConfig);
+    document.addEventListener("visibilitychange", syncConfig);
+    const timer = setInterval(syncConfig, 15000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", syncConfig);
+      document.removeEventListener("visibilitychange", syncConfig);
+      clearInterval(timer);
+    };
+  }, [user, page]);
+  useEffect(() => {
     const expireSession = () => {
       setUser(null);
       setStudents([]);
@@ -2933,9 +2955,22 @@ function Studio({
                 </table>
               </div>
               <div className="entry-legend">
-                <span>FA: Formative Assessment (25)</span>
-                <span>SA: Summative Assessment (100)</span>
-                <span>Term Max: 150 · Subject Total: 300</span>
+                {(() => {
+                  const t1 = getTermComponents("term1", config);
+                  const t2 = getTermComponents("term2", config);
+                  const cur = term === "term1" ? t1 : t2;
+                  const t1Max = t1.reduce((s, c) => s + Number(c.max || 0), 0);
+                  const t2Max = t2.reduce((s, c) => s + Number(c.max || 0), 0);
+                  const curMax = term === "term1" ? t1Max : t2Max;
+                  return (
+                    <>
+                      <span>{cur.map((c) => `${c.label}: ${c.max}`).join(" · ")}</span>
+                      <span>
+                        Term Max: {curMax} · Subject Total: {t1Max + t2Max}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
               {!locked && (
                 <button
@@ -5934,6 +5969,9 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
   const [indicatorText, setIndicatorText] = useState(
     (config.activities || ACTIVITIES).join("\n"),
   );
+  const [termComponents, setTermComponents] = useState(
+    () => config.termComponents || DEFAULT_CONFIG.termComponents,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -6211,6 +6249,13 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
           onClick={() => setSubTab("indicators")}
         >
           <Award size={16} /> Co-Scholastic Indicators
+        </button>
+        <button
+          type="button"
+          className={subTab === "exams" ? "active" : ""}
+          onClick={() => setSubTab("exams")}
+        >
+          <SlidersHorizontal size={16} /> Exam Marks (FA / SA)
         </button>
         <button
           type="button"
@@ -6733,6 +6778,153 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                   </button>
                 </div>
               </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {subTab === "exams" && (
+        <div className="settings-content-wrapper">
+          <PageTitle
+            eyebrow="EXAMINATION STRUCTURE"
+            title="Exam Marks Configuration (FA & SA)"
+            subtitle="Modify FA-1, FA-2, SA-1, FA-3, FA-4 & SA-2 labels and maximum marks. Changes sync in real time to Teachers & Principal."
+          >
+            <button
+              type="button"
+              className="btn primary"
+              disabled={isSaving}
+              onClick={async (e) => {
+                const saved = await save(e, { ...data, termComponents });
+                if (saved?.termComponents) setTermComponents(saved.termComponents);
+              }}
+            >
+              <Save size={16} /> {isSaving ? "Saving..." : "Save Exam Settings"}
+            </button>
+          </PageTitle>
+
+          <section className="card settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <SlidersHorizontal size={18} />
+                  <span>Term I &amp; Term II Assessment Components</span>
+                </h3>
+                <p>
+                  Update the display label or maximum marks for any FA / SA exam. Totals, percentages, grades, and validation update automatically across all accounts.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn"
+                disabled={isSaving}
+                onClick={() => setTermComponents(DEFAULT_CONFIG.termComponents)}
+              >
+                <RefreshCw size={14} /> Reset Defaults (25 / 25 / 100)
+              </button>
+            </div>
+
+            <div className="subjects-split-layout">
+              {[
+                { key: "term1", title: "Term I (FA-1, FA-2, SA-1)" },
+                { key: "term2", title: "Term II (FA-3, FA-4, SA-2)" },
+              ].map((termMeta) => {
+                const list = termComponents?.[termMeta.key] || [];
+                const termSum = list.reduce((s, c) => s + Number(c.max || 0), 0);
+                return (
+                  <div key={termMeta.key} className="subject-chips-box">
+                    <div className="subject-chips-header">
+                      <span className="subject-box-title">{termMeta.title}</span>
+                      <span className="subject-count-pill">Term Max: {termSum}</span>
+                    </div>
+                    <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                      {list.map((comp, idx) => (
+                        <div
+                          key={comp.id}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 120px",
+                            gap: 10,
+                            alignItems: "end",
+                          }}
+                        >
+                          <label style={{ display: "grid", gap: 4 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.75 }}>
+                              Label ({comp.id.toUpperCase()})
+                            </span>
+                            <input
+                              type="text"
+                              maxLength={20}
+                              value={comp.label}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setTermComponents((prev) => ({
+                                  ...prev,
+                                  [termMeta.key]: (prev[termMeta.key] || []).map((item, i) =>
+                                    i === idx ? { ...item, label: val } : item,
+                                  ),
+                                }));
+                              }}
+                            />
+                          </label>
+                          <label style={{ display: "grid", gap: 4 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.75 }}>
+                              Max Marks
+                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={500}
+                              step="any"
+                              value={comp.max}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setTermComponents((prev) => ({
+                                  ...prev,
+                                  [termMeta.key]: (prev[termMeta.key] || []).map((item, i) =>
+                                    i === idx
+                                      ? { ...item, max: val === "" ? "" : Number(val) }
+                                      : item,
+                                  ),
+                                }));
+                              }}
+                            />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div
+              className="subject-actions-row"
+              style={{
+                marginTop: 18,
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }}>
+                {(() => {
+                  const t1 = (termComponents?.term1 || []).reduce((s, c) => s + Number(c.max || 0), 0);
+                  const t2 = (termComponents?.term2 || []).reduce((s, c) => s + Number(c.max || 0), 0);
+                  return `Term I Max: ${t1} · Term II Max: ${t2} · Per Subject Total: ${t1 + t2}`;
+                })()}
+              </span>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={isSaving}
+                onClick={async (e) => {
+                  const saved = await save(e, { ...data, termComponents });
+                  if (saved?.termComponents) setTermComponents(saved.termComponents);
+                }}
+              >
+                <Save size={15} /> {isSaving ? "Saving..." : "Save Exam Settings"}
+              </button>
             </div>
           </section>
         </div>

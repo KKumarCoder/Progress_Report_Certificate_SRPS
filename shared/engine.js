@@ -93,7 +93,12 @@ export function grade(p) {
 }
 export function validateMarks(marks, config = DEFAULT_CONFIG) {
   const errors = [];
-  const compLimits = Object.fromEntries(COMPONENTS.map((c) => [c.id, c.max]));
+  const activeComps = [
+    ...getTermComponents("term1", config),
+    ...getTermComponents("term2", config),
+    ...LEGACY_COMPONENTS,
+  ];
+  const compLimits = Object.fromEntries(activeComps.map((c) => [c.id, c.max]));
   for (const term of ["term1", "term2"]) {
     const rows = marks?.[term] || {};
     for (const key of Object.keys(rows)) {
