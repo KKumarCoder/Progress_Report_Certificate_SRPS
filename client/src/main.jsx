@@ -81,6 +81,7 @@ import {
   calculate,
   validateMarks,
   getTermComponents,
+  resolveConfigForClass,
 } from "../../shared/engine.js";
 import { api, startDemo, isDemo, download, saveBlob } from "./api";
 import ReportPage from "./Report";
@@ -2612,6 +2613,11 @@ function Studio({
   useEffect(() => {
     load();
   }, [student._id, session]);
+  useEffect(() => {
+    if (report && report.status !== "published") {
+      setConfig(resolveConfigForClass(baseConfig, student?.className));
+    }
+  }, [baseConfig, student?.className, report?.status]);
   useEffect(() => {
     const h = (e) => {
       if (dirty) {
@@ -5975,6 +5981,13 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
   const [termComponents, setTermComponents] = useState(
     () => config.termComponents || DEFAULT_CONFIG.termComponents,
   );
+  const [termComponentRules, setTermComponentRules] = useState(
+    () => config.termComponentRules || [],
+  );
+  const [ruleFromClass, setRuleFromClass] = useState(() => classes[0] || "Balvatika-1");
+  const [ruleToClass, setRuleToClass] = useState(() => classes.find((c) => c === "5") || classes[Math.min(7, classes.length - 1)] || classes[0] || "5");
+  const [ruleFaMax, setRuleFaMax] = useState(() => String(config.termComponents?.term1?.[0]?.max ?? 20));
+  const [ruleSaMax, setRuleSaMax] = useState("50");
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -6798,8 +6811,9 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
               className="btn primary"
               disabled={isSaving}
               onClick={async (e) => {
-                const saved = await save(e, { ...data, termComponents });
+                const saved = await save(e, { ...data, termComponents, termComponentRules });
                 if (saved?.termComponents) setTermComponents(saved.termComponents);
+                if (saved?.termComponentRules) setTermComponentRules(saved.termComponentRules);
               }}
             >
               <Save size={16} /> {isSaving ? "Saving..." : "Save Exam Settings"}
@@ -6922,8 +6936,222 @@ function SchoolSettings({ config, setConfig, user, setUser, toast }) {
                 className="btn primary"
                 disabled={isSaving}
                 onClick={async (e) => {
-                  const saved = await save(e, { ...data, termComponents });
+                  const saved = await save(e, { ...data, termComponents, termComponentRules });
                   if (saved?.termComponents) setTermComponents(saved.termComponents);
+                  if (saved?.termComponentRules) setTermComponentRules(saved.termComponentRules);
+                }}
+              >
+                <Save size={15} /> {isSaving ? "Saving..." : "Save Exam Settings"}
+              </button>
+            </div>
+          </section>
+
+          <section className="card settings-card" style={{ marginTop: 18 }}>
+            <div className="settings-card-header">
+              <div>
+                <h3>
+                  <Layers size={18} />
+                  <span>Class-Wise SA / FA Marks Rules (Custom Class Ranges)</span>
+                </h3>
+                <p>
+                  Alag-alag class range ke liye SA-1 / SA-2 ya FA marks set karein (e.g. Balvatika-1 se Class 5 tak SA = 50, Class 6 se 11 tak SA = 100).
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn"
+                disabled={isSaving}
+                onClick={() => {
+                  const idx5 = classes.indexOf("5");
+                  const idx6 = classes.indexOf("6");
+                  const lowerClasses = idx5 >= 0 ? classes.slice(0, idx5 + 1) : classes.filter((c) => ["Balvatika-1", "Balvatika-2", "Balvatika-3", "1", "2", "3", "4", "5"].includes(c));
+                  const upperClasses = idx6 >= 0 ? classes.slice(idx6) : classes.filter((c) => !lowerClasses.includes(c));
+                  const faVal = Number(termComponents?.term1?.[0]?.max) || 20;
+                  const makeTC = (fa, sa) => ({
+                    term1: [
+                      { id: "fa1", label: termComponents?.term1?.[0]?.label || "FA-1", max: fa },
+                      { id: "fa2", label: termComponents?.term1?.[1]?.label || "FA-2", max: fa },
+                      { id: "sa1", label: termComponents?.term1?.[2]?.label || "SA-1", max: sa },
+                    ],
+                    term2: [
+                      { id: "fa3", label: termComponents?.term2?.[0]?.label || "FA-3", max: fa },
+                      { id: "fa4", label: termComponents?.term2?.[1]?.label || "FA-4", max: fa },
+                      { id: "sa2", label: termComponents?.term2?.[2]?.label || "SA-2", max: sa },
+                    ],
+                  });
+                  const nextRules = [];
+                  if (lowerClasses.length) {
+                    nextRules.push({
+                      id: "rule_lower",
+                      label: `${lowerClasses[0]} to ${lowerClasses[lowerClasses.length - 1]}`,
+                      fromClass: lowerClasses[0],
+                      toClass: lowerClasses[lowerClasses.length - 1],
+                      classes: lowerClasses,
+                      termComponents: makeTC(faVal, 50),
+                    });
+                  }
+                  if (upperClasses.length) {
+                    nextRules.push({
+                      id: "rule_upper",
+                      label: `${upperClasses[0]} to ${upperClasses[upperClasses.length - 1]}`,
+                      fromClass: upperClasses[0],
+                      toClass: upperClasses[upperClasses.length - 1],
+                      classes: upperClasses,
+                      termComponents: makeTC(faVal, 100),
+                    });
+                  }
+                  setTermComponentRules(nextRules);
+                  toast("Preset rules staged. Click Save Exam Settings to apply.");
+                }}
+              >
+                <Sparkles size={14} /> Preset: Balvatika-1..5 (SA=50) &amp; 6+ (SA=100)
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: 10,
+                alignItems: "end",
+                marginTop: 12,
+              }}
+            >
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.75 }}>From Class</span>
+                <select value={ruleFromClass} onChange={(e) => setRuleFromClass(e.target.value)}>
+                  {classes.map((c) => (
+                    <option key={c} value={c}>Class {c}</option>
+                  ))}
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.75 }}>To Class</span>
+                <select value={ruleToClass} onChange={(e) => setRuleToClass(e.target.value)}>
+                  {classes.map((c) => (
+                    <option key={c} value={c}>Class {c}</option>
+                  ))}
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.75 }}>FA (1–4) Max</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={ruleFaMax}
+                  onChange={(e) => setRuleFaMax(e.target.value)}
+                />
+              </label>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.75 }}>SA (1–2) Max</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={ruleSaMax}
+                  onChange={(e) => setRuleSaMax(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  const i1 = classes.indexOf(ruleFromClass);
+                  const i2 = classes.indexOf(ruleToClass);
+                  if (i1 < 0 || i2 < 0) return toast("Select valid classes", true);
+                  const start = Math.min(i1, i2);
+                  const end = Math.max(i1, i2);
+                  const rangeClasses = classes.slice(start, end + 1);
+                  const fa = Number(ruleFaMax);
+                  const sa = Number(ruleSaMax);
+                  if (!Number.isFinite(fa) || fa < 1 || fa > 500 || !Number.isFinite(sa) || sa < 1 || sa > 500) {
+                    return toast("Enter valid FA & SA max marks (1–500)", true);
+                  }
+                  const newRule = {
+                    id: `rule_${Date.now()}`,
+                    label: `${classes[start]} to ${classes[end]}`,
+                    fromClass: classes[start],
+                    toClass: classes[end],
+                    classes: rangeClasses,
+                    termComponents: {
+                      term1: [
+                        { id: "fa1", label: termComponents?.term1?.[0]?.label || "FA-1", max: fa },
+                        { id: "fa2", label: termComponents?.term1?.[1]?.label || "FA-2", max: fa },
+                        { id: "sa1", label: termComponents?.term1?.[2]?.label || "SA-1", max: sa },
+                      ],
+                      term2: [
+                        { id: "fa3", label: termComponents?.term2?.[0]?.label || "FA-3", max: fa },
+                        { id: "fa4", label: termComponents?.term2?.[1]?.label || "FA-4", max: fa },
+                        { id: "sa2", label: termComponents?.term2?.[2]?.label || "SA-2", max: sa },
+                      ],
+                    },
+                  };
+                  setTermComponentRules((prev) => {
+                    const cleaned = prev
+                      .map((r) => ({
+                        ...r,
+                        classes: (r.classes || []).filter((c) => !rangeClasses.includes(c)),
+                      }))
+                      .filter((r) => r.classes.length > 0);
+                    return [...cleaned, newRule];
+                  });
+                  toast(`Added rule for ${classes[start]} to ${classes[end]}. Click Save Exam Settings to apply.`);
+                }}
+              >
+                <Plus size={15} /> Add Range Rule
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+              {termComponentRules.map((rule) => {
+                const fa = rule.termComponents?.term1?.[0]?.max ?? "—";
+                const sa = rule.termComponents?.term1?.[2]?.max ?? "—";
+                const t1 = (rule.termComponents?.term1 || []).reduce((s, c) => s + Number(c.max || 0), 0);
+                const t2 = (rule.termComponents?.term2 || []).reduce((s, c) => s + Number(c.max || 0), 0);
+                return (
+                  <div
+                    key={rule.id}
+                    className="subject-item-chip"
+                    style={{ justifyContent: "space-between", padding: "12px 14px" }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>
+                        {rule.label || `${rule.classes[0]} to ${rule.classes[rule.classes.length - 1]}`}
+                        <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
+                          ({rule.classes.length} classes: {rule.classes.join(", ")})
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.85, marginTop: 3 }}>
+                        FA: <b>{fa}</b> · SA-1 &amp; SA-2: <b>{sa}</b> · Subject Total: <b>{t1 + t2}</b>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-button danger"
+                      onClick={() => setTermComponentRules((prev) => prev.filter((r) => r.id !== rule.id))}
+                    >
+                      <Trash2 size={14} /> Remove
+                    </button>
+                  </div>
+                );
+              })}
+              {!termComponentRules.length && (
+                <div className="empty-subjects-note">
+                  No class-specific rules configured. All classes currently use the global default FA/SA marks above.
+                </div>
+              )}
+            </div>
+
+            <div className="subject-actions-row" style={{ marginTop: 16, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={isSaving}
+                onClick={async (e) => {
+                  const saved = await save(e, { ...data, termComponents, termComponentRules });
+                  if (saved?.termComponents) setTermComponents(saved.termComponents);
+                  if (saved?.termComponentRules) setTermComponentRules(saved.termComponentRules);
                 }}
               >
                 <Save size={15} /> {isSaving ? "Saving..." : "Save Exam Settings"}

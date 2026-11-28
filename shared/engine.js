@@ -50,6 +50,24 @@ export function getTermComponents(term, config = DEFAULT_CONFIG) {
   if (term === "term2") return TERM2_COMPONENTS;
   return config?.components || COMPONENTS;
 }
+export function resolveConfigForClass(cfg, className) {
+  if (!cfg) return DEFAULT_CONFIG;
+  const cls = className ? String(className) : null;
+  const subjects =
+    cls && cfg.profiles?.[cls]?.length ? cfg.profiles[cls] : cfg.subjects;
+  const matchedRule =
+    cls && Array.isArray(cfg.termComponentRules)
+      ? cfg.termComponentRules.find(
+          (r) => Array.isArray(r?.classes) && r.classes.includes(cls),
+        )
+      : null;
+  const termComponents = matchedRule?.termComponents || cfg.termComponents;
+  return {
+    ...cfg,
+    subjects,
+    ...(termComponents ? { termComponents } : {}),
+  };
+}
 export const DEFAULT_CONFIG = {
   session: "2025-26",
   subjects: SUBJECTS,

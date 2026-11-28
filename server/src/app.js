@@ -45,6 +45,7 @@ import {
   DEFAULT_DESIGNATIONS,
   ALL_ACTIVITIES,
   LEGACY_COMPONENTS,
+  resolveConfigForClass,
 } from "../../shared/engine.js";
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -256,13 +257,7 @@ const getActiveSections = async () => {
     .map((s) => String(s.name || s.id));
 };
 function forClass(cfg, student) {
-  const cls = student?.className ? String(student.className) : null;
-  return {
-    ...cfg,
-    subjects: cls && cfg.profiles?.[cls]?.length
-      ? cfg.profiles[cls]
-      : cfg.subjects,
-  };
+  return resolveConfigForClass(cfg, student?.className);
 }
 
 function scope(user) {
@@ -1233,8 +1228,7 @@ app.put(
         throw fail(400, "Enter 1–8 uniquely named co-scholastic indicators");
       value.activities = acts.map((x) => x.trim().toUpperCase());
     }
-    if (req.body.termComponents !== undefined) {
-      const tc = req.body.termComponents;
+    const normalizeTermComponents = (tc) => {
       const expected = {
         term1: ["fa1", "fa2", "sa1"],
         term2: ["fa3", "fa4", "sa2"],
@@ -1262,12 +1256,35 @@ app.put(
           return { id, label, max: Math.round(max * 100) / 100 };
         });
       }
+      return normalized;
+    };
+    if (req.body.termComponents !== undefined) {
+      const normalized = normalizeTermComponents(req.body.termComponents);
       value.termComponents = normalized;
       value.components = [
         ...normalized.term1,
         ...normalized.term2,
         ...LEGACY_COMPONENTS,
       ];
+    }
+    if (req.body.termComponentRules !== undefined) {
+      const rules = req.body.termComponentRules;
+      if (!Array.isArray(rules) || rules.length > 20) {
+        throw fail(400, "Invalid termComponentRules");
+      }
+      value.termComponentRules = rules.map((r, idx) => {
+        if (!r || typeof r !== "object" || !Array.isArray(r.classes) || !r.classes.length) {
+          throw fail(400, "Each class range rule must include at least one class");
+        }
+        return {
+          id: typeof r.id === "string" && r.id.trim() ? r.id.trim().slice(0, 40) : `rule_${idx + 1}`,
+          label: typeof r.label === "string" ? r.label.trim().slice(0, 80) : "",
+          fromClass: typeof r.fromClass === "string" ? r.fromClass.trim().slice(0, 40) : "",
+          toClass: typeof r.toClass === "string" ? r.toClass.trim().slice(0, 40) : "",
+          classes: [...new Set(r.classes.map((c) => String(c).trim()).filter(Boolean))],
+          termComponents: normalizeTermComponents(r.termComponents),
+        };
+      });
     }
     if (!/^\d{4}-\d{2}$/.test(value.session))
       throw fail(400, "Session must be YYYY-YY");
