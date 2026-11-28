@@ -418,7 +418,7 @@ body {
 /* ---------- Student Directory Desktop Split with Quick Actions Rail ---------- */
 .anv-directory-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
