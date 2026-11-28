@@ -3239,11 +3239,6 @@ function Studio({
                   Term II
                 </button>
               </div>
-              <div className="entry-helper">
-                Enter marks below. Totals and grades calculate instantly.
-                <br />
-                <b>AB</b> = absent · blank = not assessed
-              </div>
               <div className="marks-entry">
                 <table>
                   <thead>
