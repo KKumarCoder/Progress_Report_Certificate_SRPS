@@ -566,7 +566,7 @@ function App() {
         .then((c) => {
           if (!cancelled && c) setConfig(c);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     syncConfig();
     window.addEventListener("focus", syncConfig);
@@ -1605,7 +1605,7 @@ function Students({
       .then((data) => {
         if (!cancelled && Array.isArray(data)) setClassTeachers(data);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -1976,11 +1976,11 @@ function Students({
                   ),
                 ) ||
                 (user.role === "teacher" &&
-                (user.assignments || []).some(
-                  (a) =>
-                    String(a.className || "").trim().toLowerCase() === String(s.className || "").trim().toLowerCase() &&
-                    String(a.section || "").trim().toLowerCase() === String(s.section || "").trim().toLowerCase(),
-                )
+                  (user.assignments || []).some(
+                    (a) =>
+                      String(a.className || "").trim().toLowerCase() === String(s.className || "").trim().toLowerCase() &&
+                      String(a.section || "").trim().toLowerCase() === String(s.section || "").trim().toLowerCase(),
+                  )
                   ? user
                   : user.role === "teacher"
                     ? user
@@ -2924,51 +2924,51 @@ function Studio({
                     {config.subjects.map((s, i) => {
                       const comps = getTermComponents(term, config);
                       return (
-                      <tr key={s.id}>
-                        <td>
-                          <b>{s.name}</b>
-                          <small>{calc.terms?.[term]?.[i]?.grade || "—"}</small>
-                        </td>
-                        {comps.map((c) => {
-                          const v = report.marks?.[term]?.[s.id]?.[c.id] ?? "",
-                            invalid =
-                              v !== "AB" &&
-                              v !== "" &&
-                              (Number(v) < 0 || Number(v) > c.max);
-                          return (
-                            <td key={c.id}>
-                              <MarkInput
-                                label={`${term} ${s.name} ${c.label}`}
-                                max={c.max}
-                                disabled={locked}
-                                value={v}
-                                onChange={(value) =>
-                                  update({
-                                    ...report,
-                                    marks: {
-                                      ...report.marks,
-                                      [term]: {
-                                        ...report.marks?.[term],
-                                        [s.id]: {
-                                          ...report.marks?.[term]?.[s.id],
-                                          [c.id]: value,
+                        <tr key={s.id}>
+                          <td>
+                            <b>{s.name}</b>
+                            <small>{calc.terms?.[term]?.[i]?.grade || "—"}</small>
+                          </td>
+                          {comps.map((c) => {
+                            const v = report.marks?.[term]?.[s.id]?.[c.id] ?? "",
+                              invalid =
+                                v !== "AB" &&
+                                v !== "" &&
+                                (Number(v) < 0 || Number(v) > c.max);
+                            return (
+                              <td key={c.id}>
+                                <MarkInput
+                                  label={`${term} ${s.name} ${c.label}`}
+                                  max={c.max}
+                                  disabled={locked}
+                                  value={v}
+                                  onChange={(value) =>
+                                    update({
+                                      ...report,
+                                      marks: {
+                                        ...report.marks,
+                                        [term]: {
+                                          ...report.marks?.[term],
+                                          [s.id]: {
+                                            ...report.marks?.[term]?.[s.id],
+                                            [c.id]: value,
+                                          },
                                         },
                                       },
-                                    },
-                                  })
-                                }
-                              />
-                            </td>
-                          );
-                        })}
-                        <td>
-                          <b className="row-total">
-                            {calc.terms?.[term]?.[i]?.total ?? "—"}
-                          </b>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                                    })
+                                  }
+                                />
+                              </td>
+                            );
+                          })}
+                          <td>
+                            <b className="row-total">
+                              {calc.terms?.[term]?.[i]?.total ?? "—"}
+                            </b>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -5059,50 +5059,50 @@ function UserAccess({ toast, user: currentUser }) {
               <div className="permission-grid">
                 {MODULE_LABELS.map(([moduleId, label]) => {
                   return (
-                        <label className="permission-check" key={moduleId}>
-                          <input
-                            type="checkbox"
-                            checked={moduleAccess.includes(moduleId)}
-                            onChange={(e) => {
-                              const enabled = e.target.checked;
-                              setModuleAccess((current) => {
-                                if (enabled) {
-                                  const requiresStudents = [
+                    <label className="permission-check" key={moduleId}>
+                      <input
+                        type="checkbox"
+                        checked={moduleAccess.includes(moduleId)}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setModuleAccess((current) => {
+                            if (enabled) {
+                              const requiresStudents = [
+                                "overview",
+                                "analytics",
+                                "studio",
+                                "review",
+                                "bulk",
+                              ].includes(moduleId);
+                              if (requiresStudents && !current.includes("students")) {
+                                return [...new Set([...current, "students", moduleId])];
+                              }
+                              return [...new Set([...current, moduleId])];
+                            }
+                            if (moduleId === "students") {
+                              return current.filter(
+                                (id) =>
+                                  ![
+                                    "students",
                                     "overview",
                                     "analytics",
                                     "studio",
                                     "review",
                                     "bulk",
-                                  ].includes(moduleId);
-                                  if (requiresStudents && !current.includes("students")) {
-                                    return [...new Set([...current, "students", moduleId])];
-                                  }
-                                  return [...new Set([...current, moduleId])];
-                                }
-                                if (moduleId === "students") {
-                                  return current.filter(
-                                    (id) =>
-                                      ![
-                                        "students",
-                                        "overview",
-                                        "analytics",
-                                        "studio",
-                                        "review",
-                                        "bulk",
-                                      ].includes(id),
-                                  );
-                                }
-                                return current.filter((id) => id !== moduleId);
-                              });
-                              if (moduleId === "students" && !enabled)
-                                setStudentActions([]);
-                            }}
-                          />
-                          <span>{label}</span>
-                        </label>
-                      );
-                    })
-                  }
+                                  ].includes(id),
+                              );
+                            }
+                            return current.filter((id) => id !== moduleId);
+                          });
+                          if (moduleId === "students" && !enabled)
+                            setStudentActions([]);
+                        }}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  );
+                })
+                }
               </div>
 
               <h3>Student actions</h3>
