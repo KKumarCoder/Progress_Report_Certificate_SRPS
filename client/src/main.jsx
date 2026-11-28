@@ -285,10 +285,10 @@ function Pagination({
   return (
     <div className="pagination-bar">
       <div className="pagination-info">
-        <span className="pagination-info-badge">
+        <span className="pagination-info-badge" title={`Showing ${startIdx}–${endIdx} of ${totalItems} ${itemLabel}`}>
           <Layers size={14} className="pagination-info-icon" />
           <span>
-            Showing <b>{startIdx}–{endIdx}</b> of <b>{totalItems}</b> {itemLabel}
+            <b>{startIdx}–{endIdx}</b> / <b>{totalItems}</b>
           </span>
         </span>
       </div>
@@ -308,9 +308,8 @@ function Pagination({
           >
             <Minus size={13} strokeWidth={2.5} />
           </button>
-          <span className="page-size-display-badge">
+          <span className="page-size-display-badge" title={`${pageSize} per page`}>
             <b>{pageSize}</b>
-            <small>/ page</small>
           </span>
           <button
             type="button"
@@ -2257,26 +2256,56 @@ function Students({
         <aside className="anv-quick-rail">
           <div className="anv-quick-card">
             <h3>Quick Actions</h3>
-            {hasStudentAction(user, "studentCreate") && (
-              <button type="button" className="anv-quick-btn primary" onClick={() => setEditing({})}>
-                <Plus size={16} /> Add Student
-              </button>
-            )}
-            {go && (
-              <>
-                <button type="button" className="anv-quick-btn" onClick={() => go("bulk")}>
-                  <Printer size={16} /> Print Reports
+            <div className="anv-quick-actions-row">
+              {hasStudentAction(user, "studentCreate") && (
+                <button
+                  type="button"
+                  className="anv-quick-btn primary"
+                  onClick={() => setEditing({})}
+                  title="Add Student"
+                  aria-label="Add Student"
+                >
+                  <Plus size={18} />
+                  <span className="anv-quick-label">Add Student</span>
                 </button>
-                {canOpenPage(user, "analytics") && (
-                  <button type="button" className="anv-quick-btn" onClick={() => go("analytics")}>
-                    <BarChart3 size={16} /> View Analytics
+              )}
+              {go && (
+                <>
+                  <button
+                    type="button"
+                    className="anv-quick-btn"
+                    onClick={() => go("bulk")}
+                    title="Print Reports"
+                    aria-label="Print Reports"
+                  >
+                    <Printer size={18} />
+                    <span className="anv-quick-label">Print Reports</span>
                   </button>
-                )}
-                <button type="button" className="anv-quick-btn" onClick={() => go("settings")}>
-                  <Settings size={16} /> Settings
-                </button>
-              </>
-            )}
+                  {canOpenPage(user, "analytics") && (
+                    <button
+                      type="button"
+                      className="anv-quick-btn"
+                      onClick={() => go("analytics")}
+                      title="View Analytics"
+                      aria-label="View Analytics"
+                    >
+                      <BarChart3 size={18} />
+                      <span className="anv-quick-label">View Analytics</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="anv-quick-btn"
+                    onClick={() => go("settings")}
+                    title="Settings"
+                    aria-label="Settings"
+                  >
+                    <Settings size={18} />
+                    <span className="anv-quick-label">Settings</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           <div className="anv-promo-card">
             <b>Smarter School with ANVAYROBO</b>

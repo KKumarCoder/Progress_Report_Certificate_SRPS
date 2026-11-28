@@ -445,6 +445,11 @@ body {
   color: var(--anv-text);
 }
 
+.anv-quick-actions-row {
+  display: grid;
+  gap: 10px;
+}
+
 .anv-quick-btn {
   display: flex;
   align-items: center;
@@ -1250,5 +1255,92 @@ body {
   }
   .cover-flip-hint .hint-mobile {
     display: inline;
+  }
+}
+
+/* ==========================================================================
+   Compact Icon-Based Pagination & Quick Actions on Mobile
+   ========================================================================== */
+@media (max-width: 767px) {
+  .pagination-bar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+
+  .pagination-info {
+    width: auto !important;
+  }
+
+  .pagination-info-badge {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+  }
+
+  .pagination-controls {
+    width: auto !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .page-size-controller {
+    padding: 3px 6px !important;
+    gap: 4px !important;
+  }
+
+  .page-size-display-badge {
+    min-width: 24px !important;
+    padding: 0 4px !important;
+    font-size: 12px !important;
+  }
+
+  .page-nav-pill-group {
+    gap: 4px !important;
+  }
+
+  .page-nav-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 10px !important;
+  }
+
+  .current-page-pill {
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .anv-quick-card {
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+
+  .anv-quick-card h3 {
+    font-size: 13px !important;
+    margin: 0 !important;
+  }
+
+  .anv-quick-actions-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .anv-quick-btn {
+    justify-content: center !important;
+    padding: 10px 6px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+  }
+
+  .anv-quick-label {
+    display: none !important;
   }
 }
