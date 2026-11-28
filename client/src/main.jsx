@@ -1197,6 +1197,7 @@ function StudentFlipBook({
   emailBusy = false,
 }) {
   const [page, setPage] = useState(1);
+  const [isOpen, setIsOpen] = useState(false);
   const badge = getHouseBadge(student.house);
   const HouseIcon = badge?.Icon || Home;
   const isPublished = reportStatus?.published;
@@ -1210,18 +1211,32 @@ function StudentFlipBook({
   const whatsappReady = Boolean(student.active && isPublished);
   const emailReady = Boolean(student.active && isPublished && student.email);
 
+  const handleWrapperClick = () => {
+    const isTouchOrMobile =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(hover: none), (max-width: 1024px)").matches;
+    if (isTouchOrMobile && !isOpen) {
+      setIsOpen(true);
+      return;
+    }
+    onOpen();
+  };
+
   return (
     <div
-      className="student-book-wrapper"
-      onClick={onOpen}
-      onMouseLeave={() => setPage(1)}
+      className={`student-book-wrapper ${isOpen ? "is-open" : ""}`}
+      onClick={handleWrapperClick}
+      onMouseLeave={() => {
+        setPage(1);
+        setIsOpen(false);
+      }}
       title={`Click to open ${student.name} in Report Studio`}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onOpen();
+          handleWrapperClick();
         }
       }}
     >
@@ -1258,6 +1273,21 @@ function StudentFlipBook({
               <span>Teacher</span>
             </button>
             <span className="book-page-counter">{page}/3</span>
+            {isOpen && (
+              <button
+                type="button"
+                className="book-nav-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  setPage(1);
+                }}
+                title="Close preview"
+                aria-label="Close preview"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
 
           {page === 1 && (
@@ -1572,8 +1602,17 @@ function StudentFlipBook({
           )}
         </div>
 
-        {/* Front Cover (3D flap that rotates -82deg on hover) */}
-        <div className="student-book-cover">
+        {/* Front Cover (3D flap that rotates -82deg on hover or tap) */}
+        <div
+          className="student-book-cover"
+          onClick={(e) => {
+            if (isOpen) {
+              e.stopPropagation();
+              setIsOpen(false);
+              setPage(1);
+            }
+          }}
+        >
           <div className="cover-spine-crease" />
 
           <div className="cover-top-badge">
@@ -1617,7 +1656,8 @@ function StudentFlipBook({
               <span>{badge?.label || student.house || "School"}</span>
             </span>
             <span className="cover-flip-hint">
-              <span>Hover to preview</span>
+              <span className="hint-desktop">Hover to preview</span>
+              <span className="hint-mobile">Tap to preview</span>
               <span className="flip-arrow">➔</span>
             </span>
           </div>
