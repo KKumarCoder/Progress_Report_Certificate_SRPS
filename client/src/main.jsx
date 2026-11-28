@@ -7570,6 +7570,12 @@ function MarkInput({ label, max, disabled, value, onChange }) {
           stepMark(e.key === "ArrowUp" ? 1 : -1);
         }
       }}
+      onBlur={() => {
+        if (text === "A") {
+          setText("AB");
+          onChange("AB");
+        }
+      }}
       onChange={(e) => {
         const raw = e.target.value.toUpperCase();
         if (

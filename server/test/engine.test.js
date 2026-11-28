@@ -73,17 +73,22 @@ test("Grade thresholds and decimal rounding are consistent", () => {
   ])
     assert.equal(grade(m), g);
 });
-test("AB counts as assessed zero; a failed subject prevents PASS", () => {
+test("AB excludes absent exam max marks from total; a failed subject prevents PASS", () => {
   const m = full(1);
   m.term1.english = {
     fa1: "AB",
     fa2: "AB",
-    sa1: "AB",
+    sa1: 50,
   };
   const c = calculate(m);
   assert.equal(c.complete, true);
-  assert.equal(c.total, 1950);
-  assert.equal(c.result, "NEEDS IMPROVEMENT");
+  assert.equal(c.maximum, 2100 - 25 - 25);
+  assert.equal(c.total, 2000);
+  assert.equal(c.result, "PASS");
+
+  m.term1.hindi = { fa1: 0, fa2: 0, sa1: 0 };
+  const failed = calculate(m);
+  assert.equal(failed.result, "NEEDS IMPROVEMENT");
 });
 test("Excessive, negative, string and unknown marks are rejected", () => {
   for (const v of [-1, 81, Infinity, "80"])

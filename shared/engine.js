@@ -178,33 +178,39 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
 
   for (const term of ["term1", "term2"]) {
     const termComps = getCompsForTerm(term);
-    const termMax = termComps.reduce((s, c) => s + c.max, 0);
     terms[term] = config.subjects.map((s) => {
       const row = marks?.[term]?.[s.id] || {};
       const done = termComps.every(
         (c) =>
           row[c.id] !== "" && row[c.id] !== null && row[c.id] !== undefined,
       );
+      const termMax = termComps.reduce(
+        (sum, c) => sum + (row[c.id] === "AB" ? 0 : c.max),
+        0,
+      );
       const obtained = termComps.reduce(
         (sum, c) => sum + (typeof row[c.id] === "number" ? row[c.id] : 0),
         0,
       );
       if (!done) complete = false;
-      const percentage = termMax > 0 ? (obtained / termMax) * 100 : 0;
-      if (done && Math.round(percentage) < config.passMark) passed = false;
+      const percentage = termMax > 0 ? (obtained / termMax) * 100 : null;
+      if (done && percentage !== null && Math.round(percentage) < config.passMark) {
+        passed = false;
+      }
       total += obtained;
       return {
         ...s,
         complete: done,
         total: done ? Math.round(obtained * 100) / 100 : null,
-        grade: done ? grade(percentage) : "—",
+        max: termMax,
+        grade: done && percentage !== null ? grade(percentage) : "—",
       };
     });
   }
 
   const comps1 = getCompsForTerm("term1");
   const comps2 = getCompsForTerm("term2");
-  const combinedMaxPerSubject = comps1.reduce((s, c) => s + c.max, 0) + comps2.reduce((s, c) => s + c.max, 0);
+  let maximum = 0;
 
   for (const s of config.subjects) {
     const row1 = marks?.term1?.[s.id] || {};
@@ -212,27 +218,31 @@ export function calculate(marks, config = DEFAULT_CONFIG) {
     const done1 = comps1.every((c) => row1[c.id] !== "" && row1[c.id] !== null && row1[c.id] !== undefined);
     const done2 = comps2.every((c) => row2[c.id] !== "" && row2[c.id] !== null && row2[c.id] !== undefined);
     const subDone = done1 && done2;
+    const subMax1 = comps1.reduce((sum, c) => sum + (row1[c.id] === "AB" ? 0 : c.max), 0);
+    const subMax2 = comps2.reduce((sum, c) => sum + (row2[c.id] === "AB" ? 0 : c.max), 0);
+    const subMax = subMax1 + subMax2;
+    maximum += subMax;
     const obt1 = comps1.reduce((sum, c) => sum + (typeof row1[c.id] === "number" ? row1[c.id] : 0), 0);
     const obt2 = comps2.reduce((sum, c) => sum + (typeof row2[c.id] === "number" ? row2[c.id] : 0), 0);
     const subTotal = Math.round((obt1 + obt2) * 100) / 100;
-    const total100 = combinedMaxPerSubject > 0 ? Math.round((subTotal / combinedMaxPerSubject) * 100) : 0;
-    if (subDone && total100 < config.passMark) passed = false;
+    const total100 = subMax > 0 ? Math.round((subTotal / subMax) * 100) : null;
+    if (subDone && total100 !== null && total100 < config.passMark) passed = false;
     subjectsMap[s.id] = {
       complete: subDone,
       subTotal,
+      subMax,
       total100,
-      grade: subDone ? grade(total100) : "—",
+      grade: subDone && total100 !== null ? grade(total100) : "—",
     };
   }
 
-  const maximum = combinedMaxPerSubject * config.subjects.length;
   return {
     terms,
     subjects: subjectsMap,
     total: Math.round(total * 100) / 100,
     maximum,
     complete,
-    percentage: complete ? Number(((total / maximum) * 100).toFixed(2)) : null,
+    percentage: complete && maximum > 0 ? Number(((total / maximum) * 100).toFixed(2)) : null,
     result: !complete ? "INCOMPLETE" : passed ? "PASS" : "NEEDS IMPROVEMENT",
   };
 }
